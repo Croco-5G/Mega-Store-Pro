@@ -1341,13 +1341,53 @@ function exportData(){
 }
 
 function importData(){
-    let f=importFile.files[0]; if(!f) return;
+    let f=importFile.files[0]; 
+    if(!f) return notify("يرجى اختيار ملف أولاً", "error");
+
     let r=new FileReader();
-    r.onload=(e)=>{
-        let d=JSON.parse(e.target.result);
-        Object.keys(d).forEach(k=>localStorage.setItem(k, d[k]));
-        location.reload();
-    }; r.readAsText(f);
+    r.onload=async (e)=>{
+        try {
+            let d=JSON.parse(e.target.result);
+            
+            // 1. استعادة البيانات محلياً
+            Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
+            
+            // 2. تحديث متغيرات الكونفج فوراً من اللوكال ستورج الجديد
+            ghConfig.user = localStorage.getItem("gh_user") || "";
+            ghConfig.repo = localStorage.getItem("gh_repo") || "";
+            ghConfig.token = localStorage.getItem("gh_token") || "";
+            ghConfig.file = localStorage.getItem("gh_file") || "db.json";
+
+            notify("تم استعادة البيانات محلياً، جاري المزامنة مع GitHub...", "success");
+
+            // 3. محاولة الرفع المباشر إلى GitHub
+            if(ghConfig.token && ghConfig.user && ghConfig.repo) {
+                updateSyncStatus("جاري رفع النسخة المستعادة...", "loading");
+                
+                // خطوة مهمة: جلب الـ SHA للملف الموجود في Github أولاً لضمان الكتابة فوقه
+                try {
+                    const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
+                    const resp = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}` } });
+                    if(resp.ok) {
+                        const json = await resp.json();
+                        ghConfig.sha = json.sha; // تحديث الـ SHA
+                    }
+                } catch(err) { console.log("New file creation likely"); }
+
+                await pushToGithub(); 
+            }
+
+            // 4. تحديث الصفحة بعد انتهاء العمليات
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+
+        } catch (error) {
+            console.error(error);
+            notify("حدث خطأ في استعادة الملف", "error");
+        }
+    };
+    r.readAsText(f);
 }
 
 function undoLastPurchase(){
