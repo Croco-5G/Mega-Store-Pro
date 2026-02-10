@@ -38,6 +38,8 @@
             --yellow-item-bg: #fffbeb;
             --yellow-item-border: #eab308;
             --yellow-item-text: #713f12;
+            --yellow-btn-bg: #eab308;     /* لون خلفية الزر الأصفر */
+            --yellow-btn-hover: #ca8a04;  /* لون الزر الأصفر عند التحويم */
         }
 
         /* --- ألوان الوضع الليلي --- */
@@ -59,9 +61,10 @@
             --yellow-item-bg: rgba(234, 179, 8, 0.15);
             --yellow-item-border: #eab308;
             --yellow-item-text: #fef08a;
+            --yellow-btn-bg: #eab308;
+            --yellow-btn-hover: #ca8a04;
         }
 
-        /* تعديل خاص لأيقونات الإحصائيات في الوضع الليلي فقط */
         body.dark-mode .stat-icon[style*="#e0e7ff"] { background: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
         body.dark-mode .stat-icon[style*="#dcfce7"] { background: rgba(16, 185, 129, 0.2) !important; color: #34d399 !important; }
         body.dark-mode .stat-icon[style*="#fef3c7"] { background: rgba(245, 158, 11, 0.2) !important; color: #fbbf24 !important; }
@@ -325,6 +328,16 @@
         }
         .yellow-section h3 { color: var(--yellow-text) !important; }
         
+        /* تنسيقات الأزرار الصفراء داخل قسم المهام */
+        .yellow-section .btn-primary {
+            background: var(--yellow-btn-bg);
+            color: #fff;
+            border: none;
+        }
+        .yellow-section .btn-primary:hover {
+            background: var(--yellow-btn-hover);
+        }
+
         .todo-item {
             display: flex; align-items: center; justify-content: space-between;
             background: var(--yellow-item-bg);
@@ -753,6 +766,9 @@ let ghConfig = {
     sha: "" // Needed for updates
 };
 
+let isSyncing = false;
+let pendingSync = false;
+
 function updateSyncStatus(msg, type="loading") {
     const el = document.getElementById("syncStatus");
     if(type==="loading") {
@@ -826,6 +842,13 @@ async function pushToGithub() {
         return;
     }
 
+    if (isSyncing) {
+        pendingSync = true;
+        updateSyncStatus("جاري المزامنة (في الانتظار)...", "loading");
+        return;
+    }
+
+    isSyncing = true;
     updateSyncStatus("جاري الحفظ...");
 
     // Prepare Data
@@ -867,10 +890,14 @@ async function pushToGithub() {
 
     } catch (error) {
         console.error(error);
-        // If failed due to SHA mismatch, try to fetch first then push again? 
-        // For simplicity:
         updateSyncStatus("فشل الرفع", "error");
         notify("فشل رفع البيانات، ربما يوجد تعارض. حاول سحب البيانات أولاً.", "error");
+    } finally {
+        isSyncing = false;
+        if (pendingSync) {
+            pendingSync = false;
+            setTimeout(pushToGithub, 1000);
+        }
     }
 }
 
