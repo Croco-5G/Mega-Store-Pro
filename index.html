@@ -66,12 +66,7 @@
 
         * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow-x: hidden;
-            position: relative;
-        }
+        html, body { width: 100%; height: 100%; overflow-x: hidden; position: relative; }
 
         body {
             background: var(--bg-body);
@@ -80,6 +75,25 @@
             display: flex;
             min-height: 100vh;
             transition: background 0.3s, color 0.3s;
+        }
+
+        /* --- Helper Classes for Responsive Layout (الحل الجذري) --- */
+        .responsive-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .responsive-flex {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .responsive-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
         }
 
         /* --- Sidebar --- */
@@ -132,7 +146,6 @@
         }
 
         .brand {
-            /* تعديل المسافات: رفع الشعار للأعلى */
             padding: 25px 20px 5px 20px;
             text-align: center;
             font-size: 18px;
@@ -147,170 +160,46 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding-bottom: 10px; /* تقليل المسافة بين الزر والقائمة */
+            padding-bottom: 10px;
             gap: 10px;
             font-size: 13px;
             color: #94a3b8;
         }
         
-        .theme-switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 20px;
-        }
-
+        .theme-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .theme-switch input { display: none; }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #334155;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 14px;
-            width: 14px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(20px); }
 
         .menu-items { padding: 10px; flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
         .sidebar button {
-            width: 100%;
-            padding: 14px 18px;
-            margin-bottom: 5px;
-            border: none;
-            border-radius: 12px;
-            background: transparent;
-            color: #94a3b8;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: right;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.3s;
+            width: 100%; padding: 14px 18px; margin-bottom: 5px; border: none; border-radius: 12px; background: transparent; color: #94a3b8; font-size: 15px; font-weight: 600; cursor: pointer; text-align: right; display: flex; align-items: center; gap: 12px; transition: all 0.3s;
         }
-
         .sidebar button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .sidebar button.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-        }
+        .sidebar button.active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4); }
 
-        /* --- Main Content --- */
-        .main-content {
-            flex: 1;
-            margin-right: 280px;
-            padding: 30px;
-            transition: all 0.3s;
-            width: 100%;
-            max-width: 100%;
-        }
+        .main-content { flex: 1; margin-right: 280px; padding: 30px; transition: all 0.3s; width: 100%; max-width: 100%; }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--bg-card); padding: 20px; border-radius: 20px; display: flex; align-items: center; gap: 15px; box-shadow: var(--card-shadow); border: 1px solid var(--stat-card-border); color: var(--text-main); }
+        .stat-icon { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
-        .stat-card {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--stat-card-border);
-            color: var(--text-main);
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .card {
-            background: var(--bg-card);
-            border-radius: 24px;
-            padding: 35px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border-color);
-            margin-bottom: 30px;
-            animation: fadeIn 0.5s ease-out;
-            color: var(--text-main);
-            position: relative;
-            z-index: 1;
-        }
+        .card { background: var(--bg-card); border-radius: 24px; padding: 35px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); margin-bottom: 30px; animation: fadeIn 0.5s ease-out; color: var(--text-main); position: relative; z-index: 1; }
+        .inner-box { background: var(--bg-input); border: 1px solid var(--border-color); padding: 25px; border-radius: 18px; }
         
-        .inner-box {
-            background: var(--bg-input) !important;
-            border: 1px solid var(--border-color) !important;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         h3 { font-size: 22px; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; color: var(--text-main); }
         h4 { color: var(--text-main); }
-
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); font-size: 14px; }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 2px solid var(--border-color);
-            background: var(--bg-input);
-            color: var(--text-main);
-            font-size: 15px;
-            transition: all 0.3s;
-        }
-
-        input:focus, select:focus, textarea:focus { 
-            border-color: var(--primary); 
-            outline: none; 
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); 
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
+        input, select, textarea { width: 100%; padding: 12px 16px; border-radius: 12px; border: 2px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-size: 15px; transition: all 0.3s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        
+        .btn { padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4); }
         .btn-danger { background: #fee2e2; color: var(--danger); }
@@ -319,7 +208,6 @@
         .btn-warning { background: #fffbeb; color: #d97706; }
         body.dark-mode .btn-warning { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
         .btn-warning:hover { background: #fef3c7; }
-        
         .btn-whatsapp { background: #25D366; color: white; font-size: 12px; padding: 8px 12px; }
         .btn-whatsapp:hover { background: #128C7E; }
 
@@ -327,173 +215,62 @@
         table { width: 100%; border-collapse: collapse; background: var(--bg-card); min-width: 600px; }
         th { background: var(--bg-input); padding: 16px; text-align: center; color: var(--text-muted); font-weight: 700; }
         td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
-        
-        /* Highlight Class for Reminded Rows */
         tr.reminded { background-color: #dcfce7 !important; }
         body.dark-mode tr.reminded { background-color: rgba(16, 185, 129, 0.2) !important; }
 
         .hidden { display: none; }
-
-        #notification {
-            position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 100000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-        }
-        
-        #syncStatus {
-            position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 100000; 
-            background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; transition: all 0.3s;
-        }
-
+        #notification { position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 100000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
+        #syncStatus { position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 100000; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; transition: all 0.3s; }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-
         .badge { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
         .badge-success { background: #dcfce7; color: var(--success); }
         .badge-info { background: #e0e7ff; color: var(--primary); }
         .badge-danger { background: #fee2e2; color: var(--danger); }
         .badge-warning { background: #fef3c7; color: #d97706; }
-        
         body.dark-mode .badge-success { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
         body.dark-mode .badge-info { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
         body.dark-mode .badge-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
         body.dark-mode .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
 
-        .yellow-section {
-            background-color: var(--yellow-bg);
-            border: 2px solid var(--yellow-border);
-            border-radius: 20px;
-            padding: 25px;
-            color: var(--yellow-text);
-        }
+        .yellow-section { background-color: var(--yellow-bg); border: 2px solid var(--yellow-border); border-radius: 20px; padding: 25px; color: var(--yellow-text); }
         .yellow-section h3 { color: var(--yellow-text) !important; }
-        
-        .yellow-section .btn-primary {
-            background: var(--yellow-btn-bg);
-            color: #fff;
-            border: none;
-        }
-        .yellow-section .btn-primary:hover {
-            background: var(--yellow-btn-hover);
-        }
-
-        .todo-item {
-            display: flex; align-items: center; justify-content: space-between;
-            background: var(--yellow-item-bg);
-            padding: 15px; border-radius: 12px;
-            border-right: 4px solid var(--yellow-item-border);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 10px;
-            color: var(--yellow-item-text);
-        }
-        #generalNotesBox .todo-item {
-            background: var(--bg-input); 
-            border-right: 4px solid var(--primary);
-            color: var(--text-main);
-        }
-
-        .todo-item > div:first-child {
-            flex: 1; min-width: 0; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; padding-left: 15px; white-space: pre-wrap;
-        }
-
-        .settings-section, .github-section {
-            background: var(--bg-input);
-            padding: 20px; border-radius: 18px;
-            border: 1px solid var(--border-color);
-            margin-top: 20px;
-            color: var(--text-main);
-        }
-        
-        .github-section {
-            background: #1e293b; color: white; 
-        }
+        .yellow-section .btn-primary { background: var(--yellow-btn-bg); color: #fff; border: none; }
+        .yellow-section .btn-primary:hover { background: var(--yellow-btn-hover); }
+        .todo-item { display: flex; align-items: center; justify-content: space-between; background: var(--yellow-item-bg); padding: 15px; border-radius: 12px; border-right: 4px solid var(--yellow-item-border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 10px; color: var(--yellow-item-text); }
+        #generalNotesBox .todo-item { background: var(--bg-input); border-right: 4px solid var(--primary); color: var(--text-main); }
+        .todo-item > div:first-child { flex: 1; min-width: 0; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; padding-left: 15px; white-space: pre-wrap; }
+        .settings-section, .github-section { background: var(--bg-input); padding: 20px; border-radius: 18px; border: 1px solid var(--border-color); margin-top: 20px; color: var(--text-main); }
+        .github-section { background: #1e293b; color: white; }
         .github-section h3, .github-section h3 i { color: white !important; }
         .github-section label { color: #94a3b8; }
         .github-section input { background: #334155; border-color: #475569; color: white; }
 
         /* --- Responsive Styles (Mobile Optimization) --- */
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(100%); 
-                right: 0;
-            }
-            .sidebar.active {
-                transform: translateX(0); 
-            }
+            .sidebar { transform: translateX(100%); right: 0; }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar-overlay.active { display: block; }
+            .main-content { margin-right: 0; padding: 70px 15px 20px 15px; }
+            .mobile-menu-btn { display: block !important; }
+            .stats-grid { grid-template-columns: 1fr; }
             
-            .sidebar-overlay.active {
-                display: block; 
-            }
+            /* تحويل الشبكات لعمود واحد */
+            .responsive-grid, .responsive-grid-3 { grid-template-columns: 1fr !important; }
             
-            .main-content {
-                margin-right: 0; 
-                padding: 70px 15px 20px 15px; 
-            }
+            /* تحويل الفليكس لعمودي */
+            .responsive-flex { flex-direction: column !important; align-items: stretch !important; }
             
-            .mobile-menu-btn {
-                display: block !important; 
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr; 
-            }
-            
-            /* تعديل مهم: تحويل الحقول إلى عمودية في الجوال */
-            .card > div[style*="grid-template-columns"], 
-            .inner-box[style*="grid-template-columns"],
-            .settings-section > div,
-            .github-section > div {
-                grid-template-columns: 1fr !important;
-            }
+            /* تعديل الأزرار والحقول لتأخذ العرض الكامل */
+            .responsive-flex input, .responsive-flex select, .responsive-flex button, .btn { width: 100% !important; margin: 0 !important; }
 
-            /* إجبار الحاويات الداخلية على الترتيب العمودي */
-            .inner-box, 
-            .github-section > div {
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: stretch !important;
-                gap: 15px !important;
-                height: auto !important; 
-            }
-
-            /* جعل الأزرار والحقول تأخذ العرض الكامل */
-            .inner-box input, 
-            .inner-box select, 
-            .inner-box button,
-            .github-section button,
-            .btn {
-                width: 100% !important;
-                margin: 0 !important;
-                box-sizing: border-box !important;
-            }
-
-            /* إصلاح خانة السعر والعملة */
-            .input-group > div {
-                display: flex !important;
-                flex-direction: row !important; /* تبقى أفقية */
-                width: 100% !important;
-                gap: 10px !important;
-            }
-
-            .input-group > div > input {
-                flex: 1 !important;
-                width: auto !important; 
-                min-width: 0 !important; 
-            }
-
-            .input-group > div > select {
-                flex: 0 0 90px !important; 
-                width: 90px !important;
-            }
-            
-            .github-section > div:last-child {
-                flex-direction: column !important;
-            }
+            /* استثناء خاص لمجموعة السعر والعملة لإبقائها أفقية */
+            .currency-group { flex-direction: row !important; }
+            .currency-group input { flex: 1 !important; width: auto !important; }
+            .currency-group select { flex: 0 0 90px !important; width: 90px !important; }
 
             th, td { font-size: 13px; padding: 10px; }
-            
-            #syncStatus {
-                top: 15px; left: 15px;
-            }
+            #syncStatus { top: 15px; left: 15px; }
         }
-
     </style>
 </head>
 
@@ -562,7 +339,7 @@
 
     <div id="purchase" class="card">
         <h3><i class="fas fa-cart-plus"></i> تسجيل اشتراك جديد</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="responsive-grid">
             <div class="input-group">
                 <label>نوع الاشتراك</label>
                 <input id="sub" placeholder="مثال: نيتفليكس، يوتيوب...">
@@ -573,7 +350,7 @@
             </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="responsive-grid">
             <div class="input-group">
                 <label>رقم جوال العميل</label>
                 <input id="customerPhone" placeholder="059xxxxxxx">
@@ -597,24 +374,24 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+        <div class="responsive-grid" style="margin-top: 10px;">
             <div class="input-group">
                 <label>المبلغ المدفوع من العميل</label>
-                <div style="display:flex; gap:10px">
+                <div class="responsive-flex currency-group" style="gap:10px">
                     <input type="number" id="paidAmount" placeholder="0.00">
-                    <select id="paidCurrency" style="width:120px"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select>
+                    <select id="paidCurrency"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select>
                 </div>
             </div>
             <div class="input-group">
                 <label>التكلفة علينا</label>
-                <div style="display:flex; gap:10px">
+                <div class="responsive-flex currency-group" style="gap:10px">
                     <input type="number" id="costAmount" placeholder="0.00">
-                    <select id="costCurrency" style="width:120px"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
+                    <select id="costCurrency"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
                 </div>
             </div>
         </div>
 
-        <div class="inner-box" style="padding: 25px; border-radius: 18px; margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-style: dashed;">
+        <div class="inner-box responsive-grid" style="margin-top: 20px; border-style: dashed;">
             <div>
                 <label>يُخصم من محفظة (المصدر):</label>
                 <select id="fromWallet"></select>
@@ -659,12 +436,12 @@
 
     <div id="analytics" class="card hidden">
         <h3><i class="fas fa-chart-bar"></i> الإحصائيات والرسوم البيانية</h3>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-            <div class="inner-box" style="padding: 20px; border-radius: 20px;">
+        <div class="responsive-grid" style="gap: 30px;">
+            <div class="inner-box">
                 <h4 style="text-align:center; margin-bottom:15px">توزيع الأرباح الكلية</h4>
                 <canvas id="profitChart" style="max-height: 300px;"></canvas>
             </div>
-            <div class="inner-box" style="padding: 20px; border-radius: 20px;">
+            <div class="inner-box">
                 <h4 style="text-align:center; margin-bottom:15px">عدد المبيعات آخر 6 شهور</h4>
                 <canvas id="salesChart" style="max-height: 300px;"></canvas>
             </div>
@@ -720,14 +497,14 @@
 
     <div id="investment" class="card hidden">
         <h3><i class="fas fa-chart-pie"></i> حصص الشركاء والاستثمار</h3>
-        <div id="investBox" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;"></div>
+        <div class="responsive-grid-3" id="investBox"></div>
         
-        <div class="inner-box" style="margin-top:40px; padding:30px; border-radius:20px;">
+        <div class="inner-box" style="margin-top:40px;">
             <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-external-link-alt"></i> طلب سحب أرباح</h4>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
+            <div class="responsive-grid-3">
                 <div class="input-group">
                     <label>سحب من حصة أحمد</label>
-                    <div style="display:flex; gap:5px">
+                    <div class="responsive-flex currency-group" style="gap:5px">
                         <input id="withdrawAhmad" type="number" placeholder="0.00">
                         <select id="curAhmad" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
                         <button class="btn btn-danger" onclick="withdrawPartial('ahmad')">سحب</button>
@@ -735,7 +512,7 @@
                 </div>
                 <div class="input-group">
                     <label>سحب من حصة محمد</label>
-                    <div style="display:flex; gap:5px">
+                    <div class="responsive-flex currency-group" style="gap:5px">
                         <input id="withdrawMohamed" type="number" placeholder="0.00">
                         <select id="curMohamed" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
                         <button class="btn btn-danger" onclick="withdrawPartial('mohamed')">سحب</button>
@@ -743,7 +520,7 @@
                 </div>
                 <div class="input-group">
                     <label>سحب من حصة المتجر</label>
-                    <div style="display:flex; gap:5px">
+                    <div class="responsive-flex currency-group" style="gap:5px">
                         <input id="withdrawStore" type="number" placeholder="0.00">
                         <select id="curStore" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
                         <button class="btn btn-danger" onclick="withdrawPartial('store')">سحب</button>
@@ -756,7 +533,7 @@
     <div id="modify" class="card hidden">
         
         <h3 style="margin-top:0"><i class="fas fa-edit"></i> التحكم اليدوي بالأرصدة</h3>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px">
+        <div class="responsive-grid">
             <div class="input-group"><label>المحفظة</label><select id="modWallet"></select></div>
             <div class="input-group"><label>المبلغ</label><input id="modAmount" type="number" placeholder="0.00"></div>
         </div>
@@ -771,7 +548,7 @@
         </div>
 
         <h3><i class="fas fa-plus-circle"></i> إدارة المحافظ</h3>
-        <div class="inner-box" style="display:flex; gap:15px; padding:20px; border-radius:15px; margin-bottom:40px">
+        <div class="inner-box responsive-flex" style="margin-bottom:40px">
             <input id="newWalletName" placeholder="اسم المحفظة الجديدة">
             <select id="newWalletCurrency" style="width:150px"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
             <button class="btn btn-primary" onclick="addNewWallet()">إنشاء</button>
@@ -779,7 +556,7 @@
 
         <h3><i class="fas fa-edit"></i> تعديل اسم محفظة</h3>
         <p style="color:var(--text-muted); font-size:14px; margin-bottom:10px">تنبيه: سيتم نقل الرصيد وتحديث سجل العمليات القديم للاسم الجديد.</p>
-        <div class="inner-box" style="display:flex; gap:15px; padding:20px; border-radius:15px; margin-bottom:40px">
+        <div class="inner-box responsive-flex" style="margin-bottom:40px">
             <select id="renameWalletSelect" style="width:200px"></select>
             <input id="renameWalletInput" placeholder="الاسم الجديد للمحفظة">
             <button class="btn btn-warning" onclick="renameWallet()">تغيير الاسم</button>
@@ -787,7 +564,7 @@
 
         <h3><i class="fas fa-percent"></i> إعدادات توزيع الأرباح</h3>
         <div class="settings-section" style="margin-bottom:40px; margin-top:0;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div class="responsive-grid-3">
                 <div class="input-group">
                     <label>نسبة أحمد (%)</label>
                     <input type="number" id="setAhmadProp" placeholder="35">
@@ -810,7 +587,7 @@
             
             <div class="input-group">
                 <label>سعر صرف الدولار الثابت (مقابل الشيكل)</label>
-                <div style="display:flex; align-items:center; gap:10px">
+                <div class="responsive-flex currency-group" style="gap:10px">
                     <input type="number" id="setExchangeRate" placeholder="أدخل السعر (مثلاً 3.5)">
                     <small style="color:var(--text-muted); width: 100%;">اتركه 0 أو فارغاً إذا كنت تريد أن يسألك النظام في كل مرة.</small>
                 </div>
@@ -822,7 +599,7 @@
         <div class="github-section" style="margin-bottom:40px; margin-top:0;">
             <h3><i class="fab fa-github"></i> إعدادات الربط السحابي (GitHub)</h3>
             <p style="color:#94a3b8; font-size:14px; margin-bottom:15px">اربط الموقع بمستودع خاص لحفظ البيانات بشكل دائم وآمن على السحابة.</p>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
+            <div class="responsive-grid-3">
                 <div class="input-group">
                     <label>اسم المستخدم (Username)</label>
                     <input id="ghUser" placeholder="ex: myname">
@@ -840,7 +617,7 @@
                     <input id="ghFile" placeholder="db.json" value="db.json">
                 </div>
             </div>
-            <div style="display:flex; gap:10px; margin-top:15px">
+            <div class="responsive-flex" style="margin-top:15px">
                 <button class="btn btn-primary" onclick="saveGithubSettings()">حفظ إعدادات الربط</button>
                 <button class="btn btn-warning" onclick="fetchFromGithub()"><i class="fas fa-download"></i> سحب البيانات الآن</button>
                 <button class="btn btn-success" style="background:var(--success); color:#fff" onclick="pushToGithub()"><i class="fas fa-upload"></i> رفع البيانات الآن</button>
@@ -849,7 +626,7 @@
 
         <div class="yellow-section">
             <h3><i class="fas fa-tasks"></i> قائمة المهام (To-Do)</h3>
-            <div style="display:flex; gap:15px; margin-bottom:20px">
+            <div class="responsive-flex" style="margin-bottom:20px">
                 <input id="todoInput" placeholder="اكتب المهمة...">
                 <button class="btn btn-primary" onclick="addTodo()">إضافة</button>
             </div>
@@ -859,7 +636,7 @@
 
     <div id="generalNotes" class="card hidden">
         <h3><i class="fas fa-pen-fancy"></i> المفكرة</h3>
-        <div style="display:flex; gap:15px">
+        <div class="responsive-flex">
             <textarea id="gnText" placeholder="اكتب ملاحظة..." style="height: 60px;"></textarea>
             <button class="btn btn-primary" onclick="addGeneralNote()">حفظ</button>
         </div>
@@ -873,7 +650,7 @@
             <p style="color:var(--text-main)">احتفظ بنسخة احتياطية من بياناتك دائماً.</p>
             <button class="btn btn-primary" onclick="exportData()"><i class="fas fa-download"></i> تحميل النسخة الاحتياطية</button>
             <div style="margin: 30px 0; border-top:1px solid var(--border-color)"></div>
-            <div class="inner-box" style="border:none; padding:0;">
+            <div class="inner-box responsive-flex" style="border:none; padding:0;">
                 <input type="file" id="importFile" style="width:auto; margin-bottom:10px">
                 <button class="btn btn-danger" style="background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-color)" onclick="importData()">استعادة بيانات</button>
             </div>
