@@ -69,7 +69,7 @@
         html, body {
             width: 100%;
             height: 100%;
-            overflow-x: hidden; /* يمنع الصفحة كاملة من التحرك يمين ويسار */
+            overflow-x: hidden;
             position: relative;
         }
 
@@ -90,8 +90,7 @@
             display: flex;
             flex-direction: column;
             position: fixed;
-            height: 100vh; /* fallback */
-            height: 100dvh; /* Dynamic Viewport Height: يحل مشكلة القائمة المقطوعة عالموبايل */
+            height: 100dvh; 
             right: 0;
             top: 0;
             z-index: 9999;
@@ -99,13 +98,12 @@
             box-shadow: -5px 0 25px rgba(0,0,0,0.2);
             border-left: 1px solid var(--border-color);
             transform: translateX(0);
-            padding-bottom: 20px; /* مسافة أمان من الأسفل */
+            padding-bottom: 20px;
         }
 
         .mobile-menu-btn {
             display: none;
             position: fixed;
-            /* استخدام env() لضمان البعد عن حواف الايفون */
             top: max(15px, env(safe-area-inset-top)); 
             right: max(15px, env(safe-area-inset-right));
             z-index: 100000;
@@ -118,7 +116,7 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             transform: translateZ(0); 
-            -webkit-transform: translateZ(0); /* تسريع هاردوير */
+            -webkit-transform: translateZ(0);
         }
         
         .mobile-menu-btn:active { transform: scale(0.95); }
@@ -134,7 +132,11 @@
         }
 
         .brand {
-            padding: 30px 20px 10px 20px;
+            /* تم التعديل: تقليل المسافات لرفع الشعار */
+            padding-top: 30px; 
+            padding-bottom: 5px;
+            padding-right: 20px;
+            padding-left: 20px;
             text-align: center;
             font-size: 18px;
             font-weight: 900;
@@ -148,7 +150,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding-bottom: 20px;
+            padding-bottom: 10px; /* تقليل المسافة بين الزر والقائمة */
             gap: 10px;
             font-size: 13px;
             color: #94a3b8;
@@ -187,12 +189,7 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        .menu-items { 
-            padding: 10px; 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; /* تمرير ناعم على الايفون */
-        }
+        .menu-items { padding: 10px; flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
         .sidebar button {
             width: 100%;
@@ -225,7 +222,7 @@
             margin-right: 280px;
             padding: 30px;
             transition: all 0.3s;
-            width: 100%; /* تأكيد العرض */
+            width: 100%;
             max-width: 100%;
         }
 
@@ -329,14 +326,7 @@
         .btn-whatsapp { background: #25D366; color: white; font-size: 12px; padding: 8px 12px; }
         .btn-whatsapp:hover { background: #128C7E; }
 
-        /* تعديل الجداول لمنع التمدد */
-        .table-container { 
-            overflow-x: auto; 
-            border-radius: 15px; 
-            border: 1px solid var(--border-color); 
-            width: 100%;
-            -webkit-overflow-scrolling: touch; 
-        }
+        .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid var(--border-color); width: 100%; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; background: var(--bg-card); min-width: 600px; }
         th { background: var(--bg-input); padding: 16px; text-align: center; color: var(--text-muted); font-weight: 700; }
         td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
@@ -417,7 +407,7 @@
         .github-section label { color: #94a3b8; }
         .github-section input { background: #334155; border-color: #475569; color: white; }
 
-        /* --- Responsive Styles --- */
+        /* --- Responsive Styles (Mobile Optimization) --- */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(100%); 
@@ -444,17 +434,27 @@
                 grid-template-columns: 1fr; 
             }
             
-            .card > div[style*="grid-template-columns"], 
-            .inner-box[style*="grid-template-columns"],
-            .settings-section > div,
+            /* -- إصلاح المشكلة هنا: تحويل العناصر لعمودية في الجوال -- */
+            .inner-box,
             .github-section > div {
-                grid-template-columns: 1fr !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 15px !important;
             }
             
-            input, select, .btn {
-                width: 100%;
+            .inner-box input, 
+            .inner-box select, 
+            .inner-box button,
+            .github-section button {
+                width: 100% !important;
+                margin: 0 !important;
             }
             
+            /* أزرار الحفظ والرفع في GitHub */
+            .github-section > div:last-child {
+                flex-direction: column !important;
+            }
+
             th, td { font-size: 13px; padding: 10px; }
             
             #syncStatus {
@@ -841,9 +841,10 @@
             <p style="color:var(--text-main)">احتفظ بنسخة احتياطية من بياناتك دائماً.</p>
             <button class="btn btn-primary" onclick="exportData()"><i class="fas fa-download"></i> تحميل النسخة الاحتياطية</button>
             <div style="margin: 30px 0; border-top:1px solid var(--border-color)"></div>
-            <input type="file" id="importFile" style="width:auto; margin-bottom:10px">
-            <br>
-            <button class="btn btn-danger" style="background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-color)" onclick="importData()">استعادة بيانات</button>
+            <div class="inner-box" style="border:none; padding:0;">
+                <input type="file" id="importFile" style="width:auto; margin-bottom:10px">
+                <button class="btn btn-danger" style="background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-color)" onclick="importData()">استعادة بيانات</button>
+            </div>
         </div>
     </div>
 
@@ -1106,7 +1107,8 @@ function showPage(id, btn){
     
     // Close sidebar on mobile when clicking a link
     if(window.innerWidth <= 768) {
-        toggleSidebar();
+        let sidebar = document.getElementById("mySidebar");
+        if(sidebar.classList.contains("active")) toggleSidebar();
     }
     
     document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
