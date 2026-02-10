@@ -132,11 +132,8 @@
         }
 
         .brand {
-            /* تم التعديل: تقليل المسافات لرفع الشعار */
-            padding-top: 30px; 
-            padding-bottom: 5px;
-            padding-right: 20px;
-            padding-left: 20px;
+            /* تعديل المسافات: رفع الشعار */
+            padding: 30px 20px 5px 20px;
             text-align: center;
             font-size: 18px;
             font-weight: 900;
@@ -150,7 +147,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding-bottom: 10px; /* تقليل المسافة بين الزر والقائمة */
+            padding-bottom: 10px; /* تقليل المسافة بين الزر والخدمات */
             gap: 10px;
             font-size: 13px;
             color: #94a3b8;
@@ -434,25 +431,57 @@
                 grid-template-columns: 1fr; 
             }
             
-            /* -- إصلاح المشكلة هنا: تحويل العناصر لعمودية في الجوال -- */
-            .inner-box,
+            /* -- إصلاح المشاكل الظاهرة في الصور -- */
+            
+            /* 1. جعل الحقول داخل الصناديق عمودية */
+            .card > div[style*="grid-template-columns"], 
+            .inner-box[style*="grid-template-columns"],
+            .settings-section > div,
+            .github-section > div {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* 2. إجبار الحاويات الداخلية (مثل النسخ الاحتياطي وتعديل المحفظة) على الترتيب العمودي */
+            .inner-box, 
             .github-section > div {
                 display: flex !important;
                 flex-direction: column !important;
+                align-items: stretch !important;
                 gap: 15px !important;
+                height: auto !important; /* السماح بالتمدد */
             }
-            
+
+            /* 3. جعل الأزرار والحقول تأخذ العرض الكامل */
             .inner-box input, 
             .inner-box select, 
             .inner-box button,
-            .github-section button {
+            .github-section button,
+            .btn {
                 width: 100% !important;
                 margin: 0 !important;
+                box-sizing: border-box !important;
             }
-            
-            /* أزرار الحفظ والرفع في GitHub */
-            .github-section > div:last-child {
-                flex-direction: column !important;
+
+            /* 4. إصلاح خانة السعر والعملة (الصورة 4) */
+            /* استهداف الحاوية التي تجمع السعر والعملة */
+            .input-group > div {
+                display: flex !important;
+                flex-direction: row !important; /* تبقى أفقية */
+                width: 100% !important;
+                gap: 10px !important;
+            }
+
+            /* حقل الرقم يأخذ المساحة المتبقية */
+            .input-group > div > input {
+                flex: 1 !important;
+                width: auto !important; /* إلغاء العرض 100% السابق */
+                min-width: 0 !important; /* منع التمدد الزائد */
+            }
+
+            /* حقل العملة بحجم ثابت مناسب */
+            .input-group > div > select {
+                flex: 0 0 90px !important; /* عرض ثابت للعملة */
+                width: 90px !important;
             }
 
             th, td { font-size: 13px; padding: 10px; }
