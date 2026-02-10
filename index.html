@@ -175,8 +175,21 @@
 
         .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid #f1f5f9; }
         table { width: 100%; border-collapse: collapse; background: white; }
-        th { background: #f8fafc; padding: 16px; text-align: right; color: #64748b; font-weight: 700; }
-        td { padding: 16px; border-bottom: 1px solid #f1f5f9; }
+        
+        /* --- تعديل المحاذاة في الجدول (CENTER) --- */
+        th { 
+            background: #f8fafc; 
+            padding: 16px; 
+            text-align: center; /* توسيط العناوين */
+            color: #64748b; 
+            font-weight: 700; 
+        }
+        td { 
+            padding: 16px; 
+            border-bottom: 1px solid #f1f5f9; 
+            text-align: center; /* توسيط البيانات */
+        }
+        /* -------------------------------------- */
 
         .hidden { display: none; }
 
@@ -232,15 +245,15 @@
             margin-bottom: 10px;
         }
         
-        /* --- كود التعديل الجديد لضبط النصوص الطويلة --- */
+        /* --- كود ضبط النصوص الطويلة (Word Wrap) --- */
         .todo-item > div:first-child {
-            flex: 1;            /* يأخذ المساحة المتبقية */
-            min-width: 0;       /* ضروري جداً لتفعيل الالتفاف داخل الفليكس */
+            flex: 1;
+            min-width: 0;
             word-wrap: break-word; 
             overflow-wrap: break-word; 
-            word-break: break-word; /* يكسر الكلمات الطويلة جداً */
-            padding-left: 15px; /* مسافة بين النص والزر */
-            white-space: pre-wrap; /* يحافظ على التنسيق والأسطر الجديدة */
+            word-break: break-word;
+            padding-left: 15px;
+            white-space: pre-wrap;
         }
         /* --------------------------------------------- */
         
