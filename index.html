@@ -132,7 +132,6 @@
         }
 
         .brand {
-            /* تعديل المسافات: رفع الشعار */
             padding: 30px 20px 5px 20px;
             text-align: center;
             font-size: 18px;
@@ -147,7 +146,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding-bottom: 10px; /* تقليل المسافة بين الزر والخدمات */
+            padding-bottom: 10px;
             gap: 10px;
             font-size: 13px;
             color: #94a3b8;
@@ -327,6 +326,10 @@
         table { width: 100%; border-collapse: collapse; background: var(--bg-card); min-width: 600px; }
         th { background: var(--bg-input); padding: 16px; text-align: center; color: var(--text-muted); font-weight: 700; }
         td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
+        
+        /* Highlight Class for Reminded Rows */
+        tr.reminded { background-color: #dcfce7 !important; }
+        body.dark-mode tr.reminded { background-color: rgba(16, 185, 129, 0.2) !important; }
 
         .hidden { display: none; }
 
@@ -431,9 +434,7 @@
                 grid-template-columns: 1fr; 
             }
             
-            /* -- إصلاح المشاكل الظاهرة في الصور -- */
-            
-            /* 1. جعل الحقول داخل الصناديق عمودية */
+            /* جعل الحقول داخل الصناديق عمودية */
             .card > div[style*="grid-template-columns"], 
             .inner-box[style*="grid-template-columns"],
             .settings-section > div,
@@ -441,17 +442,17 @@
                 grid-template-columns: 1fr !important;
             }
 
-            /* 2. إجبار الحاويات الداخلية (مثل النسخ الاحتياطي وتعديل المحفظة) على الترتيب العمودي */
+            /* إجبار الحاويات الداخلية على الترتيب العمودي */
             .inner-box, 
             .github-section > div {
                 display: flex !important;
                 flex-direction: column !important;
                 align-items: stretch !important;
                 gap: 15px !important;
-                height: auto !important; /* السماح بالتمدد */
+                height: auto !important; 
             }
 
-            /* 3. جعل الأزرار والحقول تأخذ العرض الكامل */
+            /* جعل الأزرار والحقول تأخذ العرض الكامل */
             .inner-box input, 
             .inner-box select, 
             .inner-box button,
@@ -462,8 +463,7 @@
                 box-sizing: border-box !important;
             }
 
-            /* 4. إصلاح خانة السعر والعملة (الصورة 4) */
-            /* استهداف الحاوية التي تجمع السعر والعملة */
+            /* إصلاح خانة السعر والعملة */
             .input-group > div {
                 display: flex !important;
                 flex-direction: row !important; /* تبقى أفقية */
@@ -471,17 +471,19 @@
                 gap: 10px !important;
             }
 
-            /* حقل الرقم يأخذ المساحة المتبقية */
             .input-group > div > input {
                 flex: 1 !important;
-                width: auto !important; /* إلغاء العرض 100% السابق */
-                min-width: 0 !important; /* منع التمدد الزائد */
+                width: auto !important; 
+                min-width: 0 !important; 
             }
 
-            /* حقل العملة بحجم ثابت مناسب */
             .input-group > div > select {
-                flex: 0 0 90px !important; /* عرض ثابت للعملة */
+                flex: 0 0 90px !important; 
                 width: 90px !important;
+            }
+            
+            .github-section > div:last-child {
+                flex-direction: column !important;
             }
 
             th, td { font-size: 13px; padding: 10px; }
@@ -632,7 +634,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <h3 style="margin-bottom:0"><i class="fas fa-hourglass-half"></i> اشتراكات تنتهي قريباً</h3>
             <button class="btn btn-danger" onclick="deleteExpired()" style="padding: 8px 15px; font-size:13px; background:#ef4444; color:white;">
-                <i class="fas fa-trash-alt"></i> حذف المنتهي
+                <i class="fas fa-eye-slash"></i> إخفاء المنتهي
             </button>
         </div>
 
@@ -1363,50 +1365,58 @@ function refreshExpiring() {
     let now = new Date().getTime();
     let threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
 
-    let list = p.filter(item => {
-        if(!item.expiry) return false;
-        let diff = item.expiry - now;
-        // عرض ما تبقى له 3 أيام أو انتهى خلال آخر 30 يوم
-        return diff < threeDaysInMs && diff > -(30 * 24 * 60 * 60 * 1000); 
-    });
+    // تعيين المتغيرات للمقارنة (تجاهل الوقت)
+    let todayStart = new Date();
+    todayStart.setHours(0,0,0,0);
+    
+    let list = p.map((item, index) => ({ data: item, index: index })) // حفظ الفهرس الأصلي
+        .filter(wrapper => {
+            let item = wrapper.data;
+            if(!item.expiry) return false;
+            if(item.expiryDismissed) return false; // تجاهل الممسوح
+            
+            let diff = item.expiry - now;
+            // عرض ما تبقى له 3 أيام أو انتهى خلال آخر 30 يوم
+            return diff < threeDaysInMs && diff > -(30 * 24 * 60 * 60 * 1000); 
+        });
 
-    list.sort((a, b) => a.expiry - b.expiry);
+    list.sort((a, b) => a.data.expiry - b.data.expiry);
 
-    list.forEach(item => {
+    list.forEach(wrapper => {
+        let item = wrapper.data;
+        let index = wrapper.index; // الفهرس الأصلي
+        
         let expDate = new Date(item.expiry);
         let dateStr = expDate.getFullYear() + '-' + (expDate.getMonth()+1) + '-' + expDate.getDate();
         let daysLeft = Math.ceil((item.expiry - now) / (1000 * 60 * 60 * 24));
         
         let badgeClass = daysLeft <= 0 ? 'badge-danger' : 'badge-warning';
         let statusText = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
+        
+        // التحقق اذا تم تذكيره
+        let rowClass = item.reminded ? 'reminded' : '';
 
         // --- WhatsApp Logic ---
         let currentHour = new Date().getHours();
         let greeting = currentHour < 12 ? "صباح الخير" : "مساء الخير";
         let message = `${greeting} ${item.customer}، حابّين نخبّرك أن اشتراكك في ${item.sub} متبقّي على إنتهائه ${statusText}، هل عجبتك الخدمة و حابب تجدد اشتراكك مرة تانية؟`;
         
-        // --- Smart Phone Number Parsing ---
-        let cleanPhone = item.phone.replace(/\D/g, ''); // تنظيف من الرموز
+        let cleanPhone = item.phone.replace(/\D/g, ''); 
         let finalPhone = cleanPhone;
-
-        // اذا يبدأ بـ 0 (مثل 059)، نحذف الـ 0 ونضيف 970
         if (cleanPhone.startsWith('0')) {
             finalPhone = '970' + cleanPhone.substring(1);
         }
-        // لو الرقم أصلاً فيه مقدمة دولية (مثل 972 أو 970) نتركه كما هو
-        // هذا يحل المشكلة تبعت التكرار
-
         let waLink = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
         
         expiringBody.innerHTML += `
-            <tr>
+            <tr class="${rowClass}">
                 <td><b>${item.sub}</b></td>
                 <td>${item.customer}</td>
                 <td>${item.phone}</td>
                 <td>${dateStr}</td>
                 <td><span class="badge ${badgeClass}">${statusText}</span></td>
                 <td>
-                    <a href="${waLink}" target="_blank" class="btn btn-whatsapp" style="text-decoration:none; border-radius:8px">
+                    <a href="${waLink}" target="_blank" onclick="markAsReminded(${index})" class="btn btn-whatsapp" style="text-decoration:none; border-radius:8px">
                         <i class="fab fa-whatsapp"></i> تذكير
                     </a>
                 </td>
@@ -1419,23 +1429,33 @@ function refreshExpiring() {
     }
 }
 
-// Function to delete expired subscriptions
+function markAsReminded(index) {
+    let p = JSON.parse(localStorage.purchases);
+    if(p[index]) {
+        p[index].reminded = true;
+        localStorage.purchases = JSON.stringify(p);
+        refreshExpiring(); // تحديث الجدول فوراً ليظهر اللون الأخضر
+        pushToGithub(); // حفظ سحابي
+    }
+}
+
 function deleteExpired() {
-    if(!confirm("هل أنت متأكد؟ سيتم حذف الاشتراكات المنتهية من السجل نهائياً!")) return;
+    if(!confirm("هل أنت متأكد؟ سيتم إخفاء الاشتراكات المنتهية من هذه القائمة فقط.")) return;
 
     let p = JSON.parse(localStorage.purchases);
     let now = new Date().getTime();
 
-    // Keep subscriptions that are NOT expired (expiry > now)
-    let newP = p.filter(item => {
-        if(!item.expiry) return true; // Keep if no expiry
-        return item.expiry > now; // Keep if future
+    // بدلاً من الحذف، نقوم بتعديل الخاصية expiryDismissed
+    p.forEach(item => {
+        if(item.expiry && item.expiry < now) {
+            item.expiryDismissed = true;
+        }
     });
 
-    localStorage.purchases = JSON.stringify(newP);
+    localStorage.purchases = JSON.stringify(p);
     refreshAll();
-    pushToGithub(); // Auto save
-    notify("تم حذف الاشتراكات المنتهية");
+    pushToGithub(); 
+    notify("تم إخفاء الاشتراكات المنتهية");
 }
 
 function refreshWallets(){
