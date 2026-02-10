@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mega Store Pro | Cloud Sync</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* --- تعريف المتغيرات (CSS Variables) --- */
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
@@ -20,7 +19,6 @@
             --success: #10b981;
             --danger: #ef4444;
             
-            /* ألوان الوضع الفاتح (الأصلي) */
             --bg-body: #f8fafc;
             --bg-card: #ffffff;
             --bg-input: #f8fafc;
@@ -31,18 +29,14 @@
             --stat-card-border: rgba(255,255,255,0.8);
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
-            /* ألوان القسم الأصفر */
             --yellow-bg: #fefce8;
             --yellow-border: #fde047;
             --yellow-text: #854d0e;
             --yellow-item-bg: #fffbeb;
             --yellow-item-border: #eab308;
             --yellow-item-text: #713f12;
-            --yellow-btn-bg: #eab308;     /* لون خلفية الزر الأصفر */
-            --yellow-btn-hover: #ca8a04;  /* لون الزر الأصفر عند التحويم */
         }
 
-        /* --- ألوان الوضع الليلي --- */
         body.dark-mode {
             --bg-body: #0f172a;
             --bg-card: #1e293b;
@@ -54,23 +48,19 @@
             --stat-card-border: #334155;
             --card-shadow: none;
 
-            /* تعديل القسم الأصفر لليلي */
             --yellow-bg: rgba(234, 179, 8, 0.1);
             --yellow-border: rgba(234, 179, 8, 0.3);
             --yellow-text: #fde047;
             --yellow-item-bg: rgba(234, 179, 8, 0.15);
             --yellow-item-border: #eab308;
             --yellow-item-text: #fef08a;
-            --yellow-btn-bg: #eab308;
-            --yellow-btn-hover: #ca8a04;
         }
 
         body.dark-mode .stat-icon[style*="#e0e7ff"] { background: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
         body.dark-mode .stat-icon[style*="#dcfce7"] { background: rgba(16, 185, 129, 0.2) !important; color: #34d399 !important; }
         body.dark-mode .stat-icon[style*="#fef3c7"] { background: rgba(245, 158, 11, 0.2) !important; color: #fbbf24 !important; }
 
-        /* --- التنسيقات العامة --- */
-        * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; }
+        * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
 
         body {
             background: var(--bg-body);
@@ -82,7 +72,7 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* Sidebar */
+        /* --- Sidebar --- */
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
@@ -93,13 +83,40 @@
             height: 100vh;
             right: 0;
             z-index: 1000;
-            transition: all 0.3s;
+            transition: all 0.3s ease-in-out; /* Smooth slide */
             box-shadow: -5px 0 25px rgba(0,0,0,0.2);
             border-left: 1px solid var(--border-color);
         }
 
+        /* --- Mobile Toggle Button (Hidden on Desktop) --- */
+        .mobile-menu-btn {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1100;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* --- Overlay for Mobile --- */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 900;
+            backdrop-filter: blur(3px);
+        }
+
         .brand {
-            padding: 25px 20px 10px 20px; 
+            padding: 25px 20px 10px 20px;
             text-align: center;
             font-size: 20px;
             font-weight: 900;
@@ -109,7 +126,6 @@
             letter-spacing: -1px;
         }
 
-        /* Toggle Switch Styles */
         .theme-switch-container {
             display: flex;
             justify-content: center;
@@ -153,7 +169,6 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        /* Menu */
         .menu-items { padding: 10px; flex-grow: 1; overflow-y: auto; }
 
         .sidebar button {
@@ -181,7 +196,7 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
         }
 
-        /* Main Content */
+        /* --- Main Content --- */
         .main-content {
             flex: 1;
             margin-right: 280px;
@@ -189,7 +204,6 @@
             transition: all 0.3s;
         }
 
-        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -219,7 +233,6 @@
             font-size: 20px;
         }
 
-        /* Cards */
         .card {
             background: var(--bg-card);
             border-radius: 24px;
@@ -290,7 +303,7 @@
         .btn-whatsapp:hover { background: #128C7E; }
 
         .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); min-width: 600px; }
         th { background: var(--bg-input); padding: 16px; text-align: center; color: var(--text-muted); font-weight: 700; }
         td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
 
@@ -328,14 +341,13 @@
         }
         .yellow-section h3 { color: var(--yellow-text) !important; }
         
-        /* تنسيقات الأزرار الصفراء داخل قسم المهام */
         .yellow-section .btn-primary {
-            background: var(--yellow-btn-bg);
+            background: #eab308;
             color: #fff;
             border: none;
         }
         .yellow-section .btn-primary:hover {
-            background: var(--yellow-btn-hover);
+            background: #ca8a04;
         }
 
         .todo-item {
@@ -371,6 +383,53 @@
         .github-section label { color: #94a3b8; }
         .github-section input { background: #334155; border-color: #475569; color: white; }
 
+        /* --- Responsive Styles (Mobile Optimization) --- */
+        @media (max-width: 768px) {
+            .sidebar {
+                right: -280px; /* Hide off-screen by default */
+            }
+            .sidebar.active {
+                right: 0; /* Slide in */
+            }
+            .sidebar-overlay.active {
+                display: block; /* Show overlay */
+            }
+            
+            .main-content {
+                margin-right: 0; /* Use full width */
+                padding: 70px 15px 20px 15px; /* Top padding for the toggle button */
+            }
+            
+            .mobile-menu-btn {
+                display: block; /* Show hamburger button */
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr; /* Stack stats vertically */
+            }
+            
+            /* Responsive Grids inside Cards */
+            .card > div[style*="grid-template-columns"], 
+            .inner-box[style*="grid-template-columns"],
+            .settings-section > div,
+            .github-section > div {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Inputs full width on mobile */
+            input, select, .btn {
+                width: 100%;
+            }
+            
+            /* Adjust table font size */
+            th, td { font-size: 13px; padding: 10px; }
+            
+            /* Fix Sync Status Position */
+            #syncStatus {
+                top: 15px; left: 15px;
+            }
+        }
+
     </style>
 </head>
 
@@ -378,7 +437,13 @@
 
 <div id="syncStatus"><i class="fas fa-cloud"></i> <span>جاهز</span></div>
 
-<div class="sidebar">
+<button class="mobile-menu-btn" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="mySidebar">
     <div class="brand"><i class="fas fa-rocket"></i> MEGA STORE</div>
     
     <div class="theme-switch-container">
@@ -975,6 +1040,11 @@ function toggleDarkMode() {
     localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
 }
 
+function toggleSidebar() {
+    document.getElementById("mySidebar").classList.toggle("active");
+    document.querySelector(".sidebar-overlay").classList.toggle("active");
+}
+
 // FILTER HISTORY FUNCTION
 function filterHistory() {
     let input = document.getElementById("historySearch").value.toLowerCase();
@@ -988,6 +1058,10 @@ function filterHistory() {
 function showPage(id, btn){
     document.querySelectorAll(".card").forEach(x=>x.classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
+    // Close sidebar on mobile when clicking a link
+    document.getElementById("mySidebar").classList.remove("active");
+    document.querySelector(".sidebar-overlay").classList.remove("active");
+    
     document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     
