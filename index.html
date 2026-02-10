@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mega Store Pro | Cloud Sync</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
@@ -76,7 +76,7 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* --- Sidebar --- */
+        /* Sidebar */
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
@@ -92,13 +92,13 @@
             border-left: 1px solid var(--border-color);
         }
 
-        /* --- Mobile Toggle Button (تعديل الـ Z-Index هنا) --- */
+        /* --- FIX FOR IPHONE BUTTON --- */
         .mobile-menu-btn {
             display: none;
             position: fixed;
-            top: 15px;
-            right: 15px;
-            z-index: 10000; /* قيمة عالية جداً لتظهر فوق كل شيء */
+            top: 20px; /* زيادة المسافة العلوية قليلاً */
+            right: 20px; /* زيادة المسافة الجانبية */
+            z-index: 2147483647 !important; /* أعلى قيمة ممكنة في المتصفح */
             background: var(--primary);
             color: white;
             border: none;
@@ -106,32 +106,39 @@
             border-radius: 12px;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            
+            /* هذه الخصائص تجبر الآيفون على رسم الزر في طبقة منفصلة */
+            -webkit-transform: translate3d(0,0,0);
+            transform: translate3d(0,0,0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
         }
-        .mobile-menu-btn:active { transform: scale(0.95); }
+        
+        .mobile-menu-btn:active { transform: scale(0.95) translate3d(0,0,0); }
 
-        /* --- Overlay for Mobile --- */
         .sidebar-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5);
-            z-index: 900;
+            z-index: 2000; /* أعلى من السايدبار */
             backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
         }
 
         .brand {
             padding: 25px 20px 10px 20px; 
             text-align: center;
-            font-size: 20px;
+            font-size: 18px; /* تصغير الخط كما طلبت */
             font-weight: 900;
             background: linear-gradient(135deg, var(--primary), #a855f7);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
         }
 
+        /* Toggle Switch */
         .theme-switch-container {
             display: flex;
             justify-content: center;
@@ -202,7 +209,7 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
         }
 
-        /* --- Main Content --- */
+        /* Main Content */
         .main-content {
             flex: 1;
             margin-right: 280px;
@@ -248,6 +255,9 @@
             margin-bottom: 30px;
             animation: fadeIn 0.5s ease-out;
             color: var(--text-main);
+            /* مهم جداً للآيفون لتجنب التداخل */
+            position: relative;
+            z-index: 1;
         }
         
         .inner-box {
@@ -316,11 +326,11 @@
         .hidden { display: none; }
 
         #notification {
-            position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 2000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 99999; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
         }
         
         #syncStatus {
-            position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 2000; 
+            position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 99999; 
             background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; transition: all 0.3s;
         }
@@ -392,29 +402,29 @@
         /* --- Responsive Styles (Mobile Optimization) --- */
         @media (max-width: 768px) {
             .sidebar {
-                right: -280px; /* Hide off-screen by default */
+                right: -280px; 
             }
             .sidebar.active {
-                right: 0; /* Slide in */
+                right: 0; 
             }
             .sidebar-overlay.active {
-                display: block; /* Show overlay */
+                display: block; 
             }
             
             .main-content {
-                margin-right: 0; /* Use full width */
-                padding: 70px 15px 20px 15px; /* Top padding for the toggle button */
+                margin-right: 0; 
+                padding: 70px 15px 20px 15px; 
             }
             
+            /* إظهار الزر مع تأكيد الظهور */
             .mobile-menu-btn {
-                display: block; /* Show hamburger button */
+                display: block !important; 
             }
             
             .stats-grid {
-                grid-template-columns: 1fr; /* Stack stats vertically */
+                grid-template-columns: 1fr; 
             }
             
-            /* Responsive Grids inside Cards */
             .card > div[style*="grid-template-columns"], 
             .inner-box[style*="grid-template-columns"],
             .settings-section > div,
@@ -422,15 +432,12 @@
                 grid-template-columns: 1fr !important;
             }
             
-            /* Inputs full width on mobile */
             input, select, .btn {
                 width: 100%;
             }
             
-            /* Adjust table font size */
             th, td { font-size: 13px; padding: 10px; }
             
-            /* Fix Sync Status Position */
             #syncStatus {
                 top: 15px; left: 15px;
             }
