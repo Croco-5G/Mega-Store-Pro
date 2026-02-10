@@ -232,6 +232,18 @@
             margin-bottom: 10px;
         }
         
+        /* --- كود التعديل الجديد لضبط النصوص الطويلة --- */
+        .todo-item > div:first-child {
+            flex: 1;            /* يأخذ المساحة المتبقية */
+            min-width: 0;       /* ضروري جداً لتفعيل الالتفاف داخل الفليكس */
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+            word-break: break-word; /* يكسر الكلمات الطويلة جداً */
+            padding-left: 15px; /* مسافة بين النص والزر */
+            white-space: pre-wrap; /* يحافظ على التنسيق والأسطر الجديدة */
+        }
+        /* --------------------------------------------- */
+        
         .yellow-section {
             background-color: #fefce8;
             border: 2px solid #fde047;
