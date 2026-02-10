@@ -4,38 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mega Store Pro | Cloud Sync</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
+
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        /* --- تعريف المتغيرات (CSS Variables) --- */
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
             --accent: #f59e0b;
             --success: #10b981;
             --danger: #ef4444;
-            --bg-main: #f8fafc;
-            --sidebar-bg: #0f172a;
+            
+            /* ألوان الوضع الفاتح (الأصلي) */
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #f8fafc;
+            --bg-sidebar: #0f172a;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --stat-card-border: rgba(255,255,255,0.8);
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            /* ألوان القسم الأصفر */
+            --yellow-bg: #fefce8;
+            --yellow-border: #fde047;
+            --yellow-text: #854d0e;
+            --yellow-item-bg: #fffbeb;
+            --yellow-item-border: #eab308;
+            --yellow-item-text: #713f12;
         }
 
+        /* --- ألوان الوضع الليلي --- */
+        body.dark-mode {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --bg-sidebar: #020617;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --stat-card-border: #334155;
+            --card-shadow: none;
+
+            /* تعديل القسم الأصفر لليلي */
+            --yellow-bg: rgba(234, 179, 8, 0.1);
+            --yellow-border: rgba(234, 179, 8, 0.3);
+            --yellow-text: #fde047;
+            --yellow-item-bg: rgba(234, 179, 8, 0.15);
+            --yellow-item-border: #eab308;
+            --yellow-item-text: #fef08a;
+        }
+
+        /* تعديل خاص لأيقونات الإحصائيات في الوضع الليلي فقط */
+        body.dark-mode .stat-icon[style*="#e0e7ff"] { background: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
+        body.dark-mode .stat-icon[style*="#dcfce7"] { background: rgba(16, 185, 129, 0.2) !important; color: #34d399 !important; }
+        body.dark-mode .stat-icon[style*="#fef3c7"] { background: rgba(245, 158, 11, 0.2) !important; color: #fbbf24 !important; }
+
+        /* --- التنسيقات العامة --- */
         * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; }
 
         body {
-            background: var(--bg-main);
+            background: var(--bg-body);
             margin: 0;
-            color: #1e293b;
+            color: var(--text-main);
             display: flex;
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
         }
 
-        /* --- Sidebar --- */
+        /* Sidebar */
         .sidebar {
             width: 280px;
-            background: var(--sidebar-bg);
+            background: var(--bg-sidebar);
             color: white;
             display: flex;
             flex-direction: column;
@@ -43,14 +90,15 @@
             height: 100vh;
             right: 0;
             z-index: 1000;
-            transition: var(--transition);
+            transition: all 0.3s;
             box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+            border-left: 1px solid var(--border-color);
         }
 
         .brand {
-            padding: 40px 20px;
+            padding: 25px 20px 10px 20px; 
             text-align: center;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 900;
             background: linear-gradient(135deg, var(--primary), #a855f7);
             -webkit-background-clip: text;
@@ -58,6 +106,51 @@
             letter-spacing: -1px;
         }
 
+        /* Toggle Switch Styles */
+        .theme-switch-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 20px;
+            gap: 10px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .theme-switch input { display: none; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Menu */
         .menu-items { padding: 10px; flex-grow: 1; overflow-y: auto; }
 
         .sidebar button {
@@ -75,7 +168,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            transition: var(--transition);
+            transition: all 0.3s;
         }
 
         .sidebar button:hover { background: rgba(255,255,255,0.05); color: #fff; }
@@ -85,14 +178,15 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
         }
 
-        /* --- Main Content --- */
+        /* Main Content */
         .main-content {
             flex: 1;
             margin-right: 280px;
             padding: 30px;
-            transition: var(--transition);
+            transition: all 0.3s;
         }
 
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -101,14 +195,15 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-card);
             padding: 20px;
             border-radius: 20px;
             display: flex;
             align-items: center;
             gap: 15px;
             box-shadow: var(--card-shadow);
-            border: 1px solid rgba(255,255,255,0.8);
+            border: 1px solid var(--stat-card-border);
+            color: var(--text-main);
         }
 
         .stat-icon {
@@ -121,14 +216,21 @@
             font-size: 20px;
         }
 
+        /* Cards */
         .card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 24px;
             padding: 35px;
             box-shadow: var(--card-shadow);
-            border: 1px solid #eef2f6;
+            border: 1px solid var(--border-color);
             margin-bottom: 30px;
             animation: fadeIn 0.5s ease-out;
+            color: var(--text-main);
+        }
+        
+        .inner-box {
+            background: var(--bg-input) !important;
+            border: 1px solid var(--border-color) !important;
         }
 
         @keyframes fadeIn {
@@ -136,29 +238,35 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        h3 { font-size: 22px; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; color: #0f172a; }
+        h3 { font-size: 22px; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; color: var(--text-main); }
+        h4 { color: var(--text-main); }
 
         .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #64748b; font-size: 14px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); font-size: 14px; }
 
         input, select, textarea {
             width: 100%;
             padding: 12px 16px;
             border-radius: 12px;
-            border: 2px solid #f1f5f9;
-            background: #f8fafc;
+            border: 2px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-main);
             font-size: 15px;
-            transition: var(--transition);
+            transition: all 0.3s;
         }
 
-        input:focus { border-color: var(--primary); background: white; outline: none; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        input:focus, select:focus, textarea:focus { 
+            border-color: var(--primary); 
+            outline: none; 
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); 
+        }
 
         .btn {
             padding: 12px 24px;
             border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.3s;
             border: none;
             display: inline-flex;
             align-items: center;
@@ -168,133 +276,88 @@
 
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4); }
-        .btn-danger { background: #fff1f2; color: var(--danger); }
+        .btn-danger { background: #fee2e2; color: var(--danger); }
+        body.dark-mode .btn-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
         .btn-danger:hover { background: var(--danger); color: white; }
         .btn-warning { background: #fffbeb; color: #d97706; }
+        body.dark-mode .btn-warning { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
         .btn-warning:hover { background: #fef3c7; }
-
-        .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid #f1f5f9; }
-        table { width: 100%; border-collapse: collapse; background: white; }
         
-        /* --- تعديل المحاذاة في الجدول (CENTER) --- */
-        th { 
-            background: #f8fafc; 
-            padding: 16px; 
-            text-align: center; /* توسيط العناوين */
-            color: #64748b; 
-            font-weight: 700; 
-        }
-        td { 
-            padding: 16px; 
-            border-bottom: 1px solid #f1f5f9; 
-            text-align: center; /* توسيط البيانات */
-        }
-        /* -------------------------------------- */
+        .btn-whatsapp { background: #25D366; color: white; font-size: 12px; padding: 8px 12px; }
+        .btn-whatsapp:hover { background: #128C7E; }
+
+        .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { background: var(--bg-input); padding: 16px; text-align: center; color: var(--text-muted); font-weight: 700; }
+        td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
 
         .hidden { display: none; }
 
         #notification {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            padding: 16px 25px;
-            border-radius: 16px;
-            color: white;
-            font-weight: 700;
-            z-index: 2000;
-            display: none;
-            animation: slideIn 0.3s ease-out;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 2000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
         }
         
         #syncStatus {
-            position: fixed;
-            top: 20px;
-            left: 30px;
-            padding: 8px 15px;
-            border-radius: 50px;
-            font-size: 12px;
-            font-weight: 700;
-            z-index: 2000;
-            background: white;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s;
+            position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 2000; 
+            background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; transition: all 0.3s;
         }
 
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .badge { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
         .badge-success { background: #dcfce7; color: var(--success); }
         .badge-info { background: #e0e7ff; color: var(--primary); }
         .badge-danger { background: #fee2e2; color: var(--danger); }
         .badge-warning { background: #fef3c7; color: #d97706; }
+        
+        body.dark-mode .badge-success { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+        body.dark-mode .badge-info { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+        body.dark-mode .badge-danger { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        body.dark-mode .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
 
-        .todo-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #fff;
-            padding: 15px;
-            border-radius: 12px;
-            border-right: 4px solid var(--accent);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 10px;
-        }
-        
-        /* --- كود ضبط النصوص الطويلة (Word Wrap) --- */
-        .todo-item > div:first-child {
-            flex: 1;
-            min-width: 0;
-            word-wrap: break-word; 
-            overflow-wrap: break-word; 
-            word-break: break-word;
-            padding-left: 15px;
-            white-space: pre-wrap;
-        }
-        /* --------------------------------------------- */
-        
         .yellow-section {
-            background-color: #fefce8;
-            border: 2px solid #fde047;
+            background-color: var(--yellow-bg);
+            border: 2px solid var(--yellow-border);
             border-radius: 20px;
             padding: 25px;
-            color: #854d0e;
+            color: var(--yellow-text);
         }
-        .yellow-section h3 { color: #854d0e; }
-        .yellow-section input { background: #fff; border-color: #fde047; }
-        .yellow-section .btn-primary { background: #eab308; color: #fff; }
-        .yellow-section .btn-primary:hover { background: #ca8a04; }
-        .yellow-section .todo-item { background: #fffbeb; border-right: 4px solid #eab308; color: #713f12; }
+        .yellow-section h3 { color: var(--yellow-text) !important; }
+        
+        .todo-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--yellow-item-bg);
+            padding: 15px; border-radius: 12px;
+            border-right: 4px solid var(--yellow-item-border);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 10px;
+            color: var(--yellow-item-text);
+        }
+        #generalNotesBox .todo-item {
+            background: var(--bg-input); 
+            border-right: 4px solid var(--primary);
+            color: var(--text-main);
+        }
 
-        .settings-section {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 18px;
-            border: 1px solid #e2e8f0;
+        .todo-item > div:first-child {
+            flex: 1; min-width: 0; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; padding-left: 15px; white-space: pre-wrap;
+        }
+
+        .settings-section, .github-section {
+            background: var(--bg-input);
+            padding: 20px; border-radius: 18px;
+            border: 1px solid var(--border-color);
             margin-top: 20px;
+            color: var(--text-main);
         }
         
         .github-section {
-            background: #1e293b;
-            color: white;
-            padding: 25px;
-            border-radius: 18px;
-            margin-bottom: 25px;
+            background: #1e293b; color: white; 
         }
-        .github-section input {
-            background: #334155;
-            border-color: #475569;
-            color: white;
-        }
-        .github-section input:focus {
-            border-color: var(--primary);
-            background: #334155;
-        }
+        .github-section h3, .github-section h3 i { color: white !important; }
         .github-section label { color: #94a3b8; }
+        .github-section input { background: #334155; border-color: #475569; color: white; }
+
     </style>
 </head>
 
@@ -304,6 +367,16 @@
 
 <div class="sidebar">
     <div class="brand"><i class="fas fa-rocket"></i> MEGA STORE</div>
+    
+    <div class="theme-switch-container">
+        <i class="fas fa-moon"></i>
+        <label class="theme-switch">
+            <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+            <span class="slider"></span>
+        </label>
+        <i class="fas fa-sun"></i>
+    </div>
+
     <div class="menu-items">
         <button onclick="showPage('purchase', this)" class="active"><i class="fas fa-shopping-cart"></i> عملية شراء</button>
         <button onclick="showPage('expiring', this)"><i class="fas fa-hourglass-half"></i> تنبيهات الانتهاء</button>
@@ -311,9 +384,9 @@
         <button onclick="showPage('history', this)"><i class="fas fa-history"></i> سجل العمليات</button>
         <button onclick="showPage('analytics', this)"><i class="fas fa-chart-bar"></i> الإحصائيات</button>
         <button onclick="showPage('investment', this)"><i class="fas fa-chart-line"></i> توزيع الأرباح</button>
-        <button onclick="showPage('modify', this)"><i class="fas fa-cog"></i> الإعدادات</button>
         <button onclick="showPage('generalNotes', this)"><i class="fas fa-sticky-note"></i> ملاحظات</button>
         <button onclick="showPage('backup', this)"><i class="fas fa-database"></i> النسخ الاحتياطي</button>
+        <button onclick="showPage('modify', this)"><i class="fas fa-cog"></i> الإعدادات</button>
     </div>
 </div>
 
@@ -399,7 +472,7 @@
             </div>
         </div>
 
-        <div style="background: #f8fafc; padding: 25px; border-radius: 18px; margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border: 1px dashed #cbd5e1;">
+        <div class="inner-box" style="padding: 25px; border-radius: 18px; margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-style: dashed;">
             <div>
                 <label>يُخصم من محفظة (المصدر):</label>
                 <select id="fromWallet"></select>
@@ -416,8 +489,15 @@
     </div>
 
     <div id="expiring" class="card hidden">
-        <h3><i class="fas fa-hourglass-half"></i> اشتراكات تنتهي قريباً (أقل من 3 أيام)</h3>
-        <p style="color:#64748b; margin-bottom:20px">يتم عرض الاشتراكات المتبقي لها 3 أيام أو أقل، أو التي انتهت بالفعل.</p>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h3 style="margin-bottom:0"><i class="fas fa-hourglass-half"></i> اشتراكات تنتهي قريباً</h3>
+            <button class="btn btn-danger" onclick="deleteExpired()" style="padding: 8px 15px; font-size:13px; background:#ef4444; color:white;">
+                <i class="fas fa-trash-alt"></i> حذف المنتهي
+            </button>
+        </div>
+
+        <p style="color:var(--text-muted); margin-bottom:20px">يتم عرض الاشتراكات المتبقي لها 3 أيام أو أقل، أو التي انتهت بالفعل.</p>
         <div class="table-container">
             <table>
                 <thead>
@@ -426,7 +506,8 @@
                         <th>اسم العميل</th>
                         <th>رقم الجوال</th>
                         <th>ينتهي بتاريخ</th>
-                        <th>المتبقي (أيام)</th>
+                        <th>المتبقي</th>
+                        <th>مراسلة</th>
                     </tr>
                 </thead>
                 <tbody id="expiringBody"></tbody>
@@ -437,11 +518,11 @@
     <div id="analytics" class="card hidden">
         <h3><i class="fas fa-chart-bar"></i> الإحصائيات والرسوم البيانية</h3>
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-            <div style="background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0;">
+            <div class="inner-box" style="padding: 20px; border-radius: 20px;">
                 <h4 style="text-align:center; margin-bottom:15px">توزيع الأرباح الكلية</h4>
                 <canvas id="profitChart" style="max-height: 300px;"></canvas>
             </div>
-            <div style="background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0;">
+            <div class="inner-box" style="padding: 20px; border-radius: 20px;">
                 <h4 style="text-align:center; margin-bottom:15px">عدد المبيعات آخر 6 شهور</h4>
                 <canvas id="salesChart" style="max-height: 300px;"></canvas>
             </div>
@@ -468,6 +549,14 @@
                 <button class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash"></i> مسح الكل</button>
             </div>
         </div>
+
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="historySearch" onkeyup="filterHistory()" placeholder="ابحث باسم العميل، الخدمة، أو المحفظة..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+
         <div class="table-container">
             <table>
                 <thead>
@@ -491,8 +580,8 @@
         <h3><i class="fas fa-chart-pie"></i> حصص الشركاء والاستثمار</h3>
         <div id="investBox" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;"></div>
         
-        <div style="margin-top:40px; background:#fff7ed; padding:30px; border-radius:20px; border: 1px solid #ffedd5;">
-            <h4 style="margin-top:0; color:#9a3412"><i class="fas fa-external-link-alt"></i> طلب سحب أرباح</h4>
+        <div class="inner-box" style="margin-top:40px; padding:30px; border-radius:20px;">
+            <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-external-link-alt"></i> طلب سحب أرباح</h4>
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
                 <div class="input-group">
                     <label>سحب من حصة أحمد</label>
@@ -524,7 +613,71 @@
 
     <div id="modify" class="card hidden">
         
-        <div class="github-section">
+        <h3 style="margin-top:0"><i class="fas fa-edit"></i> التحكم اليدوي بالأرصدة</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px">
+            <div class="input-group"><label>المحفظة</label><select id="modWallet"></select></div>
+            <div class="input-group"><label>المبلغ</label><input id="modAmount" type="number" placeholder="0.00"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:40px">
+            <button class="btn btn-primary" onclick="addToWallet()">إضافة</button>
+            <button class="btn btn-danger" onclick="subtractFromWallet()">خصم</button>
+            <button class="btn btn-primary" style="background:#0ea5e9" onclick="setWallet()">تعيين مباشر</button>
+            <button class="btn btn-warning" onclick="toggleWalletStatus()">
+                <i class="fas fa-toggle-on"></i> تغيير الحالة (نشط/معطل)
+            </button>
+            <button class="btn btn-danger" onclick="deleteWallet()">حذف المحفظة</button>
+        </div>
+
+        <h3><i class="fas fa-plus-circle"></i> إدارة المحافظ</h3>
+        <div class="inner-box" style="display:flex; gap:15px; padding:20px; border-radius:15px; margin-bottom:40px">
+            <input id="newWalletName" placeholder="اسم المحفظة الجديدة">
+            <select id="newWalletCurrency" style="width:150px"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
+            <button class="btn btn-primary" onclick="addNewWallet()">إنشاء</button>
+        </div>
+
+        <h3><i class="fas fa-edit"></i> تعديل اسم محفظة</h3>
+        <p style="color:var(--text-muted); font-size:14px; margin-bottom:10px">تنبيه: سيتم نقل الرصيد وتحديث سجل العمليات القديم للاسم الجديد.</p>
+        <div class="inner-box" style="display:flex; gap:15px; padding:20px; border-radius:15px; margin-bottom:40px">
+            <select id="renameWalletSelect" style="width:200px"></select>
+            <input id="renameWalletInput" placeholder="الاسم الجديد للمحفظة">
+            <button class="btn btn-warning" onclick="renameWallet()">تغيير الاسم</button>
+        </div>
+
+        <h3><i class="fas fa-percent"></i> إعدادات توزيع الأرباح</h3>
+        <div class="settings-section" style="margin-bottom:40px; margin-top:0;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                <div class="input-group">
+                    <label>نسبة أحمد (%)</label>
+                    <input type="number" id="setAhmadProp" placeholder="35">
+                </div>
+                <div class="input-group">
+                    <label>نسبة محمد (%)</label>
+                    <input type="number" id="setMohamedProp" placeholder="35">
+                </div>
+                <div class="input-group">
+                    <label>نسبة المتجر (%)</label>
+                    <input type="number" id="setStoreProp" placeholder="30">
+                </div>
+            </div>
+            <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="setDeductCost" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="setDeductCost" style="margin-bottom: 0; cursor: pointer;">خصم التكاليف من الإجمالي قبل توزيع الربح؟</label>
+            </div>
+            
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+            
+            <div class="input-group">
+                <label>سعر صرف الدولار الثابت (مقابل الشيكل)</label>
+                <div style="display:flex; align-items:center; gap:10px">
+                    <input type="number" id="setExchangeRate" placeholder="أدخل السعر (مثلاً 3.5)">
+                    <small style="color:var(--text-muted); width: 100%;">اتركه 0 أو فارغاً إذا كنت تريد أن يسألك النظام في كل مرة.</small>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="saveProfitSettings()">حفظ إعدادات النظام</button>
+        </div>
+
+        <div class="github-section" style="margin-bottom:40px; margin-top:0;">
             <h3><i class="fab fa-github"></i> إعدادات الربط السحابي (GitHub)</h3>
             <p style="color:#94a3b8; font-size:14px; margin-bottom:15px">اربط الموقع بمستودع خاص لحفظ البيانات بشكل دائم وآمن على السحابة.</p>
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
@@ -551,71 +704,8 @@
                 <button class="btn btn-success" style="background:var(--success); color:#fff" onclick="pushToGithub()"><i class="fas fa-upload"></i> رفع البيانات الآن</button>
             </div>
         </div>
-        <h3><i class="fas fa-percent"></i> إعدادات توزيع الأرباح</h3>
-        <div class="settings-section">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                <div class="input-group">
-                    <label>نسبة أحمد (%)</label>
-                    <input type="number" id="setAhmadProp" placeholder="35">
-                </div>
-                <div class="input-group">
-                    <label>نسبة محمد (%)</label>
-                    <input type="number" id="setMohamedProp" placeholder="35">
-                </div>
-                <div class="input-group">
-                    <label>نسبة المتجر (%)</label>
-                    <input type="number" id="setStoreProp" placeholder="30">
-                </div>
-            </div>
-            <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="setDeductCost" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="setDeductCost" style="margin-bottom: 0; cursor: pointer;">خصم التكاليف من الإجمالي قبل توزيع الربح؟</label>
-            </div>
-            
-            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #cbd5e1;">
-            
-            <div class="input-group">
-                <label>سعر صرف الدولار الثابت (مقابل الشيكل)</label>
-                <div style="display:flex; align-items:center; gap:10px">
-                    <input type="number" id="setExchangeRate" placeholder="أدخل السعر (مثلاً 3.5)">
-                    <small style="color:#64748b; width: 100%;">اتركه 0 أو فارغاً إذا كنت تريد أن يسألك النظام في كل مرة.</small>
-                </div>
-            </div>
 
-            <button class="btn btn-primary" style="margin-top: 20px;" onclick="saveProfitSettings()">حفظ إعدادات النظام</button>
-        </div>
-
-        <h3 style="margin-top:40px"><i class="fas fa-edit"></i> تعديل اسم محفظة</h3>
-        <p style="color:#64748b; font-size:14px; margin-bottom:10px">تنبيه: سيتم نقل الرصيد وتحديث سجل العمليات القديم للاسم الجديد.</p>
-        <div style="display:flex; gap:15px; background:#f1f5f9; padding:20px; border-radius:15px">
-            <select id="renameWalletSelect" style="width:200px"></select>
-            <input id="renameWalletInput" placeholder="الاسم الجديد للمحفظة">
-            <button class="btn btn-warning" onclick="renameWallet()">تغيير الاسم</button>
-        </div>
-
-        <h3 style="margin-top:40px"><i class="fas fa-plus-circle"></i> إدارة المحافظ</h3>
-        <div style="display:flex; gap:15px; background:#f1f5f9; padding:20px; border-radius:15px">
-            <input id="newWalletName" placeholder="اسم المحفظة الجديدة">
-            <select id="newWalletCurrency" style="width:150px"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
-            <button class="btn btn-primary" onclick="addNewWallet()">إنشاء</button>
-        </div>
-
-        <h3 style="margin-top:40px"><i class="fas fa-edit"></i> التحكم اليدوي بالأرصدة</h3>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px">
-            <div class="input-group"><label>المحفظة</label><select id="modWallet"></select></div>
-            <div class="input-group"><label>المبلغ</label><input id="modAmount" type="number" placeholder="0.00"></div>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="addToWallet()">إضافة</button>
-            <button class="btn btn-danger" onclick="subtractFromWallet()">خصم</button>
-            <button class="btn btn-primary" style="background:#0ea5e9" onclick="setWallet()">تعيين مباشر</button>
-            <button class="btn btn-warning" onclick="toggleWalletStatus()">
-                <i class="fas fa-toggle-on"></i> تغيير الحالة (نشط/معطل)
-            </button>
-            <button class="btn btn-danger" onclick="deleteWallet()">حذف المحفظة</button>
-        </div>
-
-        <div class="yellow-section" style="margin-top:50px;">
+        <div class="yellow-section">
             <h3><i class="fas fa-tasks"></i> قائمة المهام (To-Do)</h3>
             <div style="display:flex; gap:15px; margin-bottom:20px">
                 <input id="todoInput" placeholder="اكتب المهمة...">
@@ -636,14 +726,14 @@
 
     <div id="backup" class="card hidden">
         <h3><i class="fas fa-shield-alt"></i> حماية البيانات</h3>
-        <div style="text-align:center; padding:40px; border:2px dashed #e2e8f0; border-radius:30px">
+        <div style="text-align:center; padding:40px; border:2px dashed var(--border-color); border-radius:30px">
             <i class="fas fa-cloud-download-alt" style="font-size:50px; color:var(--primary); margin-bottom:20px"></i>
-            <p>احتفظ بنسخة احتياطية من بياناتك دائماً.</p>
+            <p style="color:var(--text-main)">احتفظ بنسخة احتياطية من بياناتك دائماً.</p>
             <button class="btn btn-primary" onclick="exportData()"><i class="fas fa-download"></i> تحميل النسخة الاحتياطية</button>
-            <div style="margin: 30px 0; border-top:1px solid #e2e8f0"></div>
+            <div style="margin: 30px 0; border-top:1px solid var(--border-color)"></div>
             <input type="file" id="importFile" style="width:auto; margin-bottom:10px">
             <br>
-            <button class="btn btn-danger" style="background:#f1f5f9; color:#64748b" onclick="importData()">استعادة بيانات</button>
+            <button class="btn btn-danger" style="background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-color)" onclick="importData()">استعادة بيانات</button>
         </div>
     </div>
 
@@ -838,12 +928,34 @@ function init(){
     loadProfitSettings();
     loadGithubInputs(); // Load GH inputs
     
+    // Check Dark Mode
+    if(localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+        document.getElementById("darkModeToggle").checked = true;
+    }
+
     // Attempt Initial Sync
     if(ghConfig.token) {
         fetchFromGithub();
     } else {
         refreshAll();
     }
+}
+
+// TOGGLE DARK MODE FUNCTION
+function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+    localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+}
+
+// FILTER HISTORY FUNCTION
+function filterHistory() {
+    let input = document.getElementById("historySearch").value.toLowerCase();
+    let rows = document.querySelectorAll("#historyBody tr");
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? "" : "none";
+    });
 }
 
 function showPage(id, btn){
@@ -1089,20 +1201,62 @@ function refreshExpiring() {
         let badgeClass = daysLeft <= 0 ? 'badge-danger' : 'badge-warning';
         let statusText = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
 
+        // --- WhatsApp Logic ---
+        let currentHour = new Date().getHours();
+        let greeting = currentHour < 12 ? "صباح الخير" : "مساء الخير";
+        let message = `${greeting} ${item.customer}، حابّين نخبّرك أن اشتراكك في ${item.sub} متبقّي على إنتهائه ${statusText}، هل عجبتك الخدمة و حابب تجدد اشتراكك مرة تانية؟`;
+        
+        // --- Smart Phone Number Parsing ---
+        let cleanPhone = item.phone.replace(/\D/g, ''); // تنظيف من الرموز
+        let finalPhone = cleanPhone;
+
+        // اذا يبدأ بـ 0 (مثل 059)، نحذف الـ 0 ونضيف 970
+        if (cleanPhone.startsWith('0')) {
+            finalPhone = '970' + cleanPhone.substring(1);
+        }
+        // لو الرقم أصلاً فيه مقدمة دولية (مثل 972 أو 970) نتركه كما هو
+        // هذا يحل المشكلة تبعت التكرار
+
+        let waLink = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+        
         expiringBody.innerHTML += `
             <tr>
                 <td><b>${item.sub}</b></td>
                 <td>${item.customer}</td>
-                <td><a href="https://wa.me/970${item.phone.replace(/^0/,'').replace(/\D/g,'')}" target="_blank" style="text-decoration:none; color:var(--success)"><i class="fab fa-whatsapp"></i> ${item.phone}</a></td>
+                <td>${item.phone}</td>
                 <td>${dateStr}</td>
                 <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                <td>
+                    <a href="${waLink}" target="_blank" class="btn btn-whatsapp" style="text-decoration:none; border-radius:8px">
+                        <i class="fab fa-whatsapp"></i> تذكير
+                    </a>
+                </td>
             </tr>
         `;
     });
     
     if(list.length === 0) {
-        expiringBody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:30px'>لا توجد اشتراكات تنتهي قريباً</td></tr>";
+        expiringBody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:30px'>لا توجد اشتراكات تنتهي قريباً</td></tr>";
     }
+}
+
+// Function to delete expired subscriptions
+function deleteExpired() {
+    if(!confirm("هل أنت متأكد؟ سيتم حذف الاشتراكات المنتهية من السجل نهائياً!")) return;
+
+    let p = JSON.parse(localStorage.purchases);
+    let now = new Date().getTime();
+
+    // Keep subscriptions that are NOT expired (expiry > now)
+    let newP = p.filter(item => {
+        if(!item.expiry) return true; // Keep if no expiry
+        return item.expiry > now; // Keep if future
+    });
+
+    localStorage.purchases = JSON.stringify(newP);
+    refreshAll();
+    pushToGithub(); // Auto save
+    notify("تم حذف الاشتراكات المنتهية");
 }
 
 function refreshWallets(){
@@ -1133,6 +1287,9 @@ function refreshHistory(){
         let durationTxt = p.duration ? (p.duration + " شهر") : "-";
         historyBody.innerHTML+=`<tr><td>${p.date}</td><td><b>${p.customer}</b></td><td>${p.phone}</td><td><span class="badge badge-info">${p.sub}</span></td><td>${durationTxt}</td><td style="color:var(--success)">${p.paid}</td><td style="color:var(--danger)">${p.cost}</td><td>${p.wallet}</td></tr>`;
     });
+    // Re-apply filter if text exists
+    let searchVal = document.getElementById("historySearch");
+    if(searchVal && searchVal.value) filterHistory();
 }
 
 function refreshInvestment(){
