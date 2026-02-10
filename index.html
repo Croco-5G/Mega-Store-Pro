@@ -66,25 +66,49 @@
 
         * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden; /* يمنع الصفحة كاملة من التحرك يمين ويسار */
+            position: relative;
+        }
+
         body {
             background: var(--bg-body);
             margin: 0;
             color: var(--text-main);
             display: flex;
             min-height: 100vh;
-            overflow-x: hidden;
             transition: background 0.3s, color 0.3s;
         }
 
-        /* --- Sidebar & Mobile Menu Fixes --- */
-        
-        /* 1. الزر (أعلى طبقة على الإطلاق) */
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh; /* fallback */
+            height: 100dvh; /* Dynamic Viewport Height: يحل مشكلة القائمة المقطوعة عالموبايل */
+            right: 0;
+            top: 0;
+            z-index: 9999;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+            border-left: 1px solid var(--border-color);
+            transform: translateX(0);
+            padding-bottom: 20px; /* مسافة أمان من الأسفل */
+        }
+
         .mobile-menu-btn {
             display: none;
             position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 99999; /* قيمة فلكية */
+            /* استخدام env() لضمان البعد عن حواف الايفون */
+            top: max(15px, env(safe-area-inset-top)); 
+            right: max(15px, env(safe-area-inset-right));
+            z-index: 100000;
             background: var(--primary);
             color: white;
             border: none;
@@ -93,43 +117,24 @@
             font-size: 20px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            /* تسريع الهاردوير للايفون */
             transform: translateZ(0); 
-            -webkit-transform: translateZ(0);
+            -webkit-transform: translateZ(0); /* تسريع هاردوير */
         }
+        
+        .mobile-menu-btn:active { transform: scale(0.95); }
 
-        /* 2. القائمة الجانبية (طبقة وسطى) */
-        .sidebar {
-            width: 280px;
-            background: var(--bg-sidebar);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            right: 0;
-            top: 0;
-            z-index: 9999; /* أقل من الزر، أعلى من الخلفية */
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: -5px 0 25px rgba(0,0,0,0.2);
-            border-left: 1px solid var(--border-color);
-            transform: translateX(0); /* للكمبيوتر */
-        }
-
-        /* 3. الخلفية المظللة (أقل طبقة) */
         .sidebar-overlay {
-            display: none; /* مخفي افتراضياً */
+            display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6);
-            z-index: 9990; /* أقل من القائمة */
+            z-index: 9990;
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
         }
 
-        /* --- باقي التنسيقات --- */
         .brand {
-            padding: 25px 20px 10px 20px; 
+            padding: 30px 20px 10px 20px;
             text-align: center;
             font-size: 18px;
             font-weight: 900;
@@ -182,7 +187,12 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        .menu-items { padding: 10px; flex-grow: 1; overflow-y: auto; }
+        .menu-items { 
+            padding: 10px; 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; /* تمرير ناعم على الايفون */
+        }
 
         .sidebar button {
             width: 100%;
@@ -209,11 +219,14 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
         }
 
+        /* --- Main Content --- */
         .main-content {
             flex: 1;
             margin-right: 280px;
             padding: 30px;
             transition: all 0.3s;
+            width: 100%; /* تأكيد العرض */
+            max-width: 100%;
         }
 
         .stats-grid {
@@ -316,7 +329,14 @@
         .btn-whatsapp { background: #25D366; color: white; font-size: 12px; padding: 8px 12px; }
         .btn-whatsapp:hover { background: #128C7E; }
 
-        .table-container { overflow-x: auto; border-radius: 15px; border: 1px solid var(--border-color); }
+        /* تعديل الجداول لمنع التمدد */
+        .table-container { 
+            overflow-x: auto; 
+            border-radius: 15px; 
+            border: 1px solid var(--border-color); 
+            width: 100%;
+            -webkit-overflow-scrolling: touch; 
+        }
         table { width: 100%; border-collapse: collapse; background: var(--bg-card); min-width: 600px; }
         th { background: var(--bg-input); padding: 16px; text-align: center; color: var(--text-muted); font-weight: 700; }
         td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: center; color: var(--text-main); }
@@ -399,13 +419,12 @@
 
         /* --- Responsive Styles --- */
         @media (max-width: 768px) {
-            /* تعديل طريقة إخفاء القائمة لتكون متوافقة مع الجوال */
             .sidebar {
-                transform: translateX(100%); /* إزاحة لليمين خارج الشاشة */
+                transform: translateX(100%); 
                 right: 0;
             }
             .sidebar.active {
-                transform: translateX(0); /* إرجاعها للشاشة */
+                transform: translateX(0); 
             }
             
             .sidebar-overlay.active {
