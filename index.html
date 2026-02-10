@@ -76,7 +76,29 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* Sidebar */
+        /* --- Sidebar & Mobile Menu Fixes --- */
+        
+        /* 1. الزر (أعلى طبقة على الإطلاق) */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999; /* قيمة فلكية */
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            /* تسريع الهاردوير للايفون */
+            transform: translateZ(0); 
+            -webkit-transform: translateZ(0);
+        }
+
+        /* 2. القائمة الجانبية (طبقة وسطى) */
         .sidebar {
             width: 280px;
             background: var(--bg-sidebar);
@@ -86,51 +108,30 @@
             position: fixed;
             height: 100vh;
             right: 0;
-            z-index: 1000;
-            transition: all 0.3s ease-in-out;
+            top: 0;
+            z-index: 9999; /* أقل من الزر، أعلى من الخلفية */
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: -5px 0 25px rgba(0,0,0,0.2);
             border-left: 1px solid var(--border-color);
+            transform: translateX(0); /* للكمبيوتر */
         }
 
-        /* --- FIX FOR IPHONE BUTTON --- */
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            top: 20px; /* زيادة المسافة العلوية قليلاً */
-            right: 20px; /* زيادة المسافة الجانبية */
-            z-index: 2147483647 !important; /* أعلى قيمة ممكنة في المتصفح */
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 12px;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            
-            /* هذه الخصائص تجبر الآيفون على رسم الزر في طبقة منفصلة */
-            -webkit-transform: translate3d(0,0,0);
-            transform: translate3d(0,0,0);
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-        }
-        
-        .mobile-menu-btn:active { transform: scale(0.95) translate3d(0,0,0); }
-
+        /* 3. الخلفية المظللة (أقل طبقة) */
         .sidebar-overlay {
-            display: none;
+            display: none; /* مخفي افتراضياً */
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000; /* أعلى من السايدبار */
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px);
+            background: rgba(0,0,0,0.6);
+            z-index: 9990; /* أقل من القائمة */
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
 
+        /* --- باقي التنسيقات --- */
         .brand {
             padding: 25px 20px 10px 20px; 
             text-align: center;
-            font-size: 18px; /* تصغير الخط كما طلبت */
+            font-size: 18px;
             font-weight: 900;
             background: linear-gradient(135deg, var(--primary), #a855f7);
             -webkit-background-clip: text;
@@ -138,7 +139,6 @@
             letter-spacing: -0.5px;
         }
 
-        /* Toggle Switch */
         .theme-switch-container {
             display: flex;
             justify-content: center;
@@ -209,7 +209,6 @@
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
         }
 
-        /* Main Content */
         .main-content {
             flex: 1;
             margin-right: 280px;
@@ -255,7 +254,6 @@
             margin-bottom: 30px;
             animation: fadeIn 0.5s ease-out;
             color: var(--text-main);
-            /* مهم جداً للآيفون لتجنب التداخل */
             position: relative;
             z-index: 1;
         }
@@ -326,11 +324,11 @@
         .hidden { display: none; }
 
         #notification {
-            position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 99999; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 100000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
         }
         
         #syncStatus {
-            position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 99999; 
+            position: fixed; top: 20px; left: 30px; padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 700; z-index: 100000; 
             background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; transition: all 0.3s;
         }
@@ -399,14 +397,17 @@
         .github-section label { color: #94a3b8; }
         .github-section input { background: #334155; border-color: #475569; color: white; }
 
-        /* --- Responsive Styles (Mobile Optimization) --- */
+        /* --- Responsive Styles --- */
         @media (max-width: 768px) {
+            /* تعديل طريقة إخفاء القائمة لتكون متوافقة مع الجوال */
             .sidebar {
-                right: -280px; 
+                transform: translateX(100%); /* إزاحة لليمين خارج الشاشة */
+                right: 0;
             }
             .sidebar.active {
-                right: 0; 
+                transform: translateX(0); /* إرجاعها للشاشة */
             }
+            
             .sidebar-overlay.active {
                 display: block; 
             }
@@ -416,7 +417,6 @@
                 padding: 70px 15px 20px 15px; 
             }
             
-            /* إظهار الزر مع تأكيد الظهور */
             .mobile-menu-btn {
                 display: block !important; 
             }
@@ -450,7 +450,7 @@
 
 <div id="syncStatus"><i class="fas fa-cloud"></i> <span>جاهز</span></div>
 
-<button class="mobile-menu-btn" onclick="toggleSidebar()">
+<button class="mobile-menu-btn" id="menuBtn" onclick="toggleSidebar()">
     <i class="fas fa-bars"></i>
 </button>
 
@@ -1054,8 +1054,21 @@ function toggleDarkMode() {
 }
 
 function toggleSidebar() {
-    document.getElementById("mySidebar").classList.toggle("active");
-    document.querySelector(".sidebar-overlay").classList.toggle("active");
+    let sidebar = document.getElementById("mySidebar");
+    let overlay = document.querySelector(".sidebar-overlay");
+    let btnIcon = document.querySelector("#menuBtn i");
+    
+    sidebar.classList.toggle("active");
+    overlay.classList.toggle("active");
+    
+    // تغيير أيقونة الزر
+    if(sidebar.classList.contains("active")){
+        btnIcon.classList.remove("fa-bars");
+        btnIcon.classList.add("fa-times");
+    } else {
+        btnIcon.classList.remove("fa-times");
+        btnIcon.classList.add("fa-bars");
+    }
 }
 
 // FILTER HISTORY FUNCTION
@@ -1071,9 +1084,11 @@ function filterHistory() {
 function showPage(id, btn){
     document.querySelectorAll(".card").forEach(x=>x.classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
+    
     // Close sidebar on mobile when clicking a link
-    document.getElementById("mySidebar").classList.remove("active");
-    document.querySelector(".sidebar-overlay").classList.remove("active");
+    if(window.innerWidth <= 768) {
+        toggleSidebar();
+    }
     
     document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
