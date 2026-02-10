@@ -35,6 +35,8 @@
             --yellow-item-bg: #fffbeb;
             --yellow-item-border: #eab308;
             --yellow-item-text: #713f12;
+            --yellow-btn-bg: #eab308;
+            --yellow-btn-hover: #ca8a04;
         }
 
         body.dark-mode {
@@ -54,6 +56,8 @@
             --yellow-item-bg: rgba(234, 179, 8, 0.15);
             --yellow-item-border: #eab308;
             --yellow-item-text: #fef08a;
+            --yellow-btn-bg: #eab308;
+            --yellow-btn-hover: #ca8a04;
         }
 
         body.dark-mode .stat-icon[style*="#e0e7ff"] { background: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
@@ -83,18 +87,18 @@
             height: 100vh;
             right: 0;
             z-index: 1000;
-            transition: all 0.3s ease-in-out; /* Smooth slide */
+            transition: all 0.3s ease-in-out;
             box-shadow: -5px 0 25px rgba(0,0,0,0.2);
             border-left: 1px solid var(--border-color);
         }
 
-        /* --- Mobile Toggle Button (Hidden on Desktop) --- */
+        /* --- Mobile Toggle Button (تعديل الـ Z-Index هنا) --- */
         .mobile-menu-btn {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             top: 15px;
             right: 15px;
-            z-index: 1100;
+            z-index: 10000; /* قيمة عالية جداً لتظهر فوق كل شيء */
             background: var(--primary);
             color: white;
             border: none;
@@ -102,8 +106,10 @@
             border-radius: 12px;
             font-size: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
         }
+        .mobile-menu-btn:active { transform: scale(0.95); }
 
         /* --- Overlay for Mobile --- */
         .sidebar-overlay {
@@ -116,7 +122,7 @@
         }
 
         .brand {
-            padding: 25px 20px 10px 20px;
+            padding: 25px 20px 10px 20px; 
             text-align: center;
             font-size: 20px;
             font-weight: 900;
@@ -342,12 +348,12 @@
         .yellow-section h3 { color: var(--yellow-text) !important; }
         
         .yellow-section .btn-primary {
-            background: #eab308;
+            background: var(--yellow-btn-bg);
             color: #fff;
             border: none;
         }
         .yellow-section .btn-primary:hover {
-            background: #ca8a04;
+            background: var(--yellow-btn-hover);
         }
 
         .todo-item {
