@@ -18,7 +18,6 @@
             --accent: #f59e0b;
             --success: #10b981;
             --danger: #ef4444;
-            
             --bg-body: #f8fafc;
             --bg-card: #ffffff;
             --bg-input: #f8fafc;
@@ -28,7 +27,6 @@
             --border-color: #e2e8f0;
             --stat-card-border: rgba(255,255,255,0.8);
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-
             --yellow-bg: #fefce8;
             --yellow-border: #fde047;
             --yellow-text: #854d0e;
@@ -49,7 +47,6 @@
             --border-color: #334155;
             --stat-card-border: #334155;
             --card-shadow: none;
-
             --yellow-bg: rgba(234, 179, 8, 0.1);
             --yellow-border: rgba(234, 179, 8, 0.3);
             --yellow-text: #fde047;
@@ -65,107 +62,17 @@
         body.dark-mode .stat-icon[style*="#fef3c7"] { background: rgba(245, 158, 11, 0.2) !important; color: #fbbf24 !important; }
 
         * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-
         html, body { width: 100%; height: 100%; overflow-x: hidden; position: relative; }
+        body { background: var(--bg-body); margin: 0; color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.3s, color 0.3s; }
 
-        body {
-            background: var(--bg-body);
-            margin: 0;
-            color: var(--text-main);
-            display: flex;
-            min-height: 100vh;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        /* --- Helper Classes for Responsive Layout (الحل الجذري) --- */
-        .responsive-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
+        .sidebar { width: 280px; background: var(--bg-sidebar); color: white; display: flex; flex-direction: column; position: fixed; height: 100dvh; right: 0; top: 0; z-index: 9999; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -5px 0 25px rgba(0,0,0,0.2); border-left: 1px solid var(--border-color); transform: translateX(0); padding-bottom: 20px; }
         
-        .responsive-flex {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        .responsive-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        /* --- Sidebar --- */
-        .sidebar {
-            width: 280px;
-            background: var(--bg-sidebar);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100dvh; 
-            right: 0;
-            top: 0;
-            z-index: 9999;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: -5px 0 25px rgba(0,0,0,0.2);
-            border-left: 1px solid var(--border-color);
-            transform: translateX(0);
-            padding-bottom: 20px;
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            top: max(15px, env(safe-area-inset-top)); 
-            right: max(15px, env(safe-area-inset-right));
-            z-index: 100000;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            transform: translateZ(0); 
-            -webkit-transform: translateZ(0);
-        }
-        
+        .mobile-menu-btn { display: none; position: fixed; top: max(15px, env(safe-area-inset-top)); right: max(15px, env(safe-area-inset-right)); z-index: 100000; background: var(--primary); color: white; border: none; padding: 12px 16px; border-radius: 12px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transform: translateZ(0); -webkit-transform: translateZ(0); }
         .mobile-menu-btn:active { transform: scale(0.95); }
+        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9990; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 9990;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-        }
-
-        .brand {
-            padding: 25px 20px 5px 20px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: 900;
-            background: linear-gradient(135deg, var(--primary), #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
-        }
-
-        .theme-switch-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding-bottom: 10px;
-            gap: 10px;
-            font-size: 13px;
-            color: #94a3b8;
-        }
-        
+        .brand { padding: 30px 20px 5px 20px; text-align: center; font-size: 18px; font-weight: 900; background: linear-gradient(135deg, var(--primary), #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+        .theme-switch-container { display: flex; justify-content: center; align-items: center; padding-bottom: 10px; gap: 10px; font-size: 13px; color: #94a3b8; }
         .theme-switch { position: relative; display: inline-block; width: 40px; height: 20px; }
         .theme-switch input { display: none; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 34px; }
@@ -174,10 +81,7 @@
         input:checked + .slider:before { transform: translateX(20px); }
 
         .menu-items { padding: 10px; flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-
-        .sidebar button {
-            width: 100%; padding: 14px 18px; margin-bottom: 5px; border: none; border-radius: 12px; background: transparent; color: #94a3b8; font-size: 15px; font-weight: 600; cursor: pointer; text-align: right; display: flex; align-items: center; gap: 12px; transition: all 0.3s;
-        }
+        .sidebar button { width: 100%; padding: 14px 18px; margin-bottom: 5px; border: none; border-radius: 12px; background: transparent; color: #94a3b8; font-size: 15px; font-weight: 600; cursor: pointer; text-align: right; display: flex; align-items: center; gap: 12px; transition: all 0.3s; }
         .sidebar button:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .sidebar button.active { background: var(--primary); color: white; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4); }
 
@@ -188,7 +92,6 @@
         .stat-icon { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
         .card { background: var(--bg-card); border-radius: 24px; padding: 35px; box-shadow: var(--card-shadow); border: 1px solid var(--border-color); margin-bottom: 30px; animation: fadeIn 0.5s ease-out; color: var(--text-main); position: relative; z-index: 1; }
-        .inner-box { background: var(--bg-input); border: 1px solid var(--border-color); padding: 25px; border-radius: 18px; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -236,16 +139,23 @@
         .yellow-section h3 { color: var(--yellow-text) !important; }
         .yellow-section .btn-primary { background: var(--yellow-btn-bg); color: #fff; border: none; }
         .yellow-section .btn-primary:hover { background: var(--yellow-btn-hover); }
+        
         .todo-item { display: flex; align-items: center; justify-content: space-between; background: var(--yellow-item-bg); padding: 15px; border-radius: 12px; border-right: 4px solid var(--yellow-item-border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 10px; color: var(--yellow-item-text); }
         #generalNotesBox .todo-item { background: var(--bg-input); border-right: 4px solid var(--primary); color: var(--text-main); }
         .todo-item > div:first-child { flex: 1; min-width: 0; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; padding-left: 15px; white-space: pre-wrap; }
+        
         .settings-section, .github-section { background: var(--bg-input); padding: 20px; border-radius: 18px; border: 1px solid var(--border-color); margin-top: 20px; color: var(--text-main); }
         .github-section { background: #1e293b; color: white; }
         .github-section h3, .github-section h3 i { color: white !important; }
         .github-section label { color: #94a3b8; }
         .github-section input { background: #334155; border-color: #475569; color: white; }
 
-        /* --- Responsive Styles (Mobile Optimization) --- */
+        /* --- FLEX & GRID HELPERS --- */
+        .flex-row { display: flex; gap: 15px; align-items: center; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+
+        /* --- MOBILE LAYOUT FIXES (IMPORTANT) --- */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(100%); right: 0; }
             .sidebar.active { transform: translateX(0); }
@@ -255,18 +165,32 @@
             .stats-grid { grid-template-columns: 1fr; }
             
             /* تحويل الشبكات لعمود واحد */
-            .responsive-grid, .responsive-grid-3 { grid-template-columns: 1fr !important; }
-            
-            /* تحويل الفليكس لعمودي */
-            .responsive-flex { flex-direction: column !important; align-items: stretch !important; }
-            
-            /* تعديل الأزرار والحقول لتأخذ العرض الكامل */
-            .responsive-flex input, .responsive-flex select, .responsive-flex button, .btn { width: 100% !important; margin: 0 !important; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
 
-            /* استثناء خاص لمجموعة السعر والعملة لإبقائها أفقية */
-            .currency-group { flex-direction: row !important; }
-            .currency-group input { flex: 1 !important; width: auto !important; }
-            .currency-group select { flex: 0 0 90px !important; width: 90px !important; }
+            /* هذا الكلاس سيجبر الحاويات التي فيها مشاكل على الترتيب العمودي */
+            .force-mobile-col {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 15px !important;
+            }
+            
+            /* أزرار وحقول العرض الكامل */
+            .force-mobile-col > input,
+            .force-mobile-col > select,
+            .force-mobile-col > button,
+            .force-mobile-col > .btn {
+                width: 100% !important;
+                margin: 0 !important;
+            }
+            
+            /* المحافظة على العملة والسعر في سطر واحد */
+            .currency-row { 
+                display: flex !important; 
+                flex-direction: row !important;
+                gap: 10px !important; 
+            }
+            .currency-row input { flex: 1 !important; width: auto !important; }
+            .currency-row select { width: 90px !important; flex: 0 0 90px !important; }
 
             th, td { font-size: 13px; padding: 10px; }
             #syncStatus { top: 15px; left: 15px; }
@@ -286,7 +210,6 @@
 
 <div class="sidebar" id="mySidebar">
     <div class="brand"><i class="fas fa-rocket"></i> MEGA STORE</div>
-    
     <div class="theme-switch-container">
         <i class="fas fa-moon"></i>
         <label class="theme-switch">
@@ -295,7 +218,6 @@
         </label>
         <i class="fas fa-sun"></i>
     </div>
-
     <div class="menu-items">
         <button onclick="showPage('purchase', this)" class="active"><i class="fas fa-shopping-cart"></i> عملية شراء</button>
         <button onclick="showPage('expiring', this)"><i class="fas fa-hourglass-half"></i> تنبيهات الانتهاء</button>
@@ -314,24 +236,15 @@
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon" style="background: #e0e7ff; color: var(--primary);"><i class="fas fa-dollar-sign"></i></div>
-            <div>
-                <label>إجمالي الدولار</label>
-                <div id="statDollar" style="font-size: 20px; font-weight: 800;">0.00 $</div>
-            </div>
+            <div><label>إجمالي الدولار</label><div id="statDollar" style="font-size: 20px; font-weight: 800;">0.00 $</div></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background: #dcfce7; color: var(--success);"><i class="fas fa-coins"></i></div>
-            <div>
-                <label>إجمالي الشيكل</label>
-                <div id="statShekel" style="font-size: 20px; font-weight: 800;">0.00 ₪</div>
-            </div>
+            <div><label>إجمالي الشيكل</label><div id="statShekel" style="font-size: 20px; font-weight: 800;">0.00 ₪</div></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background: #fef3c7; color: var(--accent);"><i class="fas fa-shopping-bag"></i></div>
-            <div>
-                <label>عمليات اليوم</label>
-                <div id="statSales" style="font-size: 20px; font-weight: 800;">0</div>
-            </div>
+            <div><label>عمليات اليوم</label><div id="statSales" style="font-size: 20px; font-weight: 800;">0</div></div>
         </div>
     </div>
 
@@ -339,7 +252,7 @@
 
     <div id="purchase" class="card">
         <h3><i class="fas fa-cart-plus"></i> تسجيل اشتراك جديد</h3>
-        <div class="responsive-grid">
+        <div class="grid-2">
             <div class="input-group">
                 <label>نوع الاشتراك</label>
                 <input id="sub" placeholder="مثال: نيتفليكس، يوتيوب...">
@@ -350,7 +263,7 @@
             </div>
         </div>
         
-        <div class="responsive-grid">
+        <div class="grid-2">
             <div class="input-group">
                 <label>رقم جوال العميل</label>
                 <input id="customerPhone" placeholder="059xxxxxxx">
@@ -374,24 +287,24 @@
             </div>
         </div>
 
-        <div class="responsive-grid" style="margin-top: 10px;">
+        <div class="grid-2" style="margin-top: 10px;">
             <div class="input-group">
                 <label>المبلغ المدفوع من العميل</label>
-                <div class="responsive-flex currency-group" style="gap:10px">
+                <div class="currency-row flex-row" style="gap:10px">
                     <input type="number" id="paidAmount" placeholder="0.00">
                     <select id="paidCurrency"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select>
                 </div>
             </div>
             <div class="input-group">
                 <label>التكلفة علينا</label>
-                <div class="responsive-flex currency-group" style="gap:10px">
+                <div class="currency-row flex-row" style="gap:10px">
                     <input type="number" id="costAmount" placeholder="0.00">
                     <select id="costCurrency"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
                 </div>
             </div>
         </div>
 
-        <div class="inner-box responsive-grid" style="margin-top: 20px; border-style: dashed;">
+        <div class="grid-2" style="background:var(--bg-input); padding:25px; border-radius:18px; margin-top:20px; border:1px dashed var(--border-color);">
             <div>
                 <label>يُخصم من محفظة (المصدر):</label>
                 <select id="fromWallet"></select>
@@ -408,15 +321,12 @@
     </div>
 
     <div id="expiring" class="card hidden">
-        
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <h3 style="margin-bottom:0"><i class="fas fa-hourglass-half"></i> اشتراكات تنتهي قريباً</h3>
             <button class="btn btn-danger" onclick="deleteExpired()" style="padding: 8px 15px; font-size:13px; background:#ef4444; color:white;">
                 <i class="fas fa-eye-slash"></i> إخفاء المنتهي
             </button>
         </div>
-
-        <p style="color:var(--text-muted); margin-bottom:20px">يتم عرض الاشتراكات المتبقي لها 3 أيام أو أقل، أو التي انتهت بالفعل.</p>
         <div class="table-container">
             <table>
                 <thead>
@@ -436,12 +346,12 @@
 
     <div id="analytics" class="card hidden">
         <h3><i class="fas fa-chart-bar"></i> الإحصائيات والرسوم البيانية</h3>
-        <div class="responsive-grid" style="gap: 30px;">
-            <div class="inner-box">
+        <div class="grid-2" style="gap: 30px;">
+            <div style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 25px; border-radius: 18px;">
                 <h4 style="text-align:center; margin-bottom:15px">توزيع الأرباح الكلية</h4>
                 <canvas id="profitChart" style="max-height: 300px;"></canvas>
             </div>
-            <div class="inner-box">
+            <div style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 25px; border-radius: 18px;">
                 <h4 style="text-align:center; margin-bottom:15px">عدد المبيعات آخر 6 شهور</h4>
                 <canvas id="salesChart" style="max-height: 300px;"></canvas>
             </div>
@@ -468,27 +378,16 @@
                 <button class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash"></i> مسح الكل</button>
             </div>
         </div>
-
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
                 <input id="historySearch" onkeyup="filterHistory()" placeholder="ابحث باسم العميل، الخدمة، أو المحفظة..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
-
         <div class="table-container">
             <table>
                 <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>العميل</th>
-                        <th>الجوال</th>
-                        <th>الخدمة</th>
-                        <th>المدة</th>
-                        <th>الدفع</th>
-                        <th>التكلفة</th>
-                        <th>المحفظة</th>
-                    </tr>
+                    <tr><th>التاريخ</th><th>العميل</th><th>الجوال</th><th>الخدمة</th><th>المدة</th><th>الدفع</th><th>التكلفة</th><th>المحفظة</th></tr>
                 </thead>
                 <tbody id="historyBody"></tbody>
             </table>
@@ -497,14 +396,13 @@
 
     <div id="investment" class="card hidden">
         <h3><i class="fas fa-chart-pie"></i> حصص الشركاء والاستثمار</h3>
-        <div class="responsive-grid-3" id="investBox"></div>
-        
-        <div class="inner-box" style="margin-top:40px;">
+        <div class="grid-3" id="investBox"></div>
+        <div style="margin-top:40px; padding:30px; border-radius:20px; background:var(--bg-input); border:1px solid var(--border-color);">
             <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-external-link-alt"></i> طلب سحب أرباح</h4>
-            <div class="responsive-grid-3">
+            <div class="grid-3">
                 <div class="input-group">
                     <label>سحب من حصة أحمد</label>
-                    <div class="responsive-flex currency-group" style="gap:5px">
+                    <div class="currency-row flex-row" style="gap:5px">
                         <input id="withdrawAhmad" type="number" placeholder="0.00">
                         <select id="curAhmad" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
                         <button class="btn btn-danger" onclick="withdrawPartial('ahmad')">سحب</button>
@@ -512,7 +410,7 @@
                 </div>
                 <div class="input-group">
                     <label>سحب من حصة محمد</label>
-                    <div class="responsive-flex currency-group" style="gap:5px">
+                    <div class="currency-row flex-row" style="gap:5px">
                         <input id="withdrawMohamed" type="number" placeholder="0.00">
                         <select id="curMohamed" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
                         <button class="btn btn-danger" onclick="withdrawPartial('mohamed')">سحب</button>
@@ -520,7 +418,7 @@
                 </div>
                 <div class="input-group">
                     <label>سحب من حصة المتجر</label>
-                    <div class="responsive-flex currency-group" style="gap:5px">
+                    <div class="currency-row flex-row" style="gap:5px">
                         <input id="withdrawStore" type="number" placeholder="0.00">
                         <select id="curStore" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
                         <button class="btn btn-danger" onclick="withdrawPartial('store')">سحب</button>
@@ -533,7 +431,7 @@
     <div id="modify" class="card hidden">
         
         <h3 style="margin-top:0"><i class="fas fa-edit"></i> التحكم اليدوي بالأرصدة</h3>
-        <div class="responsive-grid">
+        <div class="grid-2">
             <div class="input-group"><label>المحفظة</label><select id="modWallet"></select></div>
             <div class="input-group"><label>المبلغ</label><input id="modAmount" type="number" placeholder="0.00"></div>
         </div>
@@ -542,13 +440,13 @@
             <button class="btn btn-danger" onclick="subtractFromWallet()">خصم</button>
             <button class="btn btn-primary" style="background:#0ea5e9" onclick="setWallet()">تعيين مباشر</button>
             <button class="btn btn-warning" onclick="toggleWalletStatus()">
-                <i class="fas fa-toggle-on"></i> تغيير الحالة (نشط/معطل)
+                <i class="fas fa-toggle-on"></i> حالة (نشط/معطل)
             </button>
-            <button class="btn btn-danger" onclick="deleteWallet()">حذف المحفظة</button>
+            <button class="btn btn-danger" onclick="deleteWallet()">حذف</button>
         </div>
 
         <h3><i class="fas fa-plus-circle"></i> إدارة المحافظ</h3>
-        <div class="inner-box responsive-flex" style="margin-bottom:40px">
+        <div class="flex-row force-mobile-col" style="background:var(--bg-input); border:1px solid var(--border-color); padding:20px; border-radius:15px; margin-bottom:40px">
             <input id="newWalletName" placeholder="اسم المحفظة الجديدة">
             <select id="newWalletCurrency" style="width:150px"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
             <button class="btn btn-primary" onclick="addNewWallet()">إنشاء</button>
@@ -556,7 +454,7 @@
 
         <h3><i class="fas fa-edit"></i> تعديل اسم محفظة</h3>
         <p style="color:var(--text-muted); font-size:14px; margin-bottom:10px">تنبيه: سيتم نقل الرصيد وتحديث سجل العمليات القديم للاسم الجديد.</p>
-        <div class="inner-box responsive-flex" style="margin-bottom:40px">
+        <div class="flex-row force-mobile-col" style="background:var(--bg-input); border:1px solid var(--border-color); padding:20px; border-radius:15px; margin-bottom:40px">
             <select id="renameWalletSelect" style="width:200px"></select>
             <input id="renameWalletInput" placeholder="الاسم الجديد للمحفظة">
             <button class="btn btn-warning" onclick="renameWallet()">تغيير الاسم</button>
@@ -564,60 +462,36 @@
 
         <h3><i class="fas fa-percent"></i> إعدادات توزيع الأرباح</h3>
         <div class="settings-section" style="margin-bottom:40px; margin-top:0;">
-            <div class="responsive-grid-3">
-                <div class="input-group">
-                    <label>نسبة أحمد (%)</label>
-                    <input type="number" id="setAhmadProp" placeholder="35">
-                </div>
-                <div class="input-group">
-                    <label>نسبة محمد (%)</label>
-                    <input type="number" id="setMohamedProp" placeholder="35">
-                </div>
-                <div class="input-group">
-                    <label>نسبة المتجر (%)</label>
-                    <input type="number" id="setStoreProp" placeholder="30">
-                </div>
+            <div class="grid-3">
+                <div class="input-group"><label>نسبة أحمد (%)</label><input type="number" id="setAhmadProp" placeholder="35"></div>
+                <div class="input-group"><label>نسبة محمد (%)</label><input type="number" id="setMohamedProp" placeholder="35"></div>
+                <div class="input-group"><label>نسبة المتجر (%)</label><input type="number" id="setStoreProp" placeholder="30"></div>
             </div>
             <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="setDeductCost" style="width: 20px; height: 20px; cursor: pointer;">
                 <label for="setDeductCost" style="margin-bottom: 0; cursor: pointer;">خصم التكاليف من الإجمالي قبل توزيع الربح؟</label>
             </div>
-            
             <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-            
             <div class="input-group">
                 <label>سعر صرف الدولار الثابت (مقابل الشيكل)</label>
-                <div class="responsive-flex currency-group" style="gap:10px">
+                <div class="currency-row flex-row" style="gap:10px">
                     <input type="number" id="setExchangeRate" placeholder="أدخل السعر (مثلاً 3.5)">
                     <small style="color:var(--text-muted); width: 100%;">اتركه 0 أو فارغاً إذا كنت تريد أن يسألك النظام في كل مرة.</small>
                 </div>
             </div>
-
             <button class="btn btn-primary" style="margin-top: 20px;" onclick="saveProfitSettings()">حفظ إعدادات النظام</button>
         </div>
 
         <div class="github-section" style="margin-bottom:40px; margin-top:0;">
             <h3><i class="fab fa-github"></i> إعدادات الربط السحابي (GitHub)</h3>
             <p style="color:#94a3b8; font-size:14px; margin-bottom:15px">اربط الموقع بمستودع خاص لحفظ البيانات بشكل دائم وآمن على السحابة.</p>
-            <div class="responsive-grid-3">
-                <div class="input-group">
-                    <label>اسم المستخدم (Username)</label>
-                    <input id="ghUser" placeholder="ex: myname">
-                </div>
-                <div class="input-group">
-                    <label>اسم المستودع (Repo)</label>
-                    <input id="ghRepo" placeholder="ex: my-shop">
-                </div>
-                <div class="input-group">
-                    <label>المفتاح السري (Token)</label>
-                    <input id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxx">
-                </div>
-                <div class="input-group">
-                    <label>اسم الملف (اختياري)</label>
-                    <input id="ghFile" placeholder="db.json" value="db.json">
-                </div>
+            <div class="grid-3 force-mobile-col">
+                <div class="input-group"><label>اسم المستخدم (Username)</label><input id="ghUser" placeholder="ex: myname"></div>
+                <div class="input-group"><label>اسم المستودع (Repo)</label><input id="ghRepo" placeholder="ex: my-shop"></div>
+                <div class="input-group"><label>المفتاح السري (Token)</label><input id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxx"></div>
+                <div class="input-group"><label>اسم الملف (اختياري)</label><input id="ghFile" placeholder="db.json" value="db.json"></div>
             </div>
-            <div class="responsive-flex" style="margin-top:15px">
+            <div class="flex-row force-mobile-col" style="margin-top:15px">
                 <button class="btn btn-primary" onclick="saveGithubSettings()">حفظ إعدادات الربط</button>
                 <button class="btn btn-warning" onclick="fetchFromGithub()"><i class="fas fa-download"></i> سحب البيانات الآن</button>
                 <button class="btn btn-success" style="background:var(--success); color:#fff" onclick="pushToGithub()"><i class="fas fa-upload"></i> رفع البيانات الآن</button>
@@ -626,7 +500,7 @@
 
         <div class="yellow-section">
             <h3><i class="fas fa-tasks"></i> قائمة المهام (To-Do)</h3>
-            <div class="responsive-flex" style="margin-bottom:20px">
+            <div class="flex-row force-mobile-col" style="margin-bottom:20px">
                 <input id="todoInput" placeholder="اكتب المهمة...">
                 <button class="btn btn-primary" onclick="addTodo()">إضافة</button>
             </div>
@@ -636,7 +510,7 @@
 
     <div id="generalNotes" class="card hidden">
         <h3><i class="fas fa-pen-fancy"></i> المفكرة</h3>
-        <div class="responsive-flex">
+        <div class="flex-row force-mobile-col">
             <textarea id="gnText" placeholder="اكتب ملاحظة..." style="height: 60px;"></textarea>
             <button class="btn btn-primary" onclick="addGeneralNote()">حفظ</button>
         </div>
@@ -650,7 +524,7 @@
             <p style="color:var(--text-main)">احتفظ بنسخة احتياطية من بياناتك دائماً.</p>
             <button class="btn btn-primary" onclick="exportData()"><i class="fas fa-download"></i> تحميل النسخة الاحتياطية</button>
             <div style="margin: 30px 0; border-top:1px solid var(--border-color)"></div>
-            <div class="inner-box responsive-flex" style="border:none; padding:0;">
+            <div class="flex-row force-mobile-col">
                 <input type="file" id="importFile" style="width:auto; margin-bottom:10px">
                 <button class="btn btn-danger" style="background:var(--bg-input); color:var(--text-muted); border:1px solid var(--border-color)" onclick="importData()">استعادة بيانات</button>
             </div>
