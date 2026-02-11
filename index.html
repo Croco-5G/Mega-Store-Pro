@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Final Edition</title>
+    <title>Mega Store Pro | Audit Master</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -14,47 +14,24 @@
     <style>
         /* --- CORE VARIABLES --- */
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --accent: #f59e0b;
-            --success: #10b981;
-            --danger: #ef4444;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --bg-input: #f8fafc;
-            --bg-sidebar: #0f172a;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
+            --primary: #6366f1; --primary-dark: #4f46e5; --accent: #f59e0b;
+            --success: #10b981; --danger: #ef4444;
+            --bg-body: #f8fafc; --bg-card: #ffffff; --bg-input: #f8fafc; --bg-sidebar: #0f172a;
+            --text-main: #1e293b; --text-muted: #64748b; --border-color: #e2e8f0;
             --stat-card-border: rgba(255,255,255,0.8);
             --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --yellow-bg: #fefce8;
-            --yellow-border: #fde047;
-            --yellow-text: #854d0e;
-            --yellow-item-bg: #fffbeb;
-            --yellow-item-border: #eab308;
-            --yellow-item-text: #713f12;
-            --yellow-btn-bg: #eab308;
-            --yellow-btn-hover: #ca8a04;
+            --yellow-bg: #fefce8; --yellow-border: #fde047; --yellow-text: #854d0e;
+            --yellow-item-bg: #fffbeb; --yellow-item-border: #eab308; --yellow-item-text: #713f12;
+            --yellow-btn-bg: #eab308; --yellow-btn-hover: #ca8a04;
         }
         body.dark-mode {
-            --bg-body: #0f172a;
-            --bg-card: #1e293b;
-            --bg-input: #334155;
-            --bg-sidebar: #020617;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border-color: #334155;
-            --stat-card-border: #334155;
-            --card-shadow: none;
-            --yellow-bg: rgba(234, 179, 8, 0.1);
-            --yellow-border: rgba(234, 179, 8, 0.3);
-            --yellow-text: #fde047;
-            --yellow-item-bg: rgba(234, 179, 8, 0.15);
-            --yellow-item-border: #eab308;
-            --yellow-item-text: #fef08a;
-            --yellow-btn-bg: #eab308;
-            --yellow-btn-hover: #ca8a04;
+            --bg-body: #0f172a; --bg-card: #1e293b; --bg-input: #334155; --bg-sidebar: #020617;
+            --text-main: #f1f5f9; --text-muted: #94a3b8; --border-color: #334155;
+            --stat-card-border: #334155; --card-shadow: none;
+            --yellow-bg: rgba(234, 179, 8, 0.1); --yellow-border: rgba(234, 179, 8, 0.3);
+            --yellow-text: #fde047; --yellow-item-bg: rgba(234, 179, 8, 0.15);
+            --yellow-item-border: #eab308; --yellow-item-text: #fef08a;
+            --yellow-btn-bg: #eab308; --yellow-btn-hover: #ca8a04;
         }
         body.dark-mode .stat-icon[style*="#e0e7ff"] { background: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
         body.dark-mode .stat-icon[style*="#dcfce7"] { background: rgba(16, 185, 129, 0.2) !important; color: #34d399 !important; }
@@ -62,180 +39,73 @@
         
         * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* --- SCROLLBAR CUSTOMIZATION (NEW) --- */
-        /* تخصيص شريط التمرير لجميع المتصفحات الحديثة */
-        ::-webkit-scrollbar {
-            width: 8px; /* عرض نحيف */
-            height: 8px; /* ارتفاع نحيف للسكرول الأفقي */
-        }
-
-        /* مسار السكرول (الخلفية) */
-        ::-webkit-scrollbar-track {
-            background: transparent; 
-        }
-
-        /* مقبض السكرول (الجزء المتحرك) */
-        ::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* لون رمادي فاتح */
-            border-radius: 20px; /* انحناء دائري */
-            border: 2px solid transparent; /* حواف شفافة */
-            background-clip: content-box;
-        }
-
-        /* عند تمرير الماوس على السكرول */
-        ::-webkit-scrollbar-thumb:hover {
-            background-color: var(--primary); /* يتحول للبنفسجي */
-        }
-
-        /* تخصيص للوضع المظلم */
-        body.dark-mode ::-webkit-scrollbar-thumb {
-            background-color: #334155; /* رمادي غامق */
-        }
-        body.dark-mode ::-webkit-scrollbar-thumb:hover {
-            background-color: var(--primary); /* يتحول للبنفسجي */
-        }
-
-        /* دعم فايرفوكس */
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
-        }
-        body.dark-mode * {
-            scrollbar-color: #334155 transparent;
-        }
-        /* ------------------------------------- */
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
+        body.dark-mode ::-webkit-scrollbar-thumb { background-color: #334155; }
+        body.dark-mode ::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
 
         html, body { width: 100%; height: 100%; overflow-x: hidden; position: relative; }
         body { background: var(--bg-body); margin: 0; color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.3s, color 0.3s; }
         
-        /* --- ANIMATED LOGIN STYLES --- */
-        .login-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
-            z-index: 200000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            padding: 20px;
-            overflow: hidden;
+        /* --- MODAL STYLES (NEW) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 300000;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px); animation: fadeIn 0.3s;
         }
+        .modal-content {
+            background: var(--bg-card); width: 90%; max-width: 500px;
+            padding: 30px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color); color: var(--text-main);
+            transform: translateY(20px); animation: slideUp 0.3s forwards;
+            max-height: 90vh; overflow-y: auto;
+        }
+        @keyframes slideUp { to { transform: translateY(0); } }
         
-        .login-overlay::before {
-            content: ''; position: absolute; width: 600px; height: 600px;
-            background: rgba(99, 102, 241, 0.15); border-radius: 50%;
-            top: -100px; left: -100px; animation: float 10s infinite ease-in-out;
+        .detail-row {
+            display: flex; justify-content: space-between; padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
         }
-        .login-overlay::after {
-            content: ''; position: absolute; width: 400px; height: 400px;
-            background: rgba(245, 158, 11, 0.1); border-radius: 50%;
-            bottom: -50px; right: -50px; animation: float 8s infinite ease-in-out reverse;
-        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-weight: 600; color: var(--text-muted); }
+        .detail-value { font-weight: 700; color: var(--text-main); }
+        
+        .val-inc { color: var(--success); }
+        .val-dec { color: var(--danger); }
 
-        @keyframes float {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(20px, 40px); }
-            100% { transform: translate(0, 0); }
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 50px 40px;
-            border-radius: 30px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            width: 100%; max-width: 420px;
-            text-align: center;
-            position: relative; z-index: 10;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
-            transform: translateY(20px); opacity: 0;
-            animation: slideUpFade 0.6s forwards 0.2s;
-            transition: background 0.3s, border-color 0.3s;
-        }
-
-        /* Dark Mode for Login Card */
-        body.dark-mode .login-card {
-            background: rgba(30, 41, 59, 0.95);
-            border-color: rgba(255,255,255,0.1);
-        }
-        body.dark-mode .login-card h2 { color: #f1f5f9; }
-        body.dark-mode .login-card p { color: #94a3b8; }
-
+        /* --- LOGIN STYLES --- */
+        .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); z-index: 200000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; overflow: hidden; }
+        .login-overlay::before { content: ''; position: absolute; width: 600px; height: 600px; background: rgba(99, 102, 241, 0.15); border-radius: 50%; top: -100px; left: -100px; animation: float 10s infinite ease-in-out; }
+        .login-overlay::after { content: ''; position: absolute; width: 400px; height: 400px; background: rgba(245, 158, 11, 0.1); border-radius: 50%; bottom: -50px; right: -50px; animation: float 8s infinite ease-in-out reverse; }
+        @keyframes float { 0% { transform: translate(0, 0); } 50% { transform: translate(20px, 40px); } 100% { transform: translate(0, 0); } }
+        .login-card { background: rgba(255, 255, 255, 0.95); padding: 50px 40px; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); width: 100%; max-width: 420px; text-align: center; position: relative; z-index: 10; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); transform: translateY(20px); opacity: 0; animation: slideUpFade 0.6s forwards 0.2s; transition: background 0.3s, border-color 0.3s; }
+        body.dark-mode .login-card { background: rgba(30, 41, 59, 0.95); border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .login-card h2 { color: #f1f5f9; } body.dark-mode .login-card p { color: #94a3b8; }
         @keyframes slideUpFade { to { transform: translateY(0); opacity: 1; } }
-
-        .login-icon-wrap {
-            width: 90px; height: 90px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px auto;
-            color: white; font-size: 36px;
-            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
-            animation: pulseIcon 3s infinite;
-        }
-
-        @keyframes pulseIcon {
-            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); transform: scale(1); }
-            50% { transform: scale(1.05); }
-            70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); transform: scale(1); }
-        }
-
+        .login-icon-wrap { width: 90px; height: 90px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: white; font-size: 36px; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseIcon 3s infinite; }
+        @keyframes pulseIcon { 0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); transform: scale(1); } 50% { transform: scale(1.05); } 70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); } 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); transform: scale(1); } }
         .login-card h2 { color: #1e293b; margin-bottom: 5px; font-weight: 800; font-size: 24px; }
         .login-card p { color: #64748b; margin-bottom: 30px; font-size: 14px; }
-
         .custom-input { position: relative; margin-bottom: 20px; }
-        .custom-input i {
-            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-            color: #94a3b8; transition: 0.3s;
-        }
-        .custom-input input {
-            width: 100%; padding: 14px 45px 14px 15px;
-            border-radius: 16px; border: 2px solid #e2e8f0;
-            background: #f8fafc; color: #1e293b; font-size: 15px;
-            transition: all 0.3s; outline: none;
-        }
-        .custom-input input:focus {
-            border-color: var(--primary); background: #fff;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-        }
+        .custom-input i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; transition: 0.3s; }
+        .custom-input input { width: 100%; padding: 14px 45px 14px 15px; border-radius: 16px; border: 2px solid #e2e8f0; background: #f8fafc; color: #1e293b; font-size: 15px; transition: all 0.3s; outline: none; }
+        .custom-input input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
         .custom-input input:focus + i { color: var(--primary); }
-
-        /* Dark Mode Inputs */
-        body.dark-mode .custom-input input {
-            background: #0f172a; border-color: #334155; color: #f1f5f9;
-        }
-        body.dark-mode .custom-input input:focus {
-            border-color: var(--primary); background: #1e293b;
-        }
-
-        .btn-login {
-            width: 100%; padding: 16px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
-            color: white; border: none; border-radius: 16px;
-            font-size: 16px; font-weight: 700; cursor: pointer;
-            transition: all 0.3s; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
+        body.dark-mode .custom-input input { background: #0f172a; border-color: #334155; color: #f1f5f9; }
+        body.dark-mode .custom-input input:focus { border-color: var(--primary); background: #1e293b; }
+        .btn-login { width: 100%; padding: 16px; background: linear-gradient(90deg, var(--primary), var(--primary-dark)); color: white; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-login:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4); }
         .btn-login:active { transform: translateY(-1px); }
-        
-        .loading-spinner {
-            width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: white; border-radius: 50%;
-            animation: spin 1s linear infinite; display: none;
-        }
+        .loading-spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; display: none; }
         .btn-login.loading .loading-spinner { display: block; }
         .btn-login.loading span { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Login Theme Toggle */
-        .login-theme-toggle {
-            position: absolute; top: 20px; right: 20px; z-index: 200001;
-        }
-        .login-theme-toggle label {
-            background: rgba(255,255,255,0.2); width: 45px; height: 45px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; color: white; transition: 0.3s;
-            backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
+        .login-theme-toggle { position: absolute; top: 20px; right: 20px; z-index: 200001; }
+        .login-theme-toggle label { background: rgba(255,255,255,0.2); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: 0.3s; backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .login-theme-toggle label:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
         .login-theme-toggle input { display: none; }
         body.dark-mode .login-theme-toggle label { background: var(--primary); color: white; }
@@ -398,6 +268,14 @@
 
 </div>
 
+<div id="detailsModal" class="modal-overlay hidden" onclick="closeModal(event)">
+    <div class="modal-content">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">تفاصيل الحركة</h3>
+        <div id="modalBody"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:20px" onclick="closeModal('force')">إغلاق</button>
+    </div>
+</div>
+
 <button class="mobile-menu-btn" id="menuBtn" onclick="toggleSidebar()">
     <i class="fas fa-bars"></i>
 </button>
@@ -505,10 +383,17 @@
                 <button id="btnClearLogs" class="btn btn-danger hidden" onclick="clearLogs()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-trash"></i> مسح السجل</button>
             </div>
         </div>
-        <p style="color:var(--text-muted); margin-bottom:20px;">يسجل هذا السجل جميع الإجراءات الحساسة والتعديلات مع التوقيت واسم المستخدم.</p>
+        
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="logsSearch" onkeyup="refreshLogs()" placeholder="بحث في السجل..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+
         <div class="table-container">
             <table>
-                <thead><tr><th style="width:200px">التاريخ والوقت</th><th style="width:150px">المستخدم</th><th>تفاصيل الحركة</th></tr></thead>
+                <thead><tr><th style="width:200px">التاريخ والوقت</th><th style="width:150px">المستخدم</th><th>تفاصيل الحركة</th><th>عرض</th></tr></thead>
                 <tbody id="logsTableBody"></tbody>
             </table>
         </div>
@@ -708,7 +593,6 @@ let ghConfig = {
     sha: ""
 };
 
-// --- SYNC VARIABLES ---
 let isSyncing = false; 
 let syncPending = false; 
 let retryAttempt = 0;
@@ -722,6 +606,65 @@ const DEFAULT_USER = {
     lastLogin: "-",
     deviceInfo: "-"
 };
+
+// --- MODAL UTILS ---
+function showModalDetails(details) {
+    if(!details) return;
+    const body = document.getElementById("modalBody");
+    body.innerHTML = "";
+    
+    // Formatting logic
+    if(details.type === 'manual') {
+        body.innerHTML += row("السبب", details.reason);
+        body.innerHTML += row("المحفظة", details.wallet);
+        body.innerHTML += row("الرصيد السابق", fix(details.before), false);
+        body.innerHTML += row("التغيير", (details.diff >= 0 ? "+"+details.diff : details.diff), true, details.diff >= 0);
+        body.innerHTML += row("الرصيد الجديد", fix(details.after), false);
+    } else if (details.type === 'purchase') {
+        body.innerHTML += row("العملية", "تسجيل شراء");
+        body.innerHTML += row("العميل", details.customer);
+        body.innerHTML += row("الخدمة", details.sub);
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        
+        // Wallet Changes
+        body.innerHTML += `<h4>المحفظة المصدر: ${details.wName}</h4>`;
+        body.innerHTML += row("قبل الخصم", fix(details.wBefore));
+        body.innerHTML += row("المخصوم", "-"+details.cost, true, false);
+        body.innerHTML += row("بعد الخصم", fix(details.wAfter));
+        
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += `<h4>المحفظة المستلمة: ${details.toName}</h4>`;
+        body.innerHTML += row("قبل الإيداع", fix(details.tBefore));
+        body.innerHTML += row("المقبوض", "+"+details.paid, true, true);
+        body.innerHTML += row("بعد الإيداع", fix(details.tAfter));
+
+    } else if (details.type === 'withdraw') {
+        body.innerHTML += row("العملية", "سحب أرباح");
+        body.innerHTML += row("الشريك", details.person);
+        body.innerHTML += row("السبب", details.reason);
+        body.innerHTML += row("الرصيد السابق", fix(details.before));
+        body.innerHTML += row("المسحوب", "-"+details.amount, true, false);
+        body.innerHTML += row("الرصيد الحالي", fix(details.after));
+    } else if (details.type === 'undo') {
+        body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div>`;
+        body.innerHTML += `<p style="text-align:center; font-size:13px">تم استعادة أرصدة المحافظ وتوزيع الأرباح كما كانت قبل آخر عملية.</p>`;
+    } else {
+        body.innerHTML += `<p>${JSON.stringify(details)}</p>`;
+    }
+    
+    document.getElementById("detailsModal").classList.remove("hidden");
+}
+
+function row(label, value, colored=false, positive=true) {
+    let colorStyle = colored ? (positive ? "color:var(--success)" : "color:var(--danger)") : "";
+    return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value" style="${colorStyle}">${value}</span></div>`;
+}
+
+function closeModal(e) {
+    if(e === 'force' || e.target.id === 'detailsModal') {
+        document.getElementById("detailsModal").classList.add("hidden");
+    }
+}
 
 function updateSyncStatus(msg, type="loading") {
     const el = document.getElementById("syncStatus");
@@ -737,13 +680,14 @@ function updateSyncStatus(msg, type="loading") {
     }
 }
 
-function logAction(actionDescription) {
+function logAction(actionDescription, details=null) {
     if(!currentUser) return;
     let logs = JSON.parse(localStorage.activityLog || "[]");
     logs.unshift({
         user: currentUser.username,
         action: actionDescription,
-        time: new Date().toLocaleString("ar-EG")
+        time: new Date().toLocaleString("ar-EG"),
+        details: details // Save details object
     });
     if(logs.length > 500) logs = logs.slice(0, 500);
     localStorage.activityLog = JSON.stringify(logs);
@@ -1024,10 +968,22 @@ function renderUsersTable() {
 
 function refreshLogs() {
     let logs = JSON.parse(localStorage.activityLog || "[]");
+    
+    // Filter
+    let search = document.getElementById("logsSearch").value.toLowerCase();
+    
     const tbody = document.getElementById("logsTableBody");
     tbody.innerHTML = "";
-    logs.forEach(log => {
-        tbody.innerHTML += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${log.user}</b></td><td>${log.action}</td></tr>`;
+    
+    logs.forEach((log, index) => {
+        if(search && !log.user.toLowerCase().includes(search) && !log.action.toLowerCase().includes(search)) return;
+        
+        let detailsBtn = "";
+        if(log.details) {
+            detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
+        }
+        
+        tbody.innerHTML += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${log.user}</b></td><td>${log.action}</td><td>${detailsBtn}</td></tr>`;
     });
 }
 
@@ -1263,6 +1219,11 @@ function addPurchase(){
     if(paidAmount.value === "" || costAmount.value === "") { notify("املأ البيانات","error"); return; }
     let paid=+paidAmount.value, cost=+costAmount.value, paidCur=paidCurrency.value, costCur=costCurrency.value, wallets=JSON.parse(localStorage.wallets), invest=JSON.parse(localStorage.invest), purchases=JSON.parse(localStorage.purchases), settings=JSON.parse(localStorage.settings), from=fromWallet.value, duration = +subDuration.value;
     if(wallets[from].bal < cost && wallets[from].cur == costCur){notify("رصيد غير كافي","error"); return;}
+    
+    // SNAPSHOTS FOR LOGS
+    let wBefore = wallets[from].bal;
+    let tBefore = wallets[wallet.value].bal;
+
     let undoSnapshot = { wallets: JSON.parse(JSON.stringify(wallets)), invest: JSON.parse(JSON.stringify(invest)) };
     localStorage.setItem("lastUndoOp", JSON.stringify(undoSnapshot));
     wallets[from].bal -= cost;
@@ -1279,7 +1240,22 @@ function addPurchase(){
     if(exp.getDate()!==d.getDate()) exp.setDate(0);
     purchases.push({ date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(), customer:customer.value||"عميل", phone:customerPhone.value||"-", sub:sub.value, duration: duration, paid:paid+paidCur, cost:cost+costCur, wallet:wallet.value, expiry: exp.getTime() });
     localStorage.wallets=JSON.stringify(wallets); localStorage.invest=JSON.stringify(invest); localStorage.purchases=JSON.stringify(purchases);
-    logAction(`إضافة عملية شراء: ${sub.value} للعميل ${customer.value}`);
+    
+    // LOG WITH DETAILS
+    logAction(`إضافة عملية شراء: ${sub.value} للعميل ${customer.value}`, {
+        type: 'purchase',
+        customer: customer.value || "عميل",
+        sub: sub.value,
+        cost: cost + costCur,
+        paid: paid + paidCur,
+        wName: from,
+        wBefore: wBefore,
+        wAfter: wallets[from].bal,
+        toName: wallet.value,
+        tBefore: tBefore,
+        tAfter: wallets[wallet.value].bal
+    });
+
     refreshAll(); pushToGithub(); notify("تمت العملية");
     paidAmount.value=""; costAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; subDuration.value="1";
 }
@@ -1404,18 +1380,86 @@ function refreshTodoList(){ let l=JSON.parse(localStorage.todoList); todoBox.inn
 function completeTodo(i){ let l=JSON.parse(localStorage.todoList); logAction(`إكمال مهمة: ${l[i].text}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); }
 function withdrawPartial(p){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
+    
     let input = document.getElementById(p==='ahmad'?'withdrawAhmad':p==='mohamed'?'withdrawMohamed':'withdrawStore'), cur = document.getElementById(p==='ahmad'?'curAhmad':p==='mohamed'?'curMohamed':'curStore').value;
-    let val = +input.value, i = JSON.parse(localStorage.invest), k = cur === 'd' ? 'd' : 's';
+    let val = +input.value;
+    if(!val) return notify("أدخل المبلغ","error");
+
+    let reason = prompt("سبب السحب (إجباري):");
+    if(!reason) return notify("تم الإلغاء: السبب مطلوب","error");
+
+    let i = JSON.parse(localStorage.invest), k = cur === 'd' ? 'd' : 's';
     if(i[p][k] < val) { notify("رصيد غير كافي","error"); return; }
-    i[p][k] -= val; localStorage.invest=JSON.stringify(i); refreshInvestment(); input.value=""; 
-    logAction(`سحب أرباح بقيمة ${val}${cur} من حصة ${p}`);
+    
+    let before = i[p][k];
+    i[p][k] -= val;
+    localStorage.invest=JSON.stringify(i); 
+    
+    logAction(`سحب أرباح من ${p}`, {
+        type: 'withdraw',
+        person: p,
+        amount: val + (cur==='d'?'$':'₪'),
+        reason: reason,
+        before: before,
+        after: i[p][k]
+    });
+
+    refreshInvestment(); input.value=""; 
     pushToGithub(); notify("تم السحب");
 }
 function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
 function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=JSON.parse(localStorage.purchases); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
-function addToWallet(){ let w=JSON.parse(localStorage.wallets); w[modWallet.value].bal += +modAmount.value; localStorage.wallets=JSON.stringify(w); logAction(`إضافة ${modAmount.value} لمحفظة ${modWallet.value}`); refreshWallets(); pushToGithub(); notify("تم"); }
-function subtractFromWallet(){ let w=JSON.parse(localStorage.wallets); w[modWallet.value].bal -= +modAmount.value; localStorage.wallets=JSON.stringify(w); logAction(`خصم ${modAmount.value} من محفظة ${modWallet.value}`); refreshWallets(); pushToGithub(); notify("تم"); }
-function setWallet(){ let w=JSON.parse(localStorage.wallets); w[modWallet.value].bal = +modAmount.value; localStorage.wallets=JSON.stringify(w); logAction(`تعيين رصيد محفظة ${modWallet.value} إلى ${modAmount.value}`); refreshWallets(); pushToGithub(); notify("تم"); }
+function addToWallet(){ 
+    let reason = prompt("سبب الإضافة (إجباري):");
+    if(!reason) return;
+    let w=JSON.parse(localStorage.wallets); 
+    let before = w[modWallet.value].bal;
+    w[modWallet.value].bal += +modAmount.value; 
+    localStorage.wallets=JSON.stringify(w); 
+    logAction(`إضافة ${modAmount.value} لمحفظة ${modWallet.value}`, {
+        type: 'manual',
+        wallet: modWallet.value,
+        reason: reason,
+        before: before,
+        after: w[modWallet.value].bal,
+        diff: +modAmount.value
+    });
+    refreshWallets(); pushToGithub(); notify("تم"); 
+}
+function subtractFromWallet(){ 
+    let reason = prompt("سبب الخصم (إجباري):");
+    if(!reason) return;
+    let w=JSON.parse(localStorage.wallets); 
+    let before = w[modWallet.value].bal;
+    w[modWallet.value].bal -= +modAmount.value; 
+    localStorage.wallets=JSON.stringify(w); 
+    logAction(`خصم ${modAmount.value} من محفظة ${modWallet.value}`, {
+        type: 'manual',
+        wallet: modWallet.value,
+        reason: reason,
+        before: before,
+        after: w[modWallet.value].bal,
+        diff: -modAmount.value
+    });
+    refreshWallets(); pushToGithub(); notify("تم"); 
+}
+function setWallet(){ 
+    let reason = prompt("سبب التعيين (إجباري):");
+    if(!reason) return;
+    let w=JSON.parse(localStorage.wallets); 
+    let before = w[modWallet.value].bal;
+    w[modWallet.value].bal = +modAmount.value; 
+    localStorage.wallets=JSON.stringify(w); 
+    logAction(`تعيين رصيد محفظة ${modWallet.value}`, {
+        type: 'manual',
+        wallet: modWallet.value,
+        reason: reason,
+        before: before,
+        after: w[modWallet.value].bal,
+        diff: (+modAmount.value - before)
+    });
+    refreshWallets(); pushToGithub(); notify("تم"); 
+}
 function toggleWalletStatus(){ let n=modWallet.value, w=JSON.parse(localStorage.wallets); w[n].active = !(w[n].active!==false); localStorage.wallets=JSON.stringify(w); logAction(`تغيير حالة محفظة ${n}`); refreshWallets(); pushToGithub(); notify("تم"); }
 function deleteWallet(){ if(!confirm("حذف؟"))return; let w=JSON.parse(localStorage.wallets); delete w[modWallet.value]; localStorage.wallets=JSON.stringify(w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets(); pushToGithub(); }
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(localStorage)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
@@ -1428,7 +1472,7 @@ function importData(){
 function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     if(!localStorage.lastUndoOp)return notify("لا يوجد","error"); let u=JSON.parse(localStorage.lastUndoOp); localStorage.wallets=JSON.stringify(u.wallets); localStorage.invest=JSON.stringify(u.invest); let p=JSON.parse(localStorage.purchases); p.pop(); localStorage.purchases=JSON.stringify(p); localStorage.removeItem("lastUndoOp"); 
-    logAction("تراجع عن آخر عملية شراء"); refreshAll(); pushToGithub(); notify("تم التراجع"); 
+    logAction("تراجع عن آخر عملية شراء", {type:'undo'}); refreshAll(); pushToGithub(); notify("تم التراجع"); 
 }
 function clearHistory(){ if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); if(confirm("مسح الكل؟")){ localStorage.purchases="[]"; logAction("مسح سجل العمليات بالكامل"); refreshHistory(); pushToGithub(); } }
 
