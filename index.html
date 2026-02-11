@@ -494,7 +494,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h3 style="color: white; margin-bottom: 5px;"><i class="fas fa-flask"></i> الوضع التجريبي (Sandbox)</h3>
-                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">عند التفعيل، تتوقف المزامنة السحابية. يمكنك التجربة بحرية دون التأثير على البيانات الحقيقية. عند الإيقاف، سيتم استعادة البيانات الأصلية.</p>
+                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">عند التفعيل، تتوقف المزامنة السحابية نهائياً. يمكنك التجربة بحرية. عند الإيقاف، سيتم استعادة البيانات الأصلية ومسح التغييرات.</p>
                 </div>
                 <div class="theme-switch" style="width: 60px; height: 30px;">
                     <input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()">
@@ -522,13 +522,8 @@
                     <div class="input-group"><label>المبلغ المراد تحويله</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div>
                     <div class="input-group">
                         <label>عمولة التحويل (تخصم من المصدر)</label>
-                        <div style="display: flex; gap: 5px;">
-                            <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()" style="flex:1">
-                            <select id="tfFeeCurrency" style="width: 80px;">
-                                <option value="$">$</option>
-                                <option value="₪">₪</option>
-                            </select>
-                        </div>
+                        <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()">
+                        <small style="color:var(--text-muted)">سيتم خصم نفس القيمة من أرباح المتجر بنفس العملة.</small>
                     </div>
                 </div>
 
@@ -683,6 +678,7 @@ let myProfitChart = null;
 let mySalesChart = null;
 let currentUser = null; 
 let isDemoMode = false;
+let syncTimer = null; // To hold the setInterval ID
 
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
@@ -851,29 +847,53 @@ function init(){
         if(document.getElementById("loginThemeCheck")) document.getElementById("loginThemeCheck").checked = true;
     }
 
+    // CHECK DEMO MODE ON STARTUP
     if(localStorage.getItem("isDemoMode") === "true") {
         isDemoMode = true;
         document.body.classList.add("demo-mode");
         document.getElementById("demoModeToggle").checked = true;
+        updateSyncStatus();
     }
     
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) {
         document.getElementById("cloudSetupCard").classList.remove("hidden");
         document.getElementById("loginCard").classList.add("hidden");
     } else {
+        // Fetch initially
         fetchFromGithub(true);
     }
     
-    // START POLLING
-    setInterval(() => fetchFromGithub(false), 3000);
+    // START POLLING LOOP (IF NOT DEMO)
+    startSyncLoop();
+}
+
+function startSyncLoop() {
+    if(syncTimer) clearInterval(syncTimer);
+    if(!isDemoMode) {
+        syncTimer = setInterval(() => fetchFromGithub(false), 3000);
+    }
 }
 
 function toggleDemoMode() {
     isDemoMode = !isDemoMode;
     localStorage.setItem("isDemoMode", isDemoMode);
     
-    // Force reload to apply clean state change and stop/start sync intervals cleanly
-    location.reload(); 
+    if (isDemoMode) {
+        // TURN ON DEMO
+        document.body.classList.add("demo-mode");
+        clearInterval(syncTimer); // STOP POLLING
+        notify("تم تفعيل الوضع التجريبي. توقفت المزامنة.");
+        updateSyncStatus();
+    } else {
+        // TURN OFF DEMO
+        document.body.classList.remove("demo-mode");
+        notify("جاري إيقاف الوضع التجريبي واستعادة البيانات...");
+        
+        // Force fetch to wipe local changes, then restart loop
+        fetchFromGithub(true).then(() => {
+            startSyncLoop(); // RESTART POLLING
+        });
+    }
 }
 
 async function setupCloudAndFetch() {
@@ -896,17 +916,18 @@ async function setupCloudAndFetch() {
     btn.classList.remove('loading');
 }
 
-async function fetchFromGithub(triggerLogin = false) {
-    if(isDemoMode && !triggerLogin) return; // Don't fetch in demo mode unless forced (e.g. disabling demo)
+async function fetchFromGithub(force = false) {
+    // If Demo Mode is ON, DO NOT fetch (unless forced, e.g. when turning off demo mode)
+    if(isDemoMode && !force) return;
 
-    if(triggerLogin) updateSyncStatus("فحص البيانات السحابية...");
+    if(force) updateSyncStatus("فحص البيانات السحابية...");
     
     const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
     try {
         const response = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' }, cache: "no-store" });
         if (response.status === 404) {
             console.log("File not found");
-            if(triggerLogin) {
+            if(force) {
                  await pushToGithub(true);
                  document.getElementById("cloudSetupCard").classList.add("hidden");
                  document.getElementById("loginCard").classList.remove("hidden");
@@ -917,7 +938,7 @@ async function fetchFromGithub(triggerLogin = false) {
         const data = await response.json();
         
         // --- SMART UPDATE ---
-        if ((data.sha !== ghConfig.sha && !isSyncing && !syncPending) || (triggerLogin && isDemoMode === false)) {
+        if ((data.sha !== ghConfig.sha && !isSyncing && !syncPending) || force) {
             ghConfig.sha = data.sha;
             const db = JSON.parse(decodeURIComponent(escape(atob(data.content))));
             
@@ -931,16 +952,11 @@ async function fetchFromGithub(triggerLogin = false) {
             if(db.activityLog) localStorage.activityLog = JSON.stringify(db.activityLog);
             
             if(currentUser) refreshAll(); 
-        }
-        
-        if(triggerLogin) {
-            updateSyncStatus("متزامن", "success");
-            document.getElementById("cloudSetupCard").classList.add("hidden");
-            document.getElementById("loginCard").classList.remove("hidden");
+            if(force) updateSyncStatus("تمت المزامنة", "success");
         }
     } catch (error) {
         console.error(error);
-        if(triggerLogin) {
+        if(force) {
             updateSyncStatus("خطأ في الاتصال", "error");
             document.getElementById("cloudMsg").innerText = "فشل الاتصال بـ GitHub. تأكد من البيانات.";
         }
@@ -1237,7 +1253,7 @@ async function pushToGithub(force = false) {
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) return;
 
     if(isDemoMode) {
-        notify("وضع تجريبي: تم حفظ البيانات محلياً فقط", "success");
+        // notify("وضع تجريبي: تم حفظ البيانات محلياً فقط", "success");
         return;
     }
 
@@ -1638,7 +1654,7 @@ function withdrawPartial(p){
 function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
 function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=JSON.parse(localStorage.purchases); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
 
-// --- TRANSFER LOGIC: DEDUCT FEE FROM STORE CAPITAL ---
+// --- TRANSFER LOGIC: DEDUCT FEE FROM STORE CAPITAL (AUTO CURRENCY) ---
 function calculateTransfer() {
     let amount = parseFloat(document.getElementById("tfAmount").value) || 0;
     let fee = parseFloat(document.getElementById("tfFee").value) || 0;
@@ -1677,7 +1693,6 @@ function executeTransfer() {
     let to = document.getElementById("tfToWallet").value;
     let amount = parseFloat(document.getElementById("tfAmount").value);
     let fee = parseFloat(document.getElementById("tfFee").value) || 0;
-    let feeCurrencyChoice = document.getElementById("tfFeeCurrency").value;
     let rate = parseFloat(document.getElementById("tfRate").value) || 1;
     let result = parseFloat(document.getElementById("tfResult").value);
 
@@ -1696,12 +1711,11 @@ function executeTransfer() {
     // 2. Add Result to Destination
     w[to].bal += result;
 
-    // 3. CLOSED LOOP FIX: Deduct Fee from Store Capital
-    // Explicitly use feeCurrencyChoice ($ or ₪) regardless of wallets
+    // 3. CLOSED LOOP FIX: Deduct Fee from Store Capital using SOURCE Currency
     let invest = JSON.parse(localStorage.invest);
     
     if(fee > 0) {
-        if(feeCurrencyChoice === '$') {
+        if(fromCur === '$') {
             invest.store.d -= fee;
         } else {
             invest.store.s -= fee;
@@ -1717,7 +1731,7 @@ function executeTransfer() {
         to: to,
         amount: amount,
         fee: fee,
-        feeCur: feeCurrencyChoice,
+        feeCur: fromCur,
         rate: rate,
         result: result,
         netAmount: amount - fee,
