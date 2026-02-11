@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Auto Retry</title>
+    <title>Mega Store Pro | Final Stable</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -176,15 +176,69 @@
             .main-content { margin-right: 0; padding: 70px 15px 20px 15px; }
             .mobile-menu-btn { display: block !important; }
             .stats-grid { grid-template-columns: 1fr; }
-            .card > div[style*="grid-template-columns"], .inner-box[style*="grid-template-columns"], .settings-section > div, .github-section > div, #investment .inner-box > div { grid-template-columns: 1fr !important; }
-            .inner-box, .github-section > div { display: flex !important; flexDirection: column !important; alignItems: stretch !important; gap: 15px !important; height: auto !important; overflow: hidden !important; }
-            .inner-box input, .inner-box select, .inner-box button, .github-section button, .btn { width: 100% !important; margin: 0 !important; box-sizing: border-box !important; }
-            #investment .input-group > div { display: grid !important; grid-template-columns: 1fr 70px auto !important; gap: 5px !important; width: 100% !important; }
-            #investment .input-group > div > input, #investment .input-group > div > select, #investment .input-group > div > button { width: 100% !important; margin: 0 !important; flex: none !important; }
-            #purchase .input-group > div { display: flex !important; flexDirection: row !important; width: 100% !important; gap: 10px !important; }
-            #purchase .input-group > div > input { flex: 1 !important; width: auto !important; minWidth: 0 !important; }
-            #purchase .input-group > div > select { flex: 0 0 80px !important; width: 80px !important; }
-            .input-group > div > button { width: auto !important; }
+            
+            /* Force single column layout for grids */
+            .card > div[style*="grid-template-columns"], 
+            .inner-box[style*="grid-template-columns"], 
+            .settings-section > div, 
+            .github-section > div,
+            #investment .inner-box > div { 
+                grid-template-columns: 1fr !important; 
+            }
+            
+            /* Stack flex containers vertically */
+            .inner-box, 
+            .github-section > div { 
+                display: flex !important; 
+                flex-direction: column !important; 
+                align-items: stretch !important; 
+                gap: 15px !important; 
+                height: auto !important; 
+                overflow: hidden !important; 
+            }
+            
+            /* Full width elements */
+            .inner-box input, .inner-box select, .inner-box button, .github-section button, .btn { 
+                width: 100% !important; 
+                margin: 0 !important; 
+                box-sizing: border-box !important; 
+            }
+            
+            /* --- INVESTMENT INPUT FIX (GRID) --- */
+            #investment .input-group > div {
+                display: grid !important;
+                grid-template-columns: 1fr 70px auto !important; /* المبلغ - العملة - الزر */
+                gap: 5px !important;
+                width: 100% !important;
+            }
+            
+            #investment .input-group > div > input,
+            #investment .input-group > div > select,
+            #investment .input-group > div > button {
+                width: 100% !important; 
+                margin: 0 !important;
+                flex: none !important;
+            }
+
+            /* إصلاح الخانات الأخرى (مثل شراء) لتبقى أفقية */
+            #purchase .input-group > div { 
+                display: flex !important; 
+                flex-direction: row !important; 
+                width: 100% !important; 
+                gap: 10px !important; 
+            }
+            
+            #purchase .input-group > div > input { 
+                flex: 1 !important; 
+                width: auto !important; 
+                min-width: 0 !important; 
+            }
+            
+            #purchase .input-group > div > select { 
+                flex: 0 0 80px !important; 
+                width: 80px !important; 
+            }
+
             .github-section > div:last-child { flexDirection: column !important; }
             th, td { fontSize: 13px; padding: 10px; }
             #syncStatus { top: 15px; left: 15px; }
@@ -537,7 +591,7 @@ let ghConfig = {
 let isSyncing = false; 
 let syncPending = false; 
 let retryAttempt = 0;
-const MAX_RETRIES = 10; // عدد محاولات إعادة الاتصال
+const MAX_RETRIES = 10; 
 
 const DEFAULT_USER = {
     username: "Mohamed Ahmed",
@@ -636,8 +690,6 @@ async function fetchFromGithub(triggerLogin = false) {
         ghConfig.sha = data.sha;
         const db = JSON.parse(decodeURIComponent(escape(atob(data.content))));
         
-        // --- ONLY OVERWRITE IF WE ARE NOT PENDING SYNC ---
-        // لمنع مسح البيانات المحلية إذا كان هناك رفع جاري
         if(!isSyncing && !syncPending) {
             if(db.users) localStorage.users = JSON.stringify(db.users);
             if(db.wallets) localStorage.wallets = JSON.stringify(db.wallets);
@@ -707,10 +759,8 @@ function getRoleName(role) { return role==='admin'?'أدمن':role==='employee'?
 function applyRBAC() {
     const role = currentUser.role;
     
-    // Default Hidden
     document.getElementById("btnSecurity").classList.add("hidden");
     document.getElementById("btnBackup").classList.add("hidden");
-    // Logs visibility handled below
     document.getElementById("btnLogs").classList.add("hidden");
     
     document.getElementById("btnSettings").classList.remove("hidden");
@@ -723,7 +773,7 @@ function applyRBAC() {
     if (role === 'admin') {
         document.getElementById("btnSecurity").classList.remove("hidden");
         document.getElementById("btnBackup").classList.remove("hidden");
-        document.getElementById("btnLogs").classList.remove("hidden"); // Admin always sees logs
+        document.getElementById("btnLogs").classList.remove("hidden"); 
         document.getElementById("btnClearLogs").classList.remove("hidden"); 
         document.getElementById("btnVisLogs").classList.remove("hidden"); 
         
@@ -798,16 +848,21 @@ function changeLogsVis() {
 }
 
 function renderUsersTable() {
-    if(currentUser.role !== 'admin') return;
-    const users = JSON.parse(localStorage.users);
-    const tbody = document.getElementById("usersTableBody"); tbody.innerHTML = "";
+    if(!currentUser || currentUser.role !== 'admin') return;
+    const users = JSON.parse(localStorage.users || "[]");
+    const tbody = document.getElementById("usersTableBody"); 
+    if(!tbody) return;
+    tbody.innerHTML = "";
+    
     users.forEach((u, index) => {
         let actions = "";
         if(u.username !== currentUser.username) {
             let banBtn = u.status === 'active' ? `<button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="toggleBan(${index})">حظر</button>` : `<button class="btn btn-success" style="padding:5px 10px; font-size:12px; background:var(--success); color:white" onclick="toggleBan(${index})">فك حظر</button>`;
             actions = `<div style="display:flex; gap:5px; justify-content:center"><button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick="editUserPass(${index})"><i class="fas fa-key"></i></button><button class="btn btn-warning" style="padding:5px 10px; font-size:12px" onclick="changeUserRole(${index})"><i class="fas fa-user-tag"></i></button>${banBtn}<button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="deleteUser(${index})"><i class="fas fa-trash"></i></button></div>`;
         } else { actions = "<small>الحساب الحالي</small>"; }
-        tbody.innerHTML += `<tr><td>${u.username}</td><td><span class="badge badge-info">${getRoleName(u.role)}</span></td><td class="${u.status==='active'?'security-status-active':'security-status-banned'}">${u.status==='active'?'نشط':'محظور'}</td><td style="font-size:12px">${u.lastLogin}</td><td style="font-size:12px">${u.deviceInfo}</td><td>${actions}</td></tr>`;
+        let statusClass = u.status === 'active' ? 'security-status-active' : 'security-status-banned';
+        let statusText = u.status === 'active' ? 'نشط' : 'محظور';
+        tbody.innerHTML += `<tr><td>${u.username}</td><td><span class="badge badge-info">${getRoleName(u.role)}</span></td><td class="${statusClass}">${statusText}</td><td style="font-size:12px">${u.lastLogin}</td><td style="font-size:12px">${u.deviceInfo}</td><td>${actions}</td></tr>`;
     });
 }
 
@@ -898,11 +953,10 @@ function changeMyPassword() {
     }
 }
 
-// --- QUEUE & RETRY SYSTEM (THE FIX) ---
+// --- QUEUE & RETRY SYSTEM ---
 async function pushToGithub(force = false) {
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) return;
 
-    // 1. إذا كان النظام يرفع حالياً، ضع علامة "انتظار" ولا تبدأ عملية جديدة
     if (isSyncing) {
         syncPending = true;
         updateSyncStatus("تم وضع التعديل في الطابور...", "loading");
@@ -912,7 +966,6 @@ async function pushToGithub(force = false) {
     isSyncing = true;
     updateSyncStatus(retryAttempt > 0 ? `جاري المحاولة (${retryAttempt})...` : "جاري الحفظ...", "loading");
 
-    // 2. تجهيز أحدث نسخة من البيانات (دائماً نأخذ اللحظية)
     const db = {
         users: JSON.parse(localStorage.users || "[]"),
         wallets: JSON.parse(localStorage.wallets || "{}"),
@@ -935,29 +988,23 @@ async function pushToGithub(force = false) {
         const response = await fetch(url, { method: 'PUT', headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         
         if (response.status === 409) {
-            // تضارب (Conflict) - شخص آخر عدل الملف
             console.log("Conflict detected, fetching latest SHA...");
-            // نحتاج فقط لجلب الـ SHA الجديد، لكن لا نريد مسح بياناتنا المحلية
-            // لذلك سنقوم بطلب GET خفيف لتحديث الـ SHA فقط
             const getResp = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}` } });
             if(getResp.ok) {
                 const getJson = await getResp.json();
-                ghConfig.sha = getJson.sha; // تحديث البصمة فقط
-                // الآن سنعيد المحاولة فوراً
+                ghConfig.sha = getJson.sha; 
                 throw new Error("Conflict Resolved - Retrying");
             }
         } else if (!response.ok) {
             throw new Error("Network/API Error");
         } else {
-            // نجاح!
             const data = await response.json();
             ghConfig.sha = data.content.sha;
             
-            retryAttempt = 0; // تصفير العداد
+            retryAttempt = 0; 
             isSyncing = false;
             
             if (syncPending) {
-                // كان هناك تعديل أثناء الرفع، ارفع مجدداً فوراً
                 syncPending = false;
                 pushToGithub(); 
             } else {
@@ -966,20 +1013,17 @@ async function pushToGithub(force = false) {
         }
     } catch (error) { 
         console.error(error);
-        
-        // --- RETRY LOGIC ---
         retryAttempt++;
         if(retryAttempt > MAX_RETRIES) {
             updateSyncStatus("فشل نهائي. تأكد من النت", "error");
             isSyncing = false;
-            retryAttempt = 0; // Reset for next manual try
+            retryAttempt = 0;
         } else {
             updateSyncStatus(`فشل.. إعادة المحاولة (${retryAttempt})...`, "error");
-            // انتظر قليلاً ثم أعد المحاولة تلقائياً
             setTimeout(() => {
-                isSyncing = false; // حرر القفل
-                pushToGithub(); // أعد المحاولة
-            }, 2000); // 2 ثانية تأخير
+                isSyncing = false; 
+                pushToGithub(); 
+            }, 2000); 
         }
     }
 }
@@ -1082,7 +1126,10 @@ function refreshAll(){
     document.getElementById("statSales").textContent = p.filter(x => x.date.includes(todayStr)).length;
 }
 function refreshExpiring() {
-    let p = JSON.parse(localStorage.purchases), body = document.getElementById("expiringBody"); body.innerHTML = "";
+    let p = JSON.parse(localStorage.purchases || "[]");
+    let body = document.getElementById("expiringBody"); 
+    if(!body) return;
+    body.innerHTML = "";
     let now = new Date().getTime(), days3 = 3 * 86400000;
     let list = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
     list.sort((a, b) => a.d.expiry - b.d.expiry);
@@ -1090,7 +1137,8 @@ function refreshExpiring() {
         let item = x.d, daysLeft = Math.ceil((item.expiry - now) / 86400000);
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
         let wa = `https://wa.me/${item.phone.replace(/\D/g, '').replace(/^0/, '970')}?text=${encodeURIComponent(`مرحباً ${item.customer}، اشتراكك ${item.sub} ينتهي خلال ${status}. هل تود التجديد؟`)}`;
-        let btnHTML = (currentUser.role === 'viewer') ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
+        let isViewer = currentUser ? (currentUser.role === 'viewer') : true;
+        let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         body.innerHTML += `<tr class="${item.reminded?'reminded':''}"><td><b>${item.sub}</b></td><td>${item.customer}</td><td>${item.phone}</td><td>${new Date(item.expiry).toLocaleDateString('ar-EG')}</td><td><span class="badge ${daysLeft<=0?'badge-danger':'badge-warning'}">${status}</span></td><td>${btnHTML}</td></tr>`;
     });
     if(list.length===0) body.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:30px'>لا توجد تنبيهات</td></tr>";
@@ -1134,10 +1182,14 @@ function refreshAnalytics() {
 }
 function addGeneralNote(){ let t=gnText.value.trim(); if(!t)return; let n=JSON.parse(localStorage.generalNotes); n.push({text:t, date:new Date().toLocaleString("ar-EG")}); localStorage.generalNotes=JSON.stringify(n); gnText.value=""; logAction("إضافة ملاحظة جديدة"); refreshGeneralNotes(); pushToGithub(); }
 function refreshGeneralNotes(){ 
-    let n=JSON.parse(localStorage.generalNotes); generalNotesBox.innerHTML=""; 
+    let n = JSON.parse(localStorage.generalNotes || "[]"); 
+    let box = document.getElementById("generalNotesBox");
+    if(!box) return; 
+    box.innerHTML = ""; 
     n.forEach((x,i)=>{ 
-        let delBtn = (currentUser.role === 'viewer') ? '' : `<i class="fas fa-trash" onclick="deleteNote(${i})" style="color:var(--danger); cursor:pointer"></i>`;
-        generalNotesBox.innerHTML+=`<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${x.text}</div></div>${delBtn}</div>`; 
+        let isViewer = currentUser ? (currentUser.role === 'viewer') : true;
+        let delBtn = isViewer ? '' : `<i class="fas fa-trash" onclick="deleteNote(${i})" style="color:var(--danger); cursor:pointer"></i>`;
+        box.innerHTML += `<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${x.text}</div></div>${delBtn}</div>`; 
     }); 
 }
 function deleteNote(i){ if(currentUser.role === 'viewer') return; let n=JSON.parse(localStorage.generalNotes); n.splice(i,1); localStorage.generalNotes=JSON.stringify(n); logAction("حذف ملاحظة"); refreshGeneralNotes(); pushToGithub(); }
