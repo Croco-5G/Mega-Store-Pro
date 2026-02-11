@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | CEO</title>
+    <title>Mega Store Pro | Closed System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -182,18 +182,16 @@
             .main-content { margin-right: 0; padding: 70px 15px 20px 15px; }
             .mobile-menu-btn { display: block !important; }
             .stats-grid { grid-template-columns: 1fr; }
-            .card > div[style*="grid-template-columns"], .inner-box[style*="grid-template-columns"], .settings-section > div, .github-section > div, #investment .inner-box > div { grid-template-columns: 1fr !important; }
-            .inner-box, .github-section > div { display: flex !important; flexDirection: column !important; alignItems: stretch !important; gap: 15px !important; height: auto !important; overflow: hidden !important; }
-            .inner-box input, .inner-box select, .inner-box button, .github-section button, .btn { width: 100% !important; margin: 0 !important; box-sizing: border-box !important; }
-            #investment .input-group > div { display: grid !important; grid-template-columns: 1fr auto !important; gap: 5px !important; width: 100% !important; }
-            #investment .input-group > div > input, #investment .input-group > div > select, #investment .input-group > div > button { width: 100% !important; margin: 0 !important; flex: none !important; }
-            #purchase .input-group > div { display: flex !important; flexDirection: row !important; width: 100% !important; gap: 10px !important; }
-            #purchase .input-group > div > input { flex: 1 !important; width: auto !important; minWidth: 0 !important; }
-            #purchase .input-group > div > select { flex: 0 0 80px !important; width: 80px !important; }
-            .input-group > div > button { width: auto !important; }
-            .github-section > div:last-child { flexDirection: column !important; }
-            th, td { fontSize: 13px; padding: 10px; }
+            .card { padding: 20px 15px; }
+            .card > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; gap: 15px !important; }
+            .inner-box { display: flex !important; flex-direction: column !important; gap: 15px !important; }
+            .input-group > div { display: flex !important; width: 100% !important; gap: 10px !important; }
+            .input-group > div > input { flex: 1 !important; min-width: 0 !important; }
+            .input-group > div > select { flex: 0 0 80px !important; width: 80px !important; }
+            .settings-section > div, .github-section > div { grid-template-columns: 1fr !important; }
+            th, td { font-size: 12px; padding: 10px 5px; }
             #syncStatus { top: 15px; left: 15px; }
+            .modal-content { width: 95%; margin: 10px; padding: 20px; }
         }
     </style>
 </head>
