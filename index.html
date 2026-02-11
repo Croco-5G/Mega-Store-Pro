@@ -170,6 +170,11 @@
         .security-status-active { color: var(--success); font-weight: bold; }
         .security-status-banned { color: var(--danger); font-weight: bold; }
 
+        /* DEMO MODE BANNER */
+        #demoBanner { display:none; position:fixed; top:0; left:0; width:100%; height:8px; background:repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #b91c1c 10px, #b91c1c 20px); z-index:99999; }
+        body.demo-mode #demoBanner { display:block; }
+        body.demo-mode #syncStatus { background:#fee2e2; border-color:#ef4444; color:#b91c1c; }
+
         @media (max-width: 768px) {
             .sidebar { transform: translateX(100%); right: 0; }
             .sidebar.active { transform: translateX(0); }
@@ -195,6 +200,7 @@
 
 <body class="locked">
 
+<div id="demoBanner" title="وضع تجريبي (البيانات لا تحفظ)"></div>
 <div id="syncStatus" onclick="pushToGithub()"><i class="fas fa-cloud"></i> <span>جاري التحميل...</span></div>
 
 <div id="loginLayer" class="login-overlay">
@@ -486,6 +492,20 @@
     </div>
 
     <div id="modify" class="card hidden">
+        
+        <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 20px; border-radius: 15px; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="color: white; margin-bottom: 5px;"><i class="fas fa-flask"></i> الوضع التجريبي (Sandbox)</h3>
+                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">عند التفعيل، تتوقف المزامنة السحابية. يمكنك التجربة بحرية دون التأثير على البيانات الحقيقية. عند الإيقاف، سيتم استعادة البيانات الأصلية.</p>
+                </div>
+                <div class="theme-switch" style="width: 60px; height: 30px;">
+                    <input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()">
+                    <span class="slider"></span>
+                </div>
+            </div>
+        </div>
+
         <h3><i class="fas fa-key"></i> تغيير كلمة المرور</h3>
         <div class="inner-box" style="padding:20px; border-radius:15px; margin-bottom:40px">
             <input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="margin-bottom:10px">
@@ -503,18 +523,28 @@
                 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:15px">
                     <div class="input-group"><label>المبلغ المراد تحويله</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div>
-                    <div class="input-group"><label>عمولة التحويل (تخصم من المصدر)</label><input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()"></div>
+                    <div class="input-group">
+                        <label>عمولة التحويل (تخصم من المصدر)</label>
+                        <div style="display: flex; gap: 5px;">
+                            <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()" style="flex:1">
+                            <select id="tfFeeCurrency" style="width: 80px;">
+                                <option value="source">نفس العملة</option>
+                                <option value="$">$</option>
+                                <option value="₪">₪</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="input-group" style="margin-bottom:15px">
-                    <label>سعر التحويل (1 وحدة مصدر = ؟ وحدة مستلم)</label>
-                    <input type="number" id="tfRate" placeholder="مثلاً 3.5 أو 0.28" value="1" oninput="calculateTransfer()">
-                    <small style="color:var(--text-muted)">اتركه 1 اذا نفس العملة</small>
+                    <label>سعر الدولار مقابل الشيكل (1$ = ؟ ₪)</label>
+                    <input type="number" id="tfRate" placeholder="أدخل السعر (مثلاً 3.15)" value="1" oninput="calculateTransfer()">
+                    <small style="color:var(--text-muted)">سيقوم النظام بحساب التحويل تلقائياً بناءً على العملات.</small>
                 </div>
 
                 <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);">
                     <label style="color:var(--yellow-text)">الناتج النهائي (في محفظة المستلم)</label>
-                    <input type="number" id="tfResult" placeholder="0.00">
+                    <input type="number" id="tfResult" placeholder="0.00" readonly>
                 </div>
 
                 <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="executeTransfer()">إتمام التحويل</button>
@@ -656,6 +686,7 @@ const fix=n=>Number(n).toFixed(2);
 let myProfitChart = null;
 let mySalesChart = null;
 let currentUser = null; 
+let isDemoMode = false;
 
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
@@ -707,10 +738,12 @@ function showModalDetails(details) {
         body.innerHTML += row("من", details.from);
         body.innerHTML += row("إلى", details.to);
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        body.innerHTML += row("المبلغ الأصلي", details.amount + " (" + details.fromCur + ")");
-        body.innerHTML += row("العمولة", details.fee, true, false);
-        body.innerHTML += row("صافي المصدر", details.netSource);
-        body.innerHTML += row("سعر التحويل", details.rate);
+        body.innerHTML += row("المبلغ الكلي", details.amount + " (" + details.fromCur + ")");
+        body.innerHTML += row("العمولة", details.fee + " (" + details.feeCur + ")", true, false);
+        body.innerHTML += row("خصم العمولة من", "حصة المتجر (Capital)");
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += row("الصافي للتحويل", details.netAmount);
+        body.innerHTML += row("سعر الدولار", details.rate);
         body.innerHTML += row("المودع (مستلم)", "+"+details.result + " (" + details.toCur + ")", true, true);
     } else if (details.type === 'purchase') {
         body.innerHTML += row("العملية", "تسجيل شراء");
@@ -773,6 +806,10 @@ function closeModal(e) {
 
 function updateSyncStatus(msg, type="loading") {
     const el = document.getElementById("syncStatus");
+    if(isDemoMode) {
+         el.innerHTML = `<i class="fas fa-flask"></i> <span>وضع تجريبي</span>`;
+         return;
+    }
     if(type==="loading") {
         el.innerHTML = `<i class="fas fa-circle-notch fa-spin" style="color:var(--primary)"></i> <span>${msg}</span>`;
     } else if (type==="success") {
@@ -821,6 +858,12 @@ function init(){
         document.getElementById("darkModeToggle").checked = true;
         if(document.getElementById("loginThemeCheck")) document.getElementById("loginThemeCheck").checked = true;
     }
+
+    if(localStorage.getItem("isDemoMode") === "true") {
+        isDemoMode = true;
+        document.body.classList.add("demo-mode");
+        document.getElementById("demoModeToggle").checked = true;
+    }
     
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) {
         document.getElementById("cloudSetupCard").classList.remove("hidden");
@@ -831,6 +874,21 @@ function init(){
     
     // START POLLING
     setInterval(() => fetchFromGithub(false), 3000);
+}
+
+function toggleDemoMode() {
+    isDemoMode = !isDemoMode;
+    localStorage.setItem("isDemoMode", isDemoMode);
+    
+    if (isDemoMode) {
+        document.body.classList.add("demo-mode");
+        notify("تم تفعيل الوضع التجريبي. البيانات لن تحفظ سحابياً.");
+        updateSyncStatus();
+    } else {
+        document.body.classList.remove("demo-mode");
+        notify("تم إيقاف الوضع التجريبي. جاري استعادة البيانات الأصلية...");
+        fetchFromGithub(true); // Force Restore
+    }
 }
 
 async function setupCloudAndFetch() {
@@ -854,6 +912,8 @@ async function setupCloudAndFetch() {
 }
 
 async function fetchFromGithub(triggerLogin = false) {
+    if(isDemoMode && !triggerLogin) return; // Don't fetch in demo mode unless forced (e.g. disabling demo)
+
     if(triggerLogin) updateSyncStatus("فحص البيانات السحابية...");
     
     const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
@@ -872,7 +932,7 @@ async function fetchFromGithub(triggerLogin = false) {
         const data = await response.json();
         
         // --- SMART UPDATE ---
-        if (data.sha !== ghConfig.sha && !isSyncing && !syncPending) {
+        if ((data.sha !== ghConfig.sha && !isSyncing && !syncPending) || (triggerLogin && isDemoMode === false)) {
             ghConfig.sha = data.sha;
             const db = JSON.parse(decodeURIComponent(escape(atob(data.content))));
             
@@ -1183,6 +1243,11 @@ function changeMyPassword() {
 // --- QUEUE & RETRY SYSTEM ---
 async function pushToGithub(force = false) {
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) return;
+
+    if(isDemoMode) {
+        notify("وضع تجريبي: تم حفظ البيانات محلياً فقط", "success");
+        return;
+    }
 
     if (isSyncing) {
         syncPending = true;
@@ -1554,13 +1619,6 @@ function withdrawPartial(p){
         let r = prompt(`العملة مختلفة. المحفظة (${walletCur}) والمطلوب (${reqCurSymbol}).\nأدخل سعر التحويل (1 ${walletCur} = ؟ ${reqCurSymbol}):`);
         if(!r) return notify("تم الإلغاء","error");
         conversionRate = parseFloat(r);
-        // If I need 100 Shekels, and wallet is Dollar. Rate (1$ = 3.5s). Deduct = 100 / 3.5
-        // If I need 100 Dollars, and wallet is Shekel. Rate (1s = 0.28d). Deduct = 100 / 0.28
-        // Simplified: User inputs how many units of "Desired" equals 1 unit of "Wallet".
-        // Let's stick to standard exchange:
-        // Ask: How much is 1 unit of Wallet in Request Currency?
-        // E.g. Wallet is $, Request is ₪. Rate: 3.5.
-        // Deduct from Wallet = Amount / Rate.
         deductedFromWallet = amount / conversionRate;
     }
 
@@ -1601,14 +1659,36 @@ function withdrawPartial(p){
 function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
 function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=JSON.parse(localStorage.purchases); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
 
-// --- TRANSFER LOGIC ---
+// --- TRANSFER LOGIC: DEDUCT FEE FROM STORE CAPITAL ---
 function calculateTransfer() {
     let amount = parseFloat(document.getElementById("tfAmount").value) || 0;
     let fee = parseFloat(document.getElementById("tfFee").value) || 0;
     let rate = parseFloat(document.getElementById("tfRate").value) || 1;
     
+    // Logic: Fee is part of the total deducted from source wallet.
+    // Net amount to be converted = Amount - Fee
     let net = amount - fee;
-    let result = net * rate;
+    
+    // Auto-Calculate Direction based on Currencies (Visual Only)
+    let from = document.getElementById("tfFromWallet").value;
+    let to = document.getElementById("tfToWallet").value;
+    let w = JSON.parse(localStorage.wallets || "{}");
+    
+    let result = 0;
+    if(from && to && w[from] && w[to]) {
+        let fromCur = w[from].cur;
+        let toCur = w[to].cur;
+        
+        if(fromCur === toCur) {
+            result = net; // Same currency
+        } else if (fromCur === '$' && toCur === '₪') {
+            // USD to ILS -> Multiply by rate
+            result = net * rate;
+        } else if (fromCur === '₪' && toCur === '$') {
+            // ILS to USD -> Divide by rate
+            result = net / rate;
+        }
+    }
     
     document.getElementById("tfResult").value = result.toFixed(2);
 }
@@ -1618,7 +1698,8 @@ function executeTransfer() {
     let to = document.getElementById("tfToWallet").value;
     let amount = parseFloat(document.getElementById("tfAmount").value);
     let fee = parseFloat(document.getElementById("tfFee").value) || 0;
-    let rate = parseFloat(document.getElementById("tfRate").value);
+    let feeCurrencyChoice = document.getElementById("tfFeeCurrency").value;
+    let rate = parseFloat(document.getElementById("tfRate").value) || 1;
     let result = parseFloat(document.getElementById("tfResult").value);
 
     if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
@@ -1627,11 +1708,31 @@ function executeTransfer() {
     let w = JSON.parse(localStorage.wallets);
     if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
 
-    // Execute
+    let fromCur = w[from].cur;
+    let toCur = w[to].cur;
+
+    // 1. Deduct Full Amount from Source
     w[from].bal -= amount;
-    w[to].bal += result;
     
+    // 2. Add Result to Destination
+    w[to].bal += result;
+
+    // 3. CLOSED LOOP FIX: Deduct Fee from Store Capital
+    // If feeCurrency is "source", use fromCur. Else use choice.
+    let feeCurSymbol = (feeCurrencyChoice === 'source') ? fromCur : feeCurrencyChoice;
+    
+    let invest = JSON.parse(localStorage.invest);
+    
+    if(fee > 0) {
+        if(feeCurSymbol === '$') {
+            invest.store.d -= fee;
+        } else {
+            invest.store.s -= fee;
+        }
+    }
+
     localStorage.wallets = JSON.stringify(w);
+    localStorage.invest = JSON.stringify(invest);
     
     logAction(`تحويل من ${from} إلى ${to}`, {
         type: 'transfer',
@@ -1639,16 +1740,18 @@ function executeTransfer() {
         to: to,
         amount: amount,
         fee: fee,
+        feeCur: feeCurSymbol,
         rate: rate,
         result: result,
-        netSource: amount - fee,
-        fromCur: w[from].cur,
-        toCur: w[to].cur
+        netAmount: amount - fee,
+        fromCur: fromCur,
+        toCur: toCur
     });
 
     refreshWallets(); 
+    refreshInvestment(); // Update investment display
     pushToGithub(); 
-    notify("تم التحويل بنجاح");
+    notify("تم التحويل وخصم العمولة من المتجر");
     
     // Reset inputs
     document.getElementById("tfAmount").value = "";
