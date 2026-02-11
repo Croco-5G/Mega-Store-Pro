@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Ultimate UI</title>
+    <title>Mega Store Pro | Final Edition</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -65,7 +65,7 @@
         html, body { width: 100%; height: 100%; overflow-x: hidden; position: relative; }
         body { background: var(--bg-body); margin: 0; color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.3s, color 0.3s; }
         
-        /* --- ANIMATED LOGIN STYLES (NEW) --- */
+        /* --- ANIMATED LOGIN STYLES --- */
         .login-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
@@ -75,7 +75,6 @@
             overflow: hidden;
         }
         
-        /* Background Shapes */
         .login-overlay::before {
             content: ''; position: absolute; width: 600px; height: 600px;
             background: rgba(99, 102, 241, 0.15); border-radius: 50%;
@@ -105,35 +104,41 @@
             border: 1px solid rgba(255,255,255,0.3);
             transform: translateY(20px); opacity: 0;
             animation: slideUpFade 0.6s forwards 0.2s;
+            transition: background 0.3s, border-color 0.3s;
         }
 
-        @keyframes slideUpFade {
-            to { transform: translateY(0); opacity: 1; }
+        /* Dark Mode for Login Card */
+        body.dark-mode .login-card {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(255,255,255,0.1);
         }
+        body.dark-mode .login-card h2 { color: #f1f5f9; }
+        body.dark-mode .login-card p { color: #94a3b8; }
+
+        @keyframes slideUpFade { to { transform: translateY(0); opacity: 1; } }
 
         .login-icon-wrap {
-            width: 80px; height: 80px;
+            width: 90px; height: 90px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 20px auto;
-            color: white; font-size: 32px;
+            color: white; font-size: 36px;
             box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
             animation: pulseIcon 3s infinite;
         }
 
         @keyframes pulseIcon {
-            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); transform: scale(1); }
+            50% { transform: scale(1.05); }
             70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); transform: scale(1); }
         }
 
         .login-card h2 { color: #1e293b; margin-bottom: 5px; font-weight: 800; font-size: 24px; }
         .login-card p { color: #64748b; margin-bottom: 30px; font-size: 14px; }
 
-        .custom-input {
-            position: relative; margin-bottom: 20px;
-        }
+        .custom-input { position: relative; margin-bottom: 20px; }
         .custom-input i {
             position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
             color: #94a3b8; transition: 0.3s;
@@ -149,6 +154,14 @@
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
         .custom-input input:focus + i { color: var(--primary); }
+
+        /* Dark Mode Inputs */
+        body.dark-mode .custom-input input {
+            background: #0f172a; border-color: #334155; color: #f1f5f9;
+        }
+        body.dark-mode .custom-input input:focus {
+            border-color: var(--primary); background: #1e293b;
+        }
 
         .btn-login {
             width: 100%; padding: 16px;
@@ -168,8 +181,21 @@
         }
         .btn-login.loading .loading-spinner { display: block; }
         .btn-login.loading span { display: none; }
-        
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Login Theme Toggle */
+        .login-theme-toggle {
+            position: absolute; top: 20px; right: 20px; z-index: 200001;
+        }
+        .login-theme-toggle label {
+            background: rgba(255,255,255,0.2); width: 45px; height: 45px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: white; transition: 0.3s;
+            backdrop-filter: blur(5px); box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .login-theme-toggle label:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+        .login-theme-toggle input { display: none; }
+        body.dark-mode .login-theme-toggle label { background: var(--primary); color: white; }
 
         /* --- STANDARD APP CSS --- */
         .sidebar { width: 280px; background: var(--bg-sidebar); color: white; display: flex; flex-direction: column; position: fixed; height: 100dvh; right: 0; top: 0; z-index: 9999; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: -5px 0 25px rgba(0,0,0,0.2); border-left: 1px solid var(--border-color); transform: translateX(0); padding-bottom: 20px; }
@@ -277,6 +303,11 @@
 
 <div id="loginLayer" class="login-overlay">
     
+    <div class="login-theme-toggle">
+        <input type="checkbox" id="loginThemeCheck" onchange="toggleDarkMode()">
+        <label for="loginThemeCheck"><i class="fas fa-adjust"></i></label>
+    </div>
+
     <div id="cloudSetupCard" class="login-card hidden">
         <div class="login-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
         <h2>الربط السحابي (أمان)</h2>
@@ -303,7 +334,7 @@
     </div>
 
     <div id="loginCard" class="login-card hidden">
-        <div class="login-icon-wrap"><i class="fas fa-user-astronaut"></i></div>
+        <div class="login-icon-wrap"><i class="fas fa-shield-alt"></i></div>
         <h2>تسجيل الدخول</h2>
         <p>يرجى إدخال بيانات الاعتماد للمتابعة</p>
         
@@ -696,6 +727,7 @@ function init(){
     if(localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
         document.getElementById("darkModeToggle").checked = true;
+        if(document.getElementById("loginThemeCheck")) document.getElementById("loginThemeCheck").checked = true;
     }
     
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) {
@@ -717,7 +749,7 @@ async function setupCloudAndFetch() {
     
     if(!u || !r || !t) { document.getElementById("cloudMsg").innerText = "يرجى تعبئة جميع الحقول"; return; }
     
-    btn.classList.add('loading'); // Show Spinner
+    btn.classList.add('loading');
     
     localStorage.setItem("gh_user", u); localStorage.setItem("gh_repo", r);
     localStorage.setItem("gh_token", t); localStorage.setItem("gh_file", "db.json");
@@ -726,7 +758,7 @@ async function setupCloudAndFetch() {
     document.getElementById("cloudMsg").innerText = "جاري الاتصال والتحقق...";
     await fetchFromGithub(true);
     
-    btn.classList.remove('loading'); // Hide Spinner
+    btn.classList.remove('loading');
 }
 
 async function fetchFromGithub(triggerLogin = false) {
@@ -786,7 +818,7 @@ async function attemptLogin() {
     
     btn.classList.add('loading'); // START SPINNER
 
-    // Simulate small delay for UX
+    // Simulate delay for UX
     await new Promise(r => setTimeout(r, 800));
 
     let userObj = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
@@ -1136,6 +1168,15 @@ function toggleSidebar() {
     if(sidebar.classList.contains("active")){ btnIcon.classList.remove("fa-bars"); btnIcon.classList.add("fa-times"); } else { btnIcon.classList.remove("fa-times"); btnIcon.classList.add("fa-bars"); }
 }
 
+function toggleDarkMode() {
+    document.body.classList.toggle("dark-mode");
+    let isDark = document.body.classList.contains("dark-mode");
+    localStorage.setItem("darkMode", isDark);
+    
+    if(document.getElementById("darkModeToggle")) document.getElementById("darkModeToggle").checked = isDark;
+    if(document.getElementById("loginThemeCheck")) document.getElementById("loginThemeCheck").checked = isDark;
+}
+
 function notify(msg,type="success"){
     let n=document.getElementById("notification");
     n.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'}"></i> ` + msg;
@@ -1157,7 +1198,6 @@ function loadGithubInputs(){
     document.getElementById("ghUser").value = ghConfig.user; document.getElementById("ghRepo").value = ghConfig.repo;
     document.getElementById("ghToken").value = ghConfig.token; document.getElementById("ghFile").value = ghConfig.file;
 }
-function toggleDarkMode() { document.body.classList.toggle("dark-mode"); localStorage.setItem("darkMode", document.body.classList.contains("dark-mode")); }
 function saveProfitSettings(){
     let a = +setAhmadProp.value, m = +setMohamedProp.value, s = +setStoreProp.value;
     if(a + m + s !== 100){ notify("مجموع النسب يجب أن يساوي 100%","error"); return; }
