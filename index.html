@@ -678,7 +678,7 @@ let myProfitChart = null;
 let mySalesChart = null;
 let currentUser = null; 
 let isDemoMode = false;
-let syncTimer = null; // To hold the setInterval ID
+let syncTimer = null; 
 
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
@@ -731,7 +731,7 @@ function showModalDetails(details) {
         body.innerHTML += row("إلى", details.to);
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("المبلغ الكلي", details.amount + " (" + details.fromCur + ")");
-        body.innerHTML += row("العمولة", details.fee + " (" + details.feeCur + ")", true, false);
+        body.innerHTML += row("العمولة", details.fee + " (" + details.fromCur + ")", true, false);
         body.innerHTML += row("خصم العمولة من", "حصة المتجر (Capital)");
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("الصافي للتحويل", details.netAmount);
@@ -825,6 +825,7 @@ function logAction(actionDescription, details=null) {
 }
 
 function init(){
+    // ALWAYS INITIALIZE DEFAULT DATA FIRST TO PREVENT NULL ERRORS
     if(!localStorage.users) localStorage.users = JSON.stringify([DEFAULT_USER]);
     if(!localStorage.wallets){
         localStorage.wallets=JSON.stringify({
@@ -855,11 +856,16 @@ function init(){
         updateSyncStatus();
     }
     
+    // UI LOGIC FOR LOGIN vs SETUP
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) {
         document.getElementById("cloudSetupCard").classList.remove("hidden");
         document.getElementById("loginCard").classList.add("hidden");
     } else {
-        // Fetch initially
+        // IMPORTANT FIX: Show Login Card IMMEDIATELY if config exists (Offline First)
+        document.getElementById("cloudSetupCard").classList.add("hidden");
+        document.getElementById("loginCard").classList.remove("hidden");
+        
+        // Try fetching in background
         fetchFromGithub(true);
     }
     
@@ -890,6 +896,7 @@ function toggleDemoMode() {
         notify("جاري إيقاف الوضع التجريبي واستعادة البيانات...");
         
         // Force fetch to wipe local changes, then restart loop
+        // We use a clean fetch logic here
         fetchFromGithub(true).then(() => {
             startSyncLoop(); // RESTART POLLING
         });
@@ -911,7 +918,12 @@ async function setupCloudAndFetch() {
     ghConfig = { user: u, repo: r, token: t, file: "db.json", sha: "" };
     
     document.getElementById("cloudMsg").innerText = "جاري الاتصال والتحقق...";
-    await fetchFromGithub(true);
+    
+    try {
+        await fetchFromGithub(true);
+    } catch(e) {
+        document.getElementById("cloudMsg").innerText = "حدث خطأ غير متوقع.";
+    }
     
     btn.classList.remove('loading');
 }
@@ -925,15 +937,20 @@ async function fetchFromGithub(force = false) {
     const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
     try {
         const response = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' }, cache: "no-store" });
+        
+        // HANDLE 404: File doesn't exist -> Create it (First Time Setup)
         if (response.status === 404) {
-            console.log("File not found");
+            console.log("File not found, attempting creation...");
             if(force) {
                  await pushToGithub(true);
+                 // If push succeeds, show login
                  document.getElementById("cloudSetupCard").classList.add("hidden");
                  document.getElementById("loginCard").classList.remove("hidden");
+                 document.getElementById("cloudMsg").innerText = "";
             }
             return;
         }
+
         if (!response.ok) throw new Error("API Error");
         const data = await response.json();
         
@@ -952,7 +969,12 @@ async function fetchFromGithub(force = false) {
             if(db.activityLog) localStorage.activityLog = JSON.stringify(db.activityLog);
             
             if(currentUser) refreshAll(); 
-            if(force) updateSyncStatus("تمت المزامنة", "success");
+            if(force) {
+                updateSyncStatus("متزامن", "success");
+                // Switch cards on success
+                document.getElementById("cloudSetupCard").classList.add("hidden");
+                document.getElementById("loginCard").classList.remove("hidden");
+            }
         }
     } catch (error) {
         console.error(error);
