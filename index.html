@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Activity Logs</title>
+    <title>Mega Store Pro | Queue Sync</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        /* --- CORE VARIABLES --- */
         :root {
             --primary: #6366f1;
             --primary-dark: #4f46e5;
@@ -203,27 +204,41 @@
                 box-sizing: border-box !important; 
             }
             
-            /* Fix Amount/Currency/Button Layout (Keep horizontal) */
-            .input-group > div { 
+            /* --- INVESTMENT INPUT FIX (GRID) --- */
+            /* هذا الجزء يصلح مشكلة خانة السحب */
+            #investment .input-group > div {
+                display: grid !important;
+                grid-template-columns: 1fr 70px auto !important; /* المبلغ - العملة - الزر */
+                gap: 5px !important;
+                width: 100% !important;
+            }
+            
+            /* إعادة ضبط العناصر داخل الجريد */
+            #investment .input-group > div > input,
+            #investment .input-group > div > select,
+            #investment .input-group > div > button {
+                width: 100% !important; /* تملأ خليتها في الشبكة */
+                margin: 0 !important;
+                flex: none !important;
+            }
+
+            /* إصلاح الخانات الأخرى (مثل شراء) لتبقى أفقية */
+            #purchase .input-group > div { 
                 display: flex !important; 
                 flex-direction: row !important; 
                 width: 100% !important; 
                 gap: 10px !important; 
             }
             
-            .input-group > div > input { 
+            #purchase .input-group > div > input { 
                 flex: 1 !important; 
                 width: auto !important; 
                 min-width: 0 !important; 
             }
             
-            .input-group > div > select { 
+            #purchase .input-group > div > select { 
                 flex: 0 0 80px !important; 
                 width: 80px !important; 
-            }
-            
-            .input-group > div > button {
-                width: auto !important;
             }
 
             .github-section > div:last-child { flexDirection: column !important; }
@@ -571,6 +586,10 @@ let ghConfig = {
     sha: ""
 };
 
+// --- QUEUE SYSTEM VARS ---
+let isSyncing = false; // هل يتم الرفع الآن؟
+let syncPending = false; // هل هناك طلب معلق؟
+
 const DEFAULT_USER = {
     username: "Mohamed Ahmed",
     password: "0000",
@@ -734,22 +753,17 @@ function getRoleName(role) { return role==='admin'?'أدمن':role==='employee'?
 function applyRBAC() {
     const role = currentUser.role;
     
-    // Default: Hide restricted menus initially
     document.getElementById("btnSecurity").classList.add("hidden");
     document.getElementById("btnBackup").classList.add("hidden");
-    // Show Logs menu for everyone now
     document.getElementById("btnLogs").classList.remove("hidden");
     document.getElementById("btnSettings").classList.remove("hidden");
-
-    // Hide specific buttons inside Logs page by default
     document.getElementById("btnClearLogs").classList.add("hidden");
 
     if (role === 'admin') {
         document.getElementById("btnSecurity").classList.remove("hidden");
         document.getElementById("btnBackup").classList.remove("hidden");
-        document.getElementById("btnClearLogs").classList.remove("hidden"); // Admin sees clear logs
+        document.getElementById("btnClearLogs").classList.remove("hidden"); 
         
-        // Show everything in settings
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
         document.getElementById("sec-manage-wallets").classList.remove("hidden");
         document.getElementById("sec-rename-wallet").classList.remove("hidden");
@@ -771,7 +785,6 @@ function applyRBAC() {
     }
     else if (role === 'viewer') {
         document.getElementById("btnPurchase").classList.add("hidden");
-        // HIDE EVERYTHING IN SETTINGS EXCEPT PASS & CLOUD
         document.getElementById("sec-manual-wallet").classList.add("hidden");
         document.getElementById("sec-manage-wallets").classList.add("hidden");
         document.getElementById("sec-rename-wallet").classList.add("hidden");
@@ -890,9 +903,21 @@ function changeMyPassword() {
     }
 }
 
+// --- QUEUE BASED SYNC ---
 async function pushToGithub(force = false) {
     if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) return;
+
+    // اذا كان هناك عملية رفع جارية، قم بجدولة طلب جديد فقط
+    if (isSyncing) {
+        console.log("Sync already in progress, queuing next sync...");
+        syncPending = true;
+        updateSyncStatus("جارِ المزامنة (في الانتظار)...", "loading");
+        return;
+    }
+
+    isSyncing = true;
     updateSyncStatus("جاري الحفظ...");
+
     const db = {
         users: JSON.parse(localStorage.users || "[]"),
         wallets: JSON.parse(localStorage.wallets || "{}"),
@@ -904,17 +929,41 @@ async function pushToGithub(force = false) {
         activityLog: JSON.parse(localStorage.activityLog || "[]"),
         lastUpdate: new Date().toISOString()
     };
+
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
     const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
+
     const body = { message: "Update via MegaStore Audit", content: content };
     if (ghConfig.sha) body.sha = ghConfig.sha;
+
     try {
         const response = await fetch(url, { method: 'PUT', headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (!response.ok) throw new Error("Failed");
-        const data = await response.json();
-        ghConfig.sha = data.content.sha;
-        updateSyncStatus("تم الحفظ سحابياً", "success");
-    } catch (error) { console.error(error); updateSyncStatus("فشل الرفع", "error"); }
+        
+        if (response.status === 409) {
+            // Conflict! Fetch latest SHA and retry immediately
+            console.log("Conflict detected, fetching latest SHA...");
+            await fetchFromGithub(); // This updates ghConfig.sha
+            // Retry the push logic manually inside catch/finally or let the pending flag handle it
+            // Better to let the pending flag handle it by setting it true
+            syncPending = true;
+        } else if (!response.ok) {
+            throw new Error("Failed");
+        } else {
+            const data = await response.json();
+            ghConfig.sha = data.content.sha;
+            updateSyncStatus("تم الحفظ سحابياً", "success");
+        }
+    } catch (error) { 
+        console.error(error); 
+        updateSyncStatus("فشل الرفع", "error"); 
+    } finally {
+        isSyncing = false;
+        // If a new change happened while we were uploading, trigger sync again
+        if (syncPending) {
+            syncPending = false;
+            setTimeout(() => pushToGithub(), 1000); // Small delay to be safe
+        }
+    }
 }
 
 function showPage(id, btn){
