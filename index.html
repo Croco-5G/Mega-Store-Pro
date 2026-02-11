@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Audit Master</title>
+    <title>Mega Store Pro | Closed System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -50,32 +50,15 @@
         html, body { width: 100%; height: 100%; overflow-x: hidden; position: relative; }
         body { background: var(--bg-body); margin: 0; color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.3s, color 0.3s; }
         
-        /* --- MODAL STYLES (NEW) --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 300000;
-            display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(5px); animation: fadeIn 0.3s;
-        }
-        .modal-content {
-            background: var(--bg-card); width: 90%; max-width: 500px;
-            padding: 30px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color); color: var(--text-main);
-            transform: translateY(20px); animation: slideUp 0.3s forwards;
-            max-height: 90vh; overflow-y: auto;
-        }
+        /* --- MODAL STYLES --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 300000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); animation: fadeIn 0.3s; }
+        .modal-content { background: var(--bg-card); width: 90%; max-width: 500px; padding: 30px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: var(--text-main); transform: translateY(20px); animation: slideUp 0.3s forwards; max-height: 90vh; overflow-y: auto; }
         @keyframes slideUp { to { transform: translateY(0); } }
-        
-        .detail-row {
-            display: flex; justify-content: space-between; padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
         .detail-row:last-child { border-bottom: none; }
         .detail-label { font-weight: 600; color: var(--text-muted); }
         .detail-value { font-weight: 700; color: var(--text-main); }
-        
-        .val-inc { color: var(--success); }
-        .val-dec { color: var(--danger); }
+        .val-inc { color: var(--success); } .val-dec { color: var(--danger); }
 
         /* --- LOGIN STYLES --- */
         .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); z-index: 200000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; overflow: hidden; }
@@ -473,17 +456,39 @@
         </div>
 
         <div id="sec-manual-wallet">
-            <h3 style="margin-top:0"><i class="fas fa-edit"></i> التحكم اليدوي بالأرصدة</h3>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px">
-                <div class="input-group"><label>المحفظة</label><select id="modWallet"></select></div>
-                <div class="input-group"><label>المبلغ</label><input id="modAmount" type="number" placeholder="0.00"></div>
+            <h3 style="margin-top:0"><i class="fas fa-exchange-alt"></i> التحويل بين المحافظ</h3>
+            
+            <div class="inner-box" style="padding:20px; border-radius:15px; margin-bottom:40px">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:15px">
+                    <div class="input-group"><label>من محفظة (المصدر)</label><select id="tfFromWallet"></select></div>
+                    <div class="input-group"><label>إلى محفظة (المستلم)</label><select id="tfToWallet"></select></div>
+                </div>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:15px">
+                    <div class="input-group"><label>المبلغ المراد تحويله</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div>
+                    <div class="input-group"><label>عمولة التحويل (تخصم من المصدر)</label><input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()"></div>
+                </div>
+
+                <div class="input-group" style="margin-bottom:15px">
+                    <label>سعر التحويل (1 وحدة مصدر = ؟ وحدة مستلم)</label>
+                    <input type="number" id="tfRate" placeholder="مثلاً 3.5 أو 0.28" value="1" oninput="calculateTransfer()">
+                    <small style="color:var(--text-muted)">اتركه 1 اذا نفس العملة</small>
+                </div>
+
+                <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);">
+                    <label style="color:var(--yellow-text)">الناتج النهائي (في محفظة المستلم)</label>
+                    <input type="number" id="tfResult" placeholder="0.00">
+                </div>
+
+                <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="executeTransfer()">إتمام التحويل</button>
             </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:40px">
-                <button class="btn btn-primary" onclick="addToWallet()">إضافة</button>
-                <button class="btn btn-danger" onclick="subtractFromWallet()">خصم</button>
-                <button class="btn btn-primary" style="background:#0ea5e9" onclick="setWallet()">تعيين مباشر</button>
-                <button class="btn btn-warning" onclick="toggleWalletStatus()"><i class="fas fa-toggle-on"></i> تغيير الحالة</button>
-                <button class="btn btn-danger" onclick="deleteWallet()">حذف المحفظة</button>
+
+            <h3 style="margin-top:40px"><i class="fas fa-edit"></i> تعيين رصيد مباشر</h3>
+            <div style="display:flex; gap:10px; align-items:flex-end">
+                <div class="input-group" style="flex:1"><label>المحفظة</label><select id="modWallet"></select></div>
+                <div class="input-group" style="flex:1"><label>الرصيد الجديد</label><input id="modAmount" type="number" placeholder="0.00"></div>
+                <button class="btn btn-primary" style="background:#0ea5e9; height:48px; margin-bottom:15px" onclick="setWallet()">تعيين</button>
+                <button class="btn btn-danger" style="height:48px; margin-bottom:15px" onclick="deleteWallet()"><i class="fas fa-trash"></i></button>
             </div>
         </div>
 
@@ -613,31 +618,36 @@ function showModalDetails(details) {
     const body = document.getElementById("modalBody");
     body.innerHTML = "";
     
-    // Formatting logic
     if(details.type === 'manual') {
         body.innerHTML += row("السبب", details.reason);
         body.innerHTML += row("المحفظة", details.wallet);
         body.innerHTML += row("الرصيد السابق", fix(details.before), false);
         body.innerHTML += row("التغيير", (details.diff >= 0 ? "+"+details.diff : details.diff), true, details.diff >= 0);
         body.innerHTML += row("الرصيد الجديد", fix(details.after), false);
+    } else if (details.type === 'transfer') {
+        body.innerHTML += row("العملية", "تحويل أرصدة");
+        body.innerHTML += row("من", details.from);
+        body.innerHTML += row("إلى", details.to);
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += row("المبلغ الأصلي", details.amount + " (" + details.fromCur + ")");
+        body.innerHTML += row("العمولة", details.fee, true, false);
+        body.innerHTML += row("صافي المصدر", details.netSource);
+        body.innerHTML += row("سعر التحويل", details.rate);
+        body.innerHTML += row("المودع (مستلم)", "+"+details.result + " (" + details.toCur + ")", true, true);
     } else if (details.type === 'purchase') {
         body.innerHTML += row("العملية", "تسجيل شراء");
         body.innerHTML += row("العميل", details.customer);
         body.innerHTML += row("الخدمة", details.sub);
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        
-        // Wallet Changes
         body.innerHTML += `<h4>المحفظة المصدر: ${details.wName}</h4>`;
         body.innerHTML += row("قبل الخصم", fix(details.wBefore));
         body.innerHTML += row("المخصوم", "-"+details.cost, true, false);
         body.innerHTML += row("بعد الخصم", fix(details.wAfter));
-        
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += `<h4>المحفظة المستلمة: ${details.toName}</h4>`;
         body.innerHTML += row("قبل الإيداع", fix(details.tBefore));
         body.innerHTML += row("المقبوض", "+"+details.paid, true, true);
         body.innerHTML += row("بعد الإيداع", fix(details.tAfter));
-
     } else if (details.type === 'withdraw') {
         body.innerHTML += row("العملية", "سحب أرباح");
         body.innerHTML += row("الشريك", details.person);
@@ -647,7 +657,14 @@ function showModalDetails(details) {
         body.innerHTML += row("الرصيد الحالي", fix(details.after));
     } else if (details.type === 'undo') {
         body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div>`;
-        body.innerHTML += `<p style="text-align:center; font-size:13px">تم استعادة أرصدة المحافظ وتوزيع الأرباح كما كانت قبل آخر عملية.</p>`;
+        body.innerHTML += `<p style="text-align:center; font-size:13px">تم عكس العملية الأخيرة وإعادة الأرصدة لوضعها السابق:</p>`;
+        if(details.data) {
+             body.innerHTML += row("الخدمة الملغاة", details.data.sub);
+             body.innerHTML += row("العميل", details.data.customer);
+             body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+             body.innerHTML += row(`استرجاع تكلفة (${details.data.fromWallet})`, "+"+details.data.cost, true, true);
+             body.innerHTML += row(`خصم ربح (${details.data.wallet})`, "-"+details.data.paid, true, false);
+        }
     } else {
         body.innerHTML += `<p>${JSON.stringify(details)}</p>`;
     }
@@ -687,7 +704,7 @@ function logAction(actionDescription, details=null) {
         user: currentUser.username,
         action: actionDescription,
         time: new Date().toLocaleString("ar-EG"),
-        details: details // Save details object
+        details: details 
     });
     if(logs.length > 500) logs = logs.slice(0, 500);
     localStorage.activityLog = JSON.stringify(logs);
@@ -1185,7 +1202,7 @@ function notify(msg,type="success"){
 
 function loadWallets(){
     let wallets=JSON.parse(localStorage.wallets);
-    const selects = [wallet, modWallet, fromWallet, renameWalletSelect];
+    const selects = [wallet, modWallet, fromWallet, renameWalletSelect, tfFromWallet, tfToWallet];
     selects.forEach(s => { if(s) { s.innerHTML = ""; Object.keys(wallets).forEach(w=>{ let o=document.createElement("option"); o.value=w; o.text=w; s.appendChild(o); }); } });
 }
 function loadProfitSettings(){
@@ -1238,7 +1255,21 @@ function addPurchase(){
     wallets[wallet.value].bal += paid;
     let d = new Date(), exp = new Date(d); exp.setMonth(exp.getMonth() + duration);
     if(exp.getDate()!==d.getDate()) exp.setDate(0);
-    purchases.push({ date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(), customer:customer.value||"عميل", phone:customerPhone.value||"-", sub:sub.value, duration: duration, paid:paid+paidCur, cost:cost+costCur, wallet:wallet.value, expiry: exp.getTime() });
+    
+    // ADD FROM_WALLET TO PURCHASE OBJECT
+    purchases.push({ 
+        date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(), 
+        customer:customer.value||"عميل", 
+        phone:customerPhone.value||"-", 
+        sub:sub.value, 
+        duration: duration, 
+        paid:paid+paidCur, 
+        cost:cost+costCur, 
+        wallet:wallet.value, 
+        fromWallet: from, // Saved for undo
+        expiry: exp.getTime() 
+    });
+    
     localStorage.wallets=JSON.stringify(wallets); localStorage.invest=JSON.stringify(invest); localStorage.purchases=JSON.stringify(purchases);
     
     // LOG WITH DETAILS
@@ -1409,6 +1440,62 @@ function withdrawPartial(p){
 }
 function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
 function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=JSON.parse(localStorage.purchases); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
+
+// --- TRANSFER LOGIC ---
+function calculateTransfer() {
+    let amount = parseFloat(document.getElementById("tfAmount").value) || 0;
+    let fee = parseFloat(document.getElementById("tfFee").value) || 0;
+    let rate = parseFloat(document.getElementById("tfRate").value) || 1;
+    
+    let net = amount - fee;
+    let result = net * rate;
+    
+    document.getElementById("tfResult").value = result.toFixed(2);
+}
+
+function executeTransfer() {
+    let from = document.getElementById("tfFromWallet").value;
+    let to = document.getElementById("tfToWallet").value;
+    let amount = parseFloat(document.getElementById("tfAmount").value);
+    let fee = parseFloat(document.getElementById("tfFee").value) || 0;
+    let rate = parseFloat(document.getElementById("tfRate").value);
+    let result = parseFloat(document.getElementById("tfResult").value);
+
+    if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
+    if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
+
+    let w = JSON.parse(localStorage.wallets);
+    if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
+
+    // Execute
+    w[from].bal -= amount;
+    w[to].bal += result;
+    
+    localStorage.wallets = JSON.stringify(w);
+    
+    logAction(`تحويل من ${from} إلى ${to}`, {
+        type: 'transfer',
+        from: from,
+        to: to,
+        amount: amount,
+        fee: fee,
+        rate: rate,
+        result: result,
+        netSource: amount - fee,
+        fromCur: w[from].cur,
+        toCur: w[to].cur
+    });
+
+    refreshWallets(); 
+    pushToGithub(); 
+    notify("تم التحويل بنجاح");
+    
+    // Reset inputs
+    document.getElementById("tfAmount").value = "";
+    document.getElementById("tfFee").value = "0";
+    document.getElementById("tfResult").value = "";
+}
+
 function addToWallet(){ 
     let reason = prompt("سبب الإضافة (إجباري):");
     if(!reason) return;
@@ -1471,8 +1558,42 @@ function importData(){
 }
 function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
-    if(!localStorage.lastUndoOp)return notify("لا يوجد","error"); let u=JSON.parse(localStorage.lastUndoOp); localStorage.wallets=JSON.stringify(u.wallets); localStorage.invest=JSON.stringify(u.invest); let p=JSON.parse(localStorage.purchases); p.pop(); localStorage.purchases=JSON.stringify(p); localStorage.removeItem("lastUndoOp"); 
-    logAction("تراجع عن آخر عملية شراء", {type:'undo'}); refreshAll(); pushToGithub(); notify("تم التراجع"); 
+    
+    let purchases = JSON.parse(localStorage.purchases || "[]");
+    if(purchases.length === 0) return notify("لا توجد عمليات للتراجع عنها", "error");
+    
+    let lastP = purchases.pop(); // Remove last purchase
+    let wallets = JSON.parse(localStorage.wallets);
+    
+    // REVERSE MONEY FLOW
+    // 1. Refund cost to source wallet (if exists)
+    let refundedCost = 0;
+    if(lastP.fromWallet && wallets[lastP.fromWallet]) {
+        let costVal = parseFloat(lastP.cost); 
+        wallets[lastP.fromWallet].bal += costVal;
+        refundedCost = costVal;
+    }
+    
+    // 2. Deduct revenue from destination wallet
+    let deductedRevenue = 0;
+    if(lastP.wallet && wallets[lastP.wallet]) {
+        let paidVal = parseFloat(lastP.paid);
+        wallets[lastP.wallet].bal -= paidVal;
+        deductedRevenue = paidVal;
+    }
+    
+    localStorage.wallets = JSON.stringify(wallets);
+    localStorage.purchases = JSON.stringify(purchases);
+    
+    // Log Detailed Undo
+    logAction("تراجع عن عملية شراء", {
+        type: 'undo',
+        data: lastP,
+        refunded: refundedCost,
+        deducted: deductedRevenue
+    });
+    
+    refreshAll(); pushToGithub(); notify("تم التراجع بنجاح"); 
 }
 function clearHistory(){ if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); if(confirm("مسح الكل؟")){ localStorage.purchases="[]"; logAction("مسح سجل العمليات بالكامل"); refreshHistory(); pushToGithub(); } }
 
