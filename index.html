@@ -440,10 +440,47 @@
         <div id="investBox" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;"></div>
         <div class="inner-box" style="margin-top:40px; padding:30px; border-radius:20px;">
             <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-external-link-alt"></i> طلب سحب أرباح</h4>
+            <div style="margin-bottom:15px; font-size:13px; color:var(--text-muted);">
+                <i class="fas fa-info-circle"></i> <b>تنبيه:</b> المبلغ سيتم خصمه من رصيد الحصة ومن رصيد المحفظة المختارة فعلياً.
+            </div>
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
-                <div class="input-group"><label>سحب من حصة أحمد</label><div style="display:flex; gap:5px"><input id="withdrawAhmad" type="number" placeholder="0.00"><select id="curAhmad" style="width:70px"><option value="d">$</option><option value="s">₪</option></select><button class="btn btn-danger" onclick="withdrawPartial('ahmad')">سحب</button></div></div>
-                <div class="input-group"><label>سحب من حصة محمد</label><div style="display:flex; gap:5px"><input id="withdrawMohamed" type="number" placeholder="0.00"><select id="curMohamed" style="width:70px"><option value="d">$</option><option value="s">₪</option></select><button class="btn btn-danger" onclick="withdrawPartial('mohamed')">سحب</button></div></div>
-                <div class="input-group"><label>سحب من حصة المتجر</label><div style="display:flex; gap:5px"><input id="withdrawStore" type="number" placeholder="0.00"><select id="curStore" style="width:70px"><option value="d">$</option><option value="s">₪</option></select><button class="btn btn-danger" onclick="withdrawPartial('store')">سحب</button></div></div>
+                
+                <div class="input-group">
+                    <label>سحب من حصة أحمد</label>
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                        <select id="wWalletAhmad" style="width:100%"><option value="">اختر محفظة السحب</option></select>
+                        <div style="display:flex; gap:5px">
+                            <input id="withdrawAhmad" type="number" placeholder="0.00">
+                            <select id="curAhmad" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
+                        </div>
+                        <button class="btn btn-danger" onclick="withdrawPartial('ahmad')" style="width:100%">سحب</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>سحب من حصة محمد</label>
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                        <select id="wWalletMohamed" style="width:100%"><option value="">اختر محفظة السحب</option></select>
+                        <div style="display:flex; gap:5px">
+                            <input id="withdrawMohamed" type="number" placeholder="0.00">
+                            <select id="curMohamed" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
+                        </div>
+                        <button class="btn btn-danger" onclick="withdrawPartial('mohamed')" style="width:100%">سحب</button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>سحب من حصة المتجر</label>
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                        <select id="wWalletStore" style="width:100%"><option value="">اختر محفظة السحب</option></select>
+                        <div style="display:flex; gap:5px">
+                            <input id="withdrawStore" type="number" placeholder="0.00">
+                            <select id="curStore" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
+                        </div>
+                        <button class="btn btn-danger" onclick="withdrawPartial('store')" style="width:100%">سحب</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -482,13 +519,43 @@
 
                 <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="executeTransfer()">إتمام التحويل</button>
             </div>
+        </div>
 
-            <h3 style="margin-top:40px"><i class="fas fa-edit"></i> تعيين رصيد مباشر</h3>
+        <div id="sec-set-wallet-balance">
+            <h3 style="margin-top:40px"><i class="fas fa-edit"></i> تعيين رصيد محفظة مباشر</h3>
             <div style="display:flex; gap:10px; align-items:flex-end">
                 <div class="input-group" style="flex:1"><label>المحفظة</label><select id="modWallet"></select></div>
                 <div class="input-group" style="flex:1"><label>الرصيد الجديد</label><input id="modAmount" type="number" placeholder="0.00"></div>
                 <button class="btn btn-primary" style="background:#0ea5e9; height:48px; margin-bottom:15px" onclick="setWallet()">تعيين</button>
                 <button class="btn btn-danger" style="height:48px; margin-bottom:15px" onclick="deleteWallet()"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+
+        <div id="sec-set-profit-share" style="margin-top:40px;">
+            <h3><i class="fas fa-hand-holding-usd"></i> تعيين حصة شريك مباشر</h3>
+            <div class="inner-box" style="padding:20px; border-radius:15px; margin-bottom:40px; border: 1px dashed var(--primary);">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end">
+                    <div class="input-group" style="flex:1; min-width:150px">
+                        <label>الشريك / الجهة</label>
+                        <select id="setSharePerson">
+                            <option value="ahmad">أحمد</option>
+                            <option value="mohamed">محمد</option>
+                            <option value="store">المتجر</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="width:100px">
+                        <label>العملة</label>
+                        <select id="setShareCurrency">
+                            <option value="d">دولار $</option>
+                            <option value="s">شيكل ₪</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex:1; min-width:150px">
+                        <label>الرصيد الجديد للحصة</label>
+                        <input id="setShareAmount" type="number" placeholder="0.00">
+                    </div>
+                    <button class="btn btn-primary" style="height:48px; margin-bottom:15px" onclick="setProfitShare()">تحديث الحصة</button>
+                </div>
             </div>
         </div>
 
@@ -619,12 +686,23 @@ function showModalDetails(details) {
     body.innerHTML = "";
     
     if(details.type === 'manual') {
+        body.innerHTML += row("العملية", "تعديل رصيد محفظة");
         body.innerHTML += row("السبب", details.reason);
         body.innerHTML += row("المحفظة", details.wallet);
         body.innerHTML += row("الرصيد السابق", fix(details.before), false);
         body.innerHTML += row("التغيير", (details.diff >= 0 ? "+"+details.diff : details.diff), true, details.diff >= 0);
         body.innerHTML += row("الرصيد الجديد", fix(details.after), false);
-    } else if (details.type === 'transfer') {
+    } 
+    else if(details.type === 'manual_invest') {
+        body.innerHTML += row("العملية", "تعديل حصة شريك");
+        body.innerHTML += row("الشريك", details.person);
+        body.innerHTML += row("العملة", details.currency === 'd' ? 'دولار' : 'شيكل');
+        body.innerHTML += row("السبب", details.reason);
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += row("قبل التعديل", fix(details.before));
+        body.innerHTML += row("بعد التعديل", fix(details.after));
+    }
+    else if (details.type === 'transfer') {
         body.innerHTML += row("العملية", "تحويل أرصدة");
         body.innerHTML += row("من", details.from);
         body.innerHTML += row("إلى", details.to);
@@ -650,11 +728,21 @@ function showModalDetails(details) {
         body.innerHTML += row("بعد الإيداع", fix(details.tAfter));
     } else if (details.type === 'withdraw') {
         body.innerHTML += row("العملية", "سحب أرباح");
-        body.innerHTML += row("الشريك", details.person);
+        body.innerHTML += row("الشريك/الجهة", details.person);
         body.innerHTML += row("السبب", details.reason);
-        body.innerHTML += row("الرصيد السابق", fix(details.before));
-        body.innerHTML += row("المسحوب", "-"+details.amount, true, false);
-        body.innerHTML += row("الرصيد الحالي", fix(details.after));
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += `<h4>رصيد الحصة (${details.currency})</h4>`;
+        body.innerHTML += row("قبل السحب", fix(details.shareBefore));
+        body.innerHTML += row("المخصوم", "-"+details.amount, true, false);
+        body.innerHTML += row("بعد السحب", fix(details.shareAfter));
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += `<h4>محفظة الخصم: ${details.walletName}</h4>`;
+        body.innerHTML += row("رصيد المحفظة قبل", fix(details.walletBefore));
+        body.innerHTML += row("المخصوم فعلياً", "-"+fix(details.deductedFromWallet), true, false);
+        body.innerHTML += row("رصيد المحفظة بعد", fix(details.walletAfter));
+        if(details.rate && details.rate !== 1) {
+            body.innerHTML += row("سعر التحويل المستخدم", details.rate);
+        }
     } else if (details.type === 'undo') {
         body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div>`;
         body.innerHTML += `<p style="text-align:center; font-size:13px">تم عكس العملية الأخيرة وإعادة الأرصدة لوضعها السابق:</p>`;
@@ -897,11 +985,15 @@ function applyRBAC() {
         document.getElementById("btnClearLogs").classList.remove("hidden"); 
         document.getElementById("btnVisLogs").classList.remove("hidden"); 
         
+        // Settings Sections for Admin
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
+        document.getElementById("sec-set-wallet-balance").classList.remove("hidden"); // Only Admin
+        document.getElementById("sec-set-profit-share").classList.remove("hidden"); // Only Admin
         document.getElementById("sec-manage-wallets").classList.remove("hidden");
         document.getElementById("sec-rename-wallet").classList.remove("hidden");
         document.getElementById("sec-profit-settings").classList.remove("hidden");
         document.getElementById("sec-todo").classList.remove("hidden");
+        
         document.getElementById("btnUndo").classList.remove("hidden");
         document.getElementById("btnClearHistory").classList.remove("hidden");
         document.getElementById("btnHideExpired").classList.remove("hidden");
@@ -910,7 +1002,11 @@ function applyRBAC() {
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
+        // Employee can see transfer but NOT set balance or set profit
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
+        document.getElementById("sec-set-wallet-balance").classList.add("hidden");
+        document.getElementById("sec-set-profit-share").classList.add("hidden");
+        
         document.getElementById("sec-manage-wallets").classList.remove("hidden");
         document.getElementById("sec-rename-wallet").classList.remove("hidden");
         document.getElementById("sec-profit-settings").classList.remove("hidden");
@@ -926,6 +1022,8 @@ function applyRBAC() {
         document.getElementById("btnPurchase").classList.add("hidden");
         
         document.getElementById("sec-manual-wallet").classList.add("hidden");
+        document.getElementById("sec-set-wallet-balance").classList.add("hidden");
+        document.getElementById("sec-set-profit-share").classList.add("hidden");
         document.getElementById("sec-manage-wallets").classList.add("hidden");
         document.getElementById("sec-rename-wallet").classList.add("hidden");
         document.getElementById("sec-profit-settings").classList.add("hidden");
@@ -1202,8 +1300,17 @@ function notify(msg,type="success"){
 
 function loadWallets(){
     let wallets=JSON.parse(localStorage.wallets);
-    const selects = [wallet, modWallet, fromWallet, renameWalletSelect, tfFromWallet, tfToWallet];
-    selects.forEach(s => { if(s) { s.innerHTML = ""; Object.keys(wallets).forEach(w=>{ let o=document.createElement("option"); o.value=w; o.text=w; s.appendChild(o); }); } });
+    const selects = [wallet, modWallet, fromWallet, renameWalletSelect, tfFromWallet, tfToWallet, wWalletAhmad, wWalletMohamed, wWalletStore];
+    selects.forEach(s => { 
+        if(s) { 
+            s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' : ""; 
+            Object.keys(wallets).forEach(w=>{ 
+                let o=document.createElement("option"); 
+                o.value=w; o.text=w + ` (${wallets[w].cur})`; 
+                s.appendChild(o); 
+            }); 
+        } 
+    });
 }
 function loadProfitSettings(){
     let s = JSON.parse(localStorage.settings);
@@ -1409,35 +1516,88 @@ function deleteNote(i){ if(currentUser.role === 'viewer' || currentUser.role ===
 function addTodo(){ let t=todoInput.value.trim(); if(!t)return; let l=JSON.parse(localStorage.todoList); l.push({text:t, date:new Date().toLocaleString("ar-EG")}); localStorage.todoList=JSON.stringify(l); todoInput.value=""; logAction("إضافة مهمة جديدة"); refreshTodoList(); pushToGithub(); }
 function refreshTodoList(){ let l=JSON.parse(localStorage.todoList); todoBox.innerHTML=""; l.forEach((x,i)=>[ todoBox.innerHTML+=`<div class="todo-item"><div>${x.text}</div><button class="btn btn-primary" style="padding:5px 10px" onclick="completeTodo(${i})">تمت</button></div>` ]); }
 function completeTodo(i){ let l=JSON.parse(localStorage.todoList); logAction(`إكمال مهمة: ${l[i].text}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); }
+
+// --- ENHANCED WITHDRAWAL LOGIC ---
 function withdrawPartial(p){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     
-    let input = document.getElementById(p==='ahmad'?'withdrawAhmad':p==='mohamed'?'withdrawMohamed':'withdrawStore'), cur = document.getElementById(p==='ahmad'?'curAhmad':p==='mohamed'?'curMohamed':'curStore').value;
-    let val = +input.value;
-    if(!val) return notify("أدخل المبلغ","error");
+    let input = document.getElementById(p==='ahmad'?'withdrawAhmad':p==='mohamed'?'withdrawMohamed':'withdrawStore');
+    let curSelect = document.getElementById(p==='ahmad'?'curAhmad':p==='mohamed'?'curMohamed':'curStore');
+    let walletSelect = document.getElementById(p==='ahmad'?'wWalletAhmad':p==='mohamed'?'wWalletMohamed':'wWalletStore');
+    
+    let amount = +input.value;
+    let cur = curSelect.value; // 'd' or 's'
+    let walletName = walletSelect.value;
+
+    if(!amount) return notify("أدخل المبلغ","error");
+    if(!walletName) return notify("يرجى اختيار المحفظة التي سيتم الدفع منها","error");
 
     let reason = prompt("سبب السحب (إجباري):");
     if(!reason) return notify("تم الإلغاء: السبب مطلوب","error");
 
-    let i = JSON.parse(localStorage.invest), k = cur === 'd' ? 'd' : 's';
-    if(i[p][k] < val) { notify("رصيد غير كافي","error"); return; }
+    let i = JSON.parse(localStorage.invest);
+    let w = JSON.parse(localStorage.wallets);
+    let k = cur === 'd' ? 'd' : 's';
     
-    let before = i[p][k];
-    i[p][k] -= val;
-    localStorage.invest=JSON.stringify(i); 
+    // Check Profit Balance
+    if(i[p][k] < amount) { notify("رصيد الحصة غير كافي للسحب","error"); return; }
     
-    logAction(`سحب أرباح من ${p}`, {
+    // Check Wallet Balance & Handle Currency Mismatch
+    let wallet = w[walletName];
+    let walletCur = wallet.cur; // '$' or '₪'
+    let reqCurSymbol = cur === 'd' ? '$' : '₪';
+    
+    let conversionRate = 1;
+    let deductedFromWallet = amount;
+
+    if(walletCur !== reqCurSymbol) {
+        let r = prompt(`العملة مختلفة. المحفظة (${walletCur}) والمطلوب (${reqCurSymbol}).\nأدخل سعر التحويل (1 ${walletCur} = ؟ ${reqCurSymbol}):`);
+        if(!r) return notify("تم الإلغاء","error");
+        conversionRate = parseFloat(r);
+        // If I need 100 Shekels, and wallet is Dollar. Rate (1$ = 3.5s). Deduct = 100 / 3.5
+        // If I need 100 Dollars, and wallet is Shekel. Rate (1s = 0.28d). Deduct = 100 / 0.28
+        // Simplified: User inputs how many units of "Desired" equals 1 unit of "Wallet".
+        // Let's stick to standard exchange:
+        // Ask: How much is 1 unit of Wallet in Request Currency?
+        // E.g. Wallet is $, Request is ₪. Rate: 3.5.
+        // Deduct from Wallet = Amount / Rate.
+        deductedFromWallet = amount / conversionRate;
+    }
+
+    if(wallet.bal < deductedFromWallet) {
+        notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error");
+        return;
+    }
+
+    // EXECUTE
+    let shareBefore = i[p][k];
+    let walletBefore = wallet.bal;
+
+    i[p][k] -= amount; // Deduct from Profit Share
+    w[walletName].bal -= deductedFromWallet; // Deduct from Wallet
+
+    localStorage.invest = JSON.stringify(i); 
+    localStorage.wallets = JSON.stringify(w);
+
+    logAction(`سحب أرباح من حصة ${p} عبر ${walletName}`, {
         type: 'withdraw',
         person: p,
-        amount: val + (cur==='d'?'$':'₪'),
+        amount: amount,
+        currency: reqCurSymbol,
+        walletName: walletName,
+        deductedFromWallet: deductedFromWallet,
         reason: reason,
-        before: before,
-        after: i[p][k]
+        shareBefore: shareBefore,
+        shareAfter: i[p][k],
+        walletBefore: walletBefore,
+        walletAfter: w[walletName].bal,
+        rate: conversionRate
     });
 
-    refreshInvestment(); input.value=""; 
-    pushToGithub(); notify("تم السحب");
+    refreshInvestment(); refreshWallets(); input.value=""; 
+    pushToGithub(); notify("تم السحب بنجاح");
 }
+
 function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
 function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=JSON.parse(localStorage.purchases); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
 
@@ -1497,46 +1657,21 @@ function executeTransfer() {
 }
 
 function addToWallet(){ 
-    let reason = prompt("سبب الإضافة (إجباري):");
-    if(!reason) return;
-    let w=JSON.parse(localStorage.wallets); 
-    let before = w[modWallet.value].bal;
-    w[modWallet.value].bal += +modAmount.value; 
-    localStorage.wallets=JSON.stringify(w); 
-    logAction(`إضافة ${modAmount.value} لمحفظة ${modWallet.value}`, {
-        type: 'manual',
-        wallet: modWallet.value,
-        reason: reason,
-        before: before,
-        after: w[modWallet.value].bal,
-        diff: +modAmount.value
-    });
-    refreshWallets(); pushToGithub(); notify("تم"); 
+    // Legacy function support if needed, but UI now uses setWallet logic mainly or explicit ops
+    // Keeping for safety if older buttons exist, though removed from this UI
 }
-function subtractFromWallet(){ 
-    let reason = prompt("سبب الخصم (إجباري):");
-    if(!reason) return;
-    let w=JSON.parse(localStorage.wallets); 
-    let before = w[modWallet.value].bal;
-    w[modWallet.value].bal -= +modAmount.value; 
-    localStorage.wallets=JSON.stringify(w); 
-    logAction(`خصم ${modAmount.value} من محفظة ${modWallet.value}`, {
-        type: 'manual',
-        wallet: modWallet.value,
-        reason: reason,
-        before: before,
-        after: w[modWallet.value].bal,
-        diff: -modAmount.value
-    });
-    refreshWallets(); pushToGithub(); notify("تم"); 
-}
+
 function setWallet(){ 
-    let reason = prompt("سبب التعيين (إجباري):");
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    
+    let reason = prompt("سبب التعيين المباشر (إجباري):");
     if(!reason) return;
+    
     let w=JSON.parse(localStorage.wallets); 
     let before = w[modWallet.value].bal;
     w[modWallet.value].bal = +modAmount.value; 
     localStorage.wallets=JSON.stringify(w); 
+    
     logAction(`تعيين رصيد محفظة ${modWallet.value}`, {
         type: 'manual',
         wallet: modWallet.value,
@@ -1547,8 +1682,40 @@ function setWallet(){
     });
     refreshWallets(); pushToGithub(); notify("تم"); 
 }
-function toggleWalletStatus(){ let n=modWallet.value, w=JSON.parse(localStorage.wallets); w[n].active = !(w[n].active!==false); localStorage.wallets=JSON.stringify(w); logAction(`تغيير حالة محفظة ${n}`); refreshWallets(); pushToGithub(); notify("تم"); }
-function deleteWallet(){ if(!confirm("حذف؟"))return; let w=JSON.parse(localStorage.wallets); delete w[modWallet.value]; localStorage.wallets=JSON.stringify(w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets(); pushToGithub(); }
+
+function setProfitShare() {
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+
+    let person = document.getElementById("setSharePerson").value;
+    let currency = document.getElementById("setShareCurrency").value; // 'd' or 's'
+    let amount = parseFloat(document.getElementById("setShareAmount").value);
+
+    if(isNaN(amount)) return notify("أدخل الرصيد الجديد", "error");
+    
+    let reason = prompt("سبب تعديل الحصة (إجباري):");
+    if(!reason) return;
+
+    let invest = JSON.parse(localStorage.invest);
+    let before = invest[person][currency];
+
+    invest[person][currency] = amount;
+    localStorage.invest = JSON.stringify(invest);
+
+    logAction(`تعديل مباشر لحصة ${person}`, {
+        type: 'manual_invest',
+        person: person,
+        currency: currency,
+        reason: reason,
+        before: before,
+        after: amount
+    });
+
+    refreshInvestment();
+    pushToGithub();
+    notify("تم تحديث الحصة");
+}
+
+function deleteWallet(){ if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); if(!confirm("حذف؟"))return; let w=JSON.parse(localStorage.wallets); delete w[modWallet.value]; localStorage.wallets=JSON.stringify(w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets(); pushToGithub(); }
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(localStorage)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
