@@ -185,7 +185,7 @@
             .card > div[style*="grid-template-columns"], .inner-box[style*="grid-template-columns"], .settings-section > div, .github-section > div, #investment .inner-box > div { grid-template-columns: 1fr !important; }
             .inner-box, .github-section > div { display: flex !important; flexDirection: column !important; alignItems: stretch !important; gap: 15px !important; height: auto !important; overflow: hidden !important; }
             .inner-box input, .inner-box select, .inner-box button, .github-section button, .btn { width: 100% !important; margin: 0 !important; box-sizing: border-box !important; }
-            #investment .input-group > div { display: grid !important; grid-template-columns: 1fr 70px auto !important; gap: 5px !important; width: 100% !important; }
+            #investment .input-group > div { display: grid !important; grid-template-columns: 1fr auto !important; gap: 5px !important; width: 100% !important; }
             #investment .input-group > div > input, #investment .input-group > div > select, #investment .input-group > div > button { width: 100% !important; margin: 0 !important; flex: none !important; }
             #purchase .input-group > div { display: flex !important; flexDirection: row !important; width: 100% !important; gap: 10px !important; }
             #purchase .input-group > div > input { flex: 1 !important; width: auto !important; minWidth: 0 !important; }
@@ -447,7 +447,7 @@
         <div class="inner-box" style="margin-top:40px; padding:30px; border-radius:20px;">
             <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-external-link-alt"></i> طلب سحب أرباح</h4>
             <div style="margin-bottom:15px; font-size:13px; color:var(--text-muted);">
-                <i class="fas fa-info-circle"></i> <b>تنبيه:</b> المبلغ سيتم خصمه من رصيد الحصة ومن رصيد المحفظة المختارة فعلياً.
+                <i class="fas fa-info-circle"></i> <b>تنبيه:</b> المبلغ سيتم خصمه تلقائياً بنفس عملة المحفظة المختارة.
             </div>
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
                 
@@ -456,8 +456,7 @@
                     <div style="display:flex; flex-direction:column; gap:8px">
                         <select id="wWalletAhmad" style="width:100%"><option value="">اختر محفظة السحب</option></select>
                         <div style="display:flex; gap:5px">
-                            <input id="withdrawAhmad" type="number" placeholder="0.00">
-                            <select id="curAhmad" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
+                            <input id="withdrawAhmad" type="number" placeholder="0.00" style="width:100%">
                         </div>
                         <button class="btn btn-danger" onclick="withdrawPartial('ahmad')" style="width:100%">سحب</button>
                     </div>
@@ -468,8 +467,7 @@
                     <div style="display:flex; flex-direction:column; gap:8px">
                         <select id="wWalletMohamed" style="width:100%"><option value="">اختر محفظة السحب</option></select>
                         <div style="display:flex; gap:5px">
-                            <input id="withdrawMohamed" type="number" placeholder="0.00">
-                            <select id="curMohamed" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
+                            <input id="withdrawMohamed" type="number" placeholder="0.00" style="width:100%">
                         </div>
                         <button class="btn btn-danger" onclick="withdrawPartial('mohamed')" style="width:100%">سحب</button>
                     </div>
@@ -480,8 +478,7 @@
                     <div style="display:flex; flex-direction:column; gap:8px">
                         <select id="wWalletStore" style="width:100%"><option value="">اختر محفظة السحب</option></select>
                         <div style="display:flex; gap:5px">
-                            <input id="withdrawStore" type="number" placeholder="0.00">
-                            <select id="curStore" style="width:70px"><option value="d">$</option><option value="s">₪</option></select>
+                            <input id="withdrawStore" type="number" placeholder="0.00" style="width:100%">
                         </div>
                         <button class="btn btn-danger" onclick="withdrawPartial('store')" style="width:100%">سحب</button>
                     </div>
@@ -528,7 +525,6 @@
                         <div style="display: flex; gap: 5px;">
                             <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()" style="flex:1">
                             <select id="tfFeeCurrency" style="width: 80px;">
-                                <option value="source">نفس العملة</option>
                                 <option value="$">$</option>
                                 <option value="₪">₪</option>
                             </select>
@@ -764,18 +760,14 @@ function showModalDetails(details) {
         body.innerHTML += row("الشريك/الجهة", details.person);
         body.innerHTML += row("السبب", details.reason);
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        body.innerHTML += `<h4>رصيد الحصة (${details.currency})</h4>`;
-        body.innerHTML += row("قبل السحب", fix(details.shareBefore));
-        body.innerHTML += row("المخصوم", "-"+details.amount, true, false);
-        body.innerHTML += row("بعد السحب", fix(details.shareAfter));
-        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        body.innerHTML += `<h4>محفظة الخصم: ${details.walletName}</h4>`;
-        body.innerHTML += row("رصيد المحفظة قبل", fix(details.walletBefore));
-        body.innerHTML += row("المخصوم فعلياً", "-"+fix(details.deductedFromWallet), true, false);
+        body.innerHTML += `<h4>محفظة السحب: ${details.walletName}</h4>`;
+        body.innerHTML += row("المبلغ المخصوم", "-"+fix(details.amount) + " " + (details.currency==='$'?'$':'₪'), true, false);
         body.innerHTML += row("رصيد المحفظة بعد", fix(details.walletAfter));
-        if(details.rate && details.rate !== 1) {
-            body.innerHTML += row("سعر التحويل المستخدم", details.rate);
-        }
+        body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+        body.innerHTML += `<h4>رصيد الحصة</h4>`;
+        body.innerHTML += row("قبل السحب", fix(details.shareBefore));
+        body.innerHTML += row("بعد السحب", fix(details.shareAfter));
+        
     } else if (details.type === 'undo') {
         body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div>`;
         body.innerHTML += `<p style="text-align:center; font-size:13px">تم عكس العملية الأخيرة وإعادة الأرصدة لوضعها السابق:</p>`;
@@ -880,15 +872,8 @@ function toggleDemoMode() {
     isDemoMode = !isDemoMode;
     localStorage.setItem("isDemoMode", isDemoMode);
     
-    if (isDemoMode) {
-        document.body.classList.add("demo-mode");
-        notify("تم تفعيل الوضع التجريبي. البيانات لن تحفظ سحابياً.");
-        updateSyncStatus();
-    } else {
-        document.body.classList.remove("demo-mode");
-        notify("تم إيقاف الوضع التجريبي. جاري استعادة البيانات الأصلية...");
-        fetchFromGithub(true); // Force Restore
-    }
+    // Force reload to apply clean state change and stop/start sync intervals cleanly
+    location.reload(); 
 }
 
 async function setupCloudAndFetch() {
@@ -993,8 +978,11 @@ async function attemptLogin() {
         
         logAction("تسجيل دخول للنظام");
 
-        updateSyncStatus("تحديث الصلاحيات سحابياً...", "loading");
-        await pushToGithub(); 
+        if(!isDemoMode) {
+            updateSyncStatus("تحديث الصلاحيات سحابياً...", "loading");
+            await pushToGithub(); 
+        }
+        
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadGithubInputs(); refreshAll(); applyRBAC();
@@ -1030,6 +1018,7 @@ function applyRBAC() {
     document.getElementById("btnSecurity").classList.add("hidden");
     document.getElementById("btnBackup").classList.add("hidden");
     document.getElementById("btnLogs").classList.add("hidden");
+    document.getElementById("demo-mode-section").classList.add("hidden"); // Default hidden
     
     document.getElementById("btnSettings").classList.remove("hidden");
     document.getElementById("btnClearLogs").classList.add("hidden");
@@ -1044,6 +1033,7 @@ function applyRBAC() {
         document.getElementById("btnLogs").classList.remove("hidden"); 
         document.getElementById("btnClearLogs").classList.remove("hidden"); 
         document.getElementById("btnVisLogs").classList.remove("hidden"); 
+        document.getElementById("demo-mode-section").classList.remove("hidden"); // Show for Admin
         
         // Settings Sections for Admin
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
@@ -1062,6 +1052,8 @@ function applyRBAC() {
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
+        document.getElementById("demo-mode-section").classList.remove("hidden"); // Show for Employee
+        
         // Employee can see transfer but NOT set balance or set profit
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
         document.getElementById("sec-set-wallet-balance").classList.add("hidden");
@@ -1587,11 +1579,9 @@ function withdrawPartial(p){
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     
     let input = document.getElementById(p==='ahmad'?'withdrawAhmad':p==='mohamed'?'withdrawMohamed':'withdrawStore');
-    let curSelect = document.getElementById(p==='ahmad'?'curAhmad':p==='mohamed'?'curMohamed':'curStore');
     let walletSelect = document.getElementById(p==='ahmad'?'wWalletAhmad':p==='mohamed'?'wWalletMohamed':'wWalletStore');
     
     let amount = +input.value;
-    let cur = curSelect.value; // 'd' or 's'
     let walletName = walletSelect.value;
 
     if(!amount) return notify("أدخل المبلغ","error");
@@ -1602,37 +1592,27 @@ function withdrawPartial(p){
 
     let i = JSON.parse(localStorage.invest);
     let w = JSON.parse(localStorage.wallets);
-    let k = cur === 'd' ? 'd' : 's';
     
-    // Check Profit Balance
-    if(i[p][k] < amount) { notify("رصيد الحصة غير كافي للسحب","error"); return; }
-    
-    // Check Wallet Balance & Handle Currency Mismatch
     let wallet = w[walletName];
-    let walletCur = wallet.cur; // '$' or '₪'
-    let reqCurSymbol = cur === 'd' ? '$' : '₪';
+    let currency = wallet.cur; // '$' or '₪'
     
-    let conversionRate = 1;
-    let deductedFromWallet = amount;
+    // Determine which share to deduct from based on Wallet Currency
+    let shareType = (currency === '$') ? 'd' : 's';
 
-    if(walletCur !== reqCurSymbol) {
-        let r = prompt(`العملة مختلفة. المحفظة (${walletCur}) والمطلوب (${reqCurSymbol}).\nأدخل سعر التحويل (1 ${walletCur} = ؟ ${reqCurSymbol}):`);
-        if(!r) return notify("تم الإلغاء","error");
-        conversionRate = parseFloat(r);
-        deductedFromWallet = amount / conversionRate;
-    }
-
-    if(wallet.bal < deductedFromWallet) {
+    // Check Profit Balance
+    if(i[p][shareType] < amount) { notify(`رصيد الحصة (${currency}) غير كافي للسحب`,"error"); return; }
+    
+    if(wallet.bal < amount) {
         notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error");
         return;
     }
 
     // EXECUTE
-    let shareBefore = i[p][k];
+    let shareBefore = i[p][shareType];
     let walletBefore = wallet.bal;
 
-    i[p][k] -= amount; // Deduct from Profit Share
-    w[walletName].bal -= deductedFromWallet; // Deduct from Wallet
+    i[p][shareType] -= amount; // Deduct from Profit Share (same currency)
+    w[walletName].bal -= amount; // Deduct from Wallet (same currency)
 
     localStorage.invest = JSON.stringify(i); 
     localStorage.wallets = JSON.stringify(w);
@@ -1641,15 +1621,14 @@ function withdrawPartial(p){
         type: 'withdraw',
         person: p,
         amount: amount,
-        currency: reqCurSymbol,
+        currency: currency,
         walletName: walletName,
-        deductedFromWallet: deductedFromWallet,
+        deductedFromWallet: amount,
         reason: reason,
         shareBefore: shareBefore,
-        shareAfter: i[p][k],
+        shareAfter: i[p][shareType],
         walletBefore: walletBefore,
-        walletAfter: w[walletName].bal,
-        rate: conversionRate
+        walletAfter: w[walletName].bal
     });
 
     refreshInvestment(); refreshWallets(); input.value=""; 
@@ -1718,13 +1697,11 @@ function executeTransfer() {
     w[to].bal += result;
 
     // 3. CLOSED LOOP FIX: Deduct Fee from Store Capital
-    // If feeCurrency is "source", use fromCur. Else use choice.
-    let feeCurSymbol = (feeCurrencyChoice === 'source') ? fromCur : feeCurrencyChoice;
-    
+    // Explicitly use feeCurrencyChoice ($ or ₪) regardless of wallets
     let invest = JSON.parse(localStorage.invest);
     
     if(fee > 0) {
-        if(feeCurSymbol === '$') {
+        if(feeCurrencyChoice === '$') {
             invest.store.d -= fee;
         } else {
             invest.store.s -= fee;
@@ -1740,7 +1717,7 @@ function executeTransfer() {
         to: to,
         amount: amount,
         fee: fee,
-        feeCur: feeCurSymbol,
+        feeCur: feeCurrencyChoice,
         rate: rate,
         result: result,
         netAmount: amount - fee,
