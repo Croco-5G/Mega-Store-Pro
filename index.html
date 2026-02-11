@@ -1142,7 +1142,7 @@ function refreshExpiring() {
     list.forEach(x => {
         let item = x.d, daysLeft = Math.ceil((item.expiry - now) / 86400000);
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
-        let wa = `https://wa.me/${item.phone.replace(/\D/g, '').replace(/^0/, '970')}?text=${encodeURIComponent(`مرحباً ${item.customer}، اشتراكك ${item.sub} ينتهي خلال ${status}. هل تود التجديد؟`)}`;
+        let wa = `https://wa.me/${item.phone.replace(/\D/g, '').replace(/^0/, '970')}?text=${encodeURIComponent(`مرحباً ${item.customer}، حابّين نذكرك أن إشتراكك في ${item.sub} ينتهي خلال ${status}. هل عجبتك الخدمة و حابب تجدد إشتراكك معنا؟`)}`;
         let isViewer = currentUser ? (currentUser.role === 'viewer') : true;
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         body.innerHTML += `<tr class="${item.reminded?'reminded':''}"><td><b>${item.sub}</b></td><td>${item.customer}</td><td>${item.phone}</td><td>${new Date(item.expiry).toLocaleDateString('ar-EG')}</td><td><span class="badge ${daysLeft<=0?'badge-danger':'badge-warning'}">${status}</span></td><td>${btnHTML}</td></tr>`;
@@ -1236,3 +1236,4 @@ window.onload=init;
 </script>
 </body>
 </html>
+
