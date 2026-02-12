@@ -33,20 +33,26 @@
             --yellow-item-border: #eab308; --yellow-item-text: #fef08a;
             --yellow-btn-bg: #eab308; --yellow-btn-hover: #ca8a04;
         }
-        body.dark-mode .stat-icon[style*="#e0e7ff"] { background: rgba(99, 102, 241, 0.2) !important; color: #818cf8 !important; }
-        body.dark-mode .stat-icon[style*="#dcfce7"] { background: rgba(16, 185, 129, 0.2) !important; color: #34d399 !important; }
-        body.dark-mode .stat-icon[style*="#fef3c7"] { background: rgba(245, 158, 11, 0.2) !important; color: #fbbf24 !important; }
         
         * { box-sizing: border-box; font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* FORCE ENGLISH NUMBERS */
-        .eng-num, .detail-value, td, input[type="number"], #statDollar, #statShekel, #statSales {
+        /* FORCE ENGLISH NUMBERS GLOBALLY */
+        .eng-num, .detail-value, td, input, select, option, #statDollar, #statShekel, #statSales, .badge {
             font-family: 'Plus Jakarta Sans', sans-serif !important;
             direction: ltr;
             unicode-bidi: embed;
         }
         /* Keep text right aligned in inputs even if font is English */
-        input[type="number"] { text-align: right; }
+        input { text-align: right; }
+        
+        /* DARK MODE INPUT FIXES */
+        body.dark-mode input, body.dark-mode select, body.dark-mode textarea {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-mode input::placeholder { color: #64748b; }
+        body.dark-mode #editUserName { background-color: #0f172a !important; color: #94a3b8 !important; }
 
         /* SCROLLBAR */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -572,7 +578,7 @@
                         <small style="color:var(--text-muted); width: 100%;">اتركه 0 أو فارغاً للسؤال كل مرة.</small>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="margin-top: 20px;" onclick="saveProfitSettings()">حفظ الإعدادات</button>
+                <button class="btn btn-primary" style="margin-top: 20px;" onclick="saveProfitSettings()">حفظ إعدادات النظام</button>
             </div>
         </div>
 
@@ -664,14 +670,19 @@ function showModalDetails(details) {
     
     if(details.type === 'manual') {
         body.innerHTML += row("العملية", "تعديل رصيد محفظة") + row("السبب", details.reason) + row("المحفظة", details.wallet) + row("الرصيد السابق", fix(details.before), false) + row("التغيير", (details.diff >= 0 ? "+"+details.diff : details.diff), true, details.diff >= 0) + row("الرصيد الجديد", fix(details.after), false);
+    } else if (details.type === 'manual_invest') {
+        body.innerHTML += row("العملية", "تعديل حصة شريك") + row("الشريك", details.person) + row("العملة", details.currency === 'd' ? 'دولار' : 'شيكل') + row("السبب", details.reason) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + row("قبل التعديل", fix(details.before)) + row("بعد التعديل", fix(details.after));
     } else if (details.type === 'transfer') {
-        body.innerHTML += row("العملية", "تحويل أرصدة") + row("من", details.from) + row("إلى", details.to) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + row("المبلغ الكلي", details.amount + " (" + details.fromCur + ")") + row("العمولة", details.fee + " (" + details.feeCur + ")", true, false) + row("الصافي", details.netAmount) + row("سعر الدولار", details.rate) + row("المودع", "+"+details.result + " (" + details.toCur + ")", true, true);
+        body.innerHTML += row("العملية", "تحويل أرصدة") + row("من", details.from) + row("إلى", details.to) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + 
+        `<h4>أرصدة المصدر (${details.from})</h4>` + row("قبل", fix(details.fromBefore)) + row("بعد", fix(details.fromAfter)) + 
+        `<h4>أرصدة المستلم (${details.to})</h4>` + row("قبل", fix(details.toBefore)) + row("بعد", fix(details.toAfter)) + 
+        `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + row("المبلغ الكلي", details.amount) + row("العمولة", details.fee, true, false) + row("الصافي", details.netAmount);
     } else if (details.type === 'purchase') {
         body.innerHTML += row("العملية", "تسجيل شراء") + row("العميل", details.customer) + row("الخدمة", details.sub) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + `<h4>المحفظة المصدر: ${details.wName}</h4>` + row("قبل الخصم", fix(details.wBefore)) + row("المخصوم", "-"+details.cost, true, false) + row("بعد الخصم", fix(details.wAfter)) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + `<h4>المحفظة المستلمة: ${details.toName}</h4>` + row("قبل الإيداع", fix(details.tBefore)) + row("المقبوض", "+"+details.paid, true, true) + row("بعد الإيداع", fix(details.tAfter));
     } else if (details.type === 'withdraw') {
         body.innerHTML += row("العملية", "سحب أرباح") + row("الشريك", details.person) + row("السبب", details.reason) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + `<h4>محفظة السحب: ${details.walletName}</h4>` + row("المبلغ", "-"+fix(details.amount) + " " + (details.currency==='$'?'$':'₪'), true, false) + row("رصيد المحفظة بعد", fix(details.walletAfter)) + `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">` + `<h4>رصيد الحصة</h4>` + row("قبل السحب", fix(details.shareBefore)) + row("بعد السحب", fix(details.shareAfter));
     } else if (details.type === 'undo') {
-        body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div><p style="text-align:center; font-size:13px">تم عكس العملية الأخيرة وإعادة الأرصدة لوضعها السابق.</p>`;
+        body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div><p style="text-align:center; font-size:13px">تم عكس العملية الأخيرة وإعادة الأرصدة وحصص الأرباح لوضعها السابق.</p>`;
     } else {
         body.innerHTML += `<p>${JSON.stringify(details)}</p>`;
     }
@@ -1132,8 +1143,9 @@ function addPurchase(){
     let paid=+paidAmount.value, cost=+costAmount.value, paidCur=paidCurrency.value, costCur=costCurrency.value, wallets=JSON.parse(localStorage.wallets), invest=JSON.parse(localStorage.invest), purchases=JSON.parse(localStorage.purchases), settings=JSON.parse(localStorage.settings), from=fromWallet.value, duration = +subDuration.value;
     if(wallets[from].bal < cost && wallets[from].cur == costCur){notify("رصيد غير كافي","error"); return;}
     
+    // IMPORTANT: Save snapshot of investment for precise undo
     let wBefore = wallets[from].bal, tBefore = wallets[wallet.value].bal;
-    localStorage.setItem("lastUndoOp", JSON.stringify({ wallets: JSON.parse(JSON.stringify(wallets)), invest: JSON.parse(JSON.stringify(invest)) }));
+    let investSnapshot = JSON.parse(JSON.stringify(invest)); // Deep Copy
     
     wallets[from].bal -= cost;
     let rate = 0;
@@ -1153,7 +1165,7 @@ function addPurchase(){
     wallets[wallet.value].bal += paid;
     let d = new Date(), exp = new Date(d); exp.setMonth(exp.getMonth() + duration); if(exp.getDate()!==d.getDate()) exp.setDate(0);
     
-    purchases.push({ date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(), customer:customer.value||"عميل", phone:customerPhone.value||"-", sub:sub.value, duration: duration, paid:paid+paidCur, cost:cost+costCur, wallet:wallet.value, fromWallet: from, expiry: exp.getTime() });
+    purchases.push({ date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(), customer:customer.value||"عميل", phone:customerPhone.value||"-", sub:sub.value, duration: duration, paid:paid+paidCur, cost:cost+costCur, wallet:wallet.value, fromWallet: from, expiry: exp.getTime(), investSnapshot: investSnapshot });
     
     localStorage.wallets=JSON.stringify(wallets); localStorage.invest=JSON.stringify(invest); localStorage.purchases=JSON.stringify(purchases);
     logAction(`شراء: ${sub.value} - ${customer.value}`, { type: 'purchase', customer: customer.value, sub: sub.value, cost: cost + costCur, paid: paid + paidCur, wName: from, wBefore: wBefore, wAfter: wallets[from].bal, toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal });
@@ -1221,9 +1233,18 @@ function executeTransfer() {
     if(!amount || !from || !to) return notify("بيانات ناقصة", "error"); if(from === to) return notify("نفس المحفظة", "error");
     let w = JSON.parse(localStorage.wallets); if(w[from].bal < amount) return notify("رصيد غير كافي", "error");
     let fromCur = w[from].cur; w[from].bal -= amount; w[to].bal += result;
+    
+    // Capture Balances for Log
+    let fromBefore = w[from].bal + amount; // approximate reconstruction for display
+    let toBefore = w[to].bal - result;
+    
     let invest = JSON.parse(localStorage.invest); if(fee > 0) { if(fromCur === '$') invest.store.d -= fee; else invest.store.s -= fee; }
     localStorage.wallets = JSON.stringify(w); localStorage.invest = JSON.stringify(invest);
-    logAction(`تحويل ${from} -> ${to}`, { type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: w[to].cur });
+    
+    logAction(`تحويل ${from} -> ${to}`, { 
+        type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: w[to].cur,
+        fromBefore: fromBefore, fromAfter: w[from].bal, toBefore: toBefore, toAfter: w[to].bal
+    });
     refreshWallets(); refreshInvestment(); pushToGithub(); notify("تم التحويل");
     document.getElementById("tfAmount").value = ""; document.getElementById("tfFee").value = "0"; document.getElementById("tfResult").value = "";
 }
@@ -1235,12 +1256,22 @@ function importData(){ if(currentUser.role !== 'admin') return notify("للأد�
 function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     let purchases = JSON.parse(localStorage.purchases || "[]"); if(purchases.length === 0) return notify("لا توجد عمليات", "error");
-    let lastP = purchases.pop(), wallets = JSON.parse(localStorage.wallets);
+    let lastP = purchases.pop();
+    
+    // RESTORE WALLETS & INVEST FROM SNAPSHOT IF EXISTS
+    let wallets = JSON.parse(localStorage.wallets);
+    
     if(lastP.fromWallet && wallets[lastP.fromWallet]) wallets[lastP.fromWallet].bal += parseFloat(lastP.cost);
     if(lastP.wallet && wallets[lastP.wallet]) wallets[lastP.wallet].bal -= parseFloat(lastP.paid);
+    
+    // RESTORE INVESTMENT SHARES
+    if(lastP.investSnapshot) {
+        localStorage.invest = JSON.stringify(lastP.investSnapshot);
+    }
+    
     localStorage.wallets = JSON.stringify(wallets); localStorage.purchases = JSON.stringify(purchases);
     logAction("تراجع عن شراء", { type: 'undo', data: lastP, refunded: lastP.cost, deducted: lastP.paid });
-    refreshAll(); pushToGithub(); notify("تم التراجع"); 
+    refreshAll(); pushToGithub(); notify("تم التراجع واستعادة الأرباح"); 
 }
 function clearHistory(){ if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); if(confirm("مسح الكل؟")){ localStorage.purchases="[]"; logAction("مسح الأرشيف"); refreshHistory(); pushToGithub(); } }
 
