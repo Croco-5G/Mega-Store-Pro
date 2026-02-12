@@ -274,6 +274,8 @@
         tr:hover td { background-color: rgba(99, 102, 241, 0.02); }
         tr.reminded td { background-color: rgba(16, 185, 129, 0.08); }
 
+        .wide-col { min-width: 250px; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+
         /* --- BADGES --- */
         .badge { padding: 6px 12px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; }
         .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
@@ -396,6 +398,11 @@
         
         /* Blur Lock */
         body.locked .main-content, body.locked .sidebar, body.locked .mobile-menu-btn, body.locked #syncStatus { filter: blur(10px); pointer-events: none; user-select: none; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); cursor: pointer; font-weight: 600; color: var(--text-muted); transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
     </style>
 </head>
 
@@ -564,11 +571,13 @@
     <div id="purchase" class="card">
         <h3><i class="fas fa-cart-plus" style="color:var(--primary)"></i> تسجيل اشتراك جديد</h3>
         <div class="grid-2">
-            <div class="input-group"><label>نوع الاشتراك</label><input id="sub" placeholder="مثال: نيتفليكس، يوتيوب..."></div>
+            <div class="input-group"><label>نوع الاشتراك</label>
+                <select id="sub"><option value="">اختر الخدمة...</option></select>
+            </div>
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
         <div class="grid-2">
-            <div class="input-group"><label>رقم جوال العميل</label><input id="customerPhone" placeholder="059xxxxxxx" oninput="validatePhoneInput(this)"></div>
+            <div class="input-group"><label>رقم جوال العميل (اختياري)</label><input id="customerPhone" placeholder="059xxxxxxx أو رقم هوية..." oninput="validatePhoneInput(this)"></div>
             <div class="input-group"><label>مدة الاشتراك</label>
                 <select id="subDuration">
                     <option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="4">4 شهور</option><option value="5">5 شهور</option><option value="6">6 شهور</option><option value="7">7 شهور</option><option value="8">8 شهور</option><option value="9">9 شهور</option><option value="10">10 شهور</option><option value="11">11 شهر</option><option value="12">12 شهر (سنة)</option>
@@ -652,11 +661,25 @@
     <div id="stock" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <h3 style="margin-bottom:0"><i class="fas fa-cubes" style="color:var(--primary)"></i> المخزون</h3>
-            <button class="btn btn-primary" onclick="openAddStockModal()"><i class="fas fa-plus"></i> إضافة</button>
+            <button id="btnAddStock" class="btn btn-primary" onclick="openAddStockModal()"><i class="fas fa-plus"></i> إضافة</button>
         </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchStockTab('active', this)">لم يتم بيعه (متاح)</button>
+            <button class="tab-btn" onclick="switchStockTab('sold', this)">تم بيعه</button>
+        </div>
+
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="stockSearch" onkeyup="filterStock()" placeholder="بحث في الجدول..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+
         <div class="table-container">
-            <table>
-                <thead><tr><th>الخدمة</th><th>تاريخ الشراء</th><th>المدة</th><th>متبقي</th><th>تفاصيل</th><th>بيع</th></tr></thead>
+            <table id="stockTable">
+                <thead id="stockHead">
+                    </thead>
                 <tbody id="stockBody"></tbody>
             </table>
         </div>
@@ -764,6 +787,17 @@
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="flex:1">
                 <button class="btn btn-primary" onclick="changeMyPassword()">تحديث</button>
+            </div>
+        </div>
+
+        <div id="sec-manage-services">
+            <h3><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
+            <div class="inner-box" style="margin-bottom:40px">
+                <div style="display:flex; gap:10px; margin-bottom:15px">
+                    <input id="newServiceName" placeholder="اسم الخدمة (مثلاً: ChatGPT)">
+                    <button class="btn btn-primary" onclick="addService()">إضافة</button>
+                </div>
+                <div id="servicesList" style="display:flex; flex-wrap:wrap; gap:10px"></div>
             </div>
         </div>
 
@@ -948,7 +982,10 @@
     <div class="modal-content">
         <h3 id="stockModalTitle" style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">إضافة اشتراك للمخزون</h3>
         <input type="hidden" id="stockIndex">
-        <div class="input-group"><label>نوع الخدمة</label><input id="stService" placeholder="مثال: نيتفليكس"></div>
+        <div class="input-group"><label>نوع الخدمة</label>
+            <select id="stService"><option value="">اختر الخدمة...</option></select>
+        </div>
+        <div class="input-group"><label>اسم البائع</label><input id="stVendor" placeholder="اسم البائع"></div>
         <div class="input-group"><label>المدة</label>
             <select id="stDuration"><option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="6">6 شهور</option><option value="12">12 شهر</option></select>
         </div>
@@ -1024,6 +1061,7 @@ let mySalesChart = null;
 let currentUser = null; 
 let isDemoMode = false;
 let syncTimer = null; 
+let currentStockTab = 'active';
 
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
@@ -1185,6 +1223,7 @@ function init(){
     if(!localStorage.settings) localStorage.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'});
     if(!localStorage.activityLog) localStorage.activityLog = "[]";
     if(!localStorage.stock) localStorage.stock = "[]";
+    if(!localStorage.services) localStorage.services = "[]";
 
     if(localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
@@ -1304,6 +1343,7 @@ async function fetchFromGithub(force = false) {
             if(db.todoList) localStorage.todoList = JSON.stringify(db.todoList);
             if(db.activityLog) localStorage.activityLog = JSON.stringify(db.activityLog);
             if(db.stock) localStorage.stock = JSON.stringify(db.stock);
+            if(db.services) localStorage.services = JSON.stringify(db.services);
             
             if(currentUser) refreshAll(); 
             if(force) {
@@ -1359,7 +1399,7 @@ async function attemptLogin() {
         
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadGithubInputs(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadGithubInputs(); loadServices(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${currentUser.username} (${getRoleName(currentUser.role)})`;
         checkExpiringOnLogin();
     } else { 
@@ -1394,9 +1434,8 @@ function applyRBAC() {
     document.getElementById("btnBackup").classList.add("hidden");
     document.getElementById("btnLogs").classList.add("hidden");
     document.getElementById("demo-mode-section").classList.add("hidden");
-    document.getElementById("btnInvestment").classList.add("hidden"); // Default hidden
+    document.getElementById("btnInvestment").classList.add("hidden"); 
     
-    // Hide all RBAC sensitive sections in Settings by default
     document.getElementById("sec-manual-wallet").classList.add("hidden");
     document.getElementById("sec-set-wallet-balance").classList.add("hidden");
     document.getElementById("sec-set-profit-share").classList.add("hidden");
@@ -1405,6 +1444,8 @@ function applyRBAC() {
     document.getElementById("sec-profit-settings").classList.add("hidden");
     document.getElementById("todoSection").classList.add("hidden");
     document.getElementById("todoInputArea").classList.add("hidden");
+    document.getElementById("btnAddStock").classList.add("hidden");
+    document.getElementById("sec-manage-services").classList.add("hidden");
 
     document.getElementById("btnSettings").classList.remove("hidden");
     document.getElementById("btnClearLogs").classList.add("hidden");
@@ -1428,9 +1469,11 @@ function applyRBAC() {
         document.getElementById("sec-manage-wallets").classList.remove("hidden");
         document.getElementById("sec-rename-wallet").classList.remove("hidden");
         document.getElementById("sec-profit-settings").classList.remove("hidden");
+        document.getElementById("sec-manage-services").classList.remove("hidden");
         
         document.getElementById("todoSection").classList.remove("hidden");
         document.getElementById("todoInputArea").classList.remove("hidden");
+        document.getElementById("btnAddStock").classList.remove("hidden");
         
         document.getElementById("btnStock").classList.remove("hidden");
         document.getElementById("btnUndo").classList.remove("hidden");
@@ -1443,12 +1486,11 @@ function applyRBAC() {
         }
         document.getElementById("demo-mode-section").classList.remove("hidden");
         
-        // Employee can see manual transfer but NOT adding/renaming wallets or profit settings
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
         
-        // Employee Can Edit To-Do
         document.getElementById("todoSection").classList.remove("hidden");
         document.getElementById("todoInputArea").classList.remove("hidden");
+        document.getElementById("sec-manage-services").classList.remove("hidden"); 
         
         document.getElementById("btnStock").classList.remove("hidden");
         document.getElementById("btnUndo").classList.remove("hidden");
@@ -1461,14 +1503,15 @@ function applyRBAC() {
         }
         document.getElementById("btnPurchase").classList.add("hidden");
         
-        // Viewer Plus can SEE To-Do list but NOT add
         document.getElementById("todoSection").classList.remove("hidden");
         document.getElementById("todoInputArea").classList.add("hidden");
+        document.getElementById("sec-manage-services").classList.remove("hidden");
         
         document.getElementById("btnUndo").classList.add("hidden");
         document.getElementById("btnClearHistory").classList.add("hidden");
         document.getElementById("btnHideExpired").classList.add("hidden");
-        
+        document.getElementById("btnStock").classList.add("hidden"); // Ensure stock hidden
+
         document.querySelector("#generalNotes textarea").style.display = "none";
         document.querySelector("#generalNotes button").style.display = "none";
 
@@ -1479,12 +1522,12 @@ function applyRBAC() {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
         document.getElementById("btnPurchase").classList.add("hidden");
-        
-        // Viewer sees NO To-Do section
+        document.getElementById("sec-manage-services").classList.remove("hidden");
         
         document.getElementById("btnUndo").classList.add("hidden");
         document.getElementById("btnClearHistory").classList.add("hidden");
         document.getElementById("btnHideExpired").classList.add("hidden");
+        document.getElementById("btnStock").classList.add("hidden"); // Ensure stock hidden
         
         document.querySelector("#generalNotes textarea").style.display = "none";
         document.querySelector("#generalNotes button").style.display = "none";
@@ -1645,6 +1688,7 @@ async function pushToGithub(force = false) {
         todoList: safeJSON(localStorage.todoList, []),
         activityLog: safeJSON(localStorage.activityLog, []),
         stock: safeJSON(localStorage.stock, []),
+        services: safeJSON(localStorage.services, []),
         lastUpdate: new Date().toISOString()
     };
 
@@ -1703,6 +1747,8 @@ function showPage(id, btn){
         
         // Strict Check for Investment Page
         if(id === 'investment' && currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+        // Strict Check for Stock Page
+        if(id === 'stock' && (currentUser.role === 'viewer' || currentUser.role === 'viewer_plus')) return notify("ليس لديك صلاحية", "error");
     }
     document.querySelectorAll(".card").forEach(x=>x.classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
@@ -1710,6 +1756,7 @@ function showPage(id, btn){
     document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     
+    if(id === 'purchase') loadServices();
     if(id === 'generalNotes') refreshGeneralNotes();
     if(id === 'investment') refreshInvestment();
     if(id === 'history') refreshHistory();
@@ -1719,6 +1766,7 @@ function showPage(id, btn){
     if(id === 'security') renderUsersTable();
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
+    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); }
 }
 
 function toggleSidebar() {
@@ -1767,6 +1815,17 @@ function loadWallets(){
         } 
     });
 }
+function loadServices() {
+    let services = safeJSON(localStorage.services, []);
+    let selStock = document.getElementById("stService");
+    let selPurchase = document.getElementById("sub");
+    
+    let html = '<option value="">اختر الخدمة...</option>';
+    services.forEach(s => { html += `<option value="${s}">${s}</option>`; });
+    
+    if(selStock) selStock.innerHTML = html;
+    if(selPurchase) selPurchase.innerHTML = html;
+}
 function loadProfitSettings(){
     let s = safeJSON(localStorage.settings, {});
     setAhmadProp.value = s.ahmad; setMohamedProp.value = s.mohamed; setStoreProp.value = s.store;
@@ -1796,24 +1855,14 @@ function saveGithubSettings() {
 function validatePhoneInput(el) {
     let v = el.value.trim();
     if(!v) { el.style.borderColor = ""; return; }
-    let digits = v.replace(/\D/g,'');
-    if(digits.length >= 7 && /^[\d\s\-\+\(\)]+$/.test(v)) {
-        el.style.borderColor = "var(--success)";
-    } else {
-        el.style.borderColor = "var(--danger)";
-    }
+    // Relaxed validation: Just check if it has content
+    el.style.borderColor = "var(--success)";
 }
 
 function addPurchase(){
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     if(paidAmount.value === "" || costAmount.value === "") { notify("املأ المبلغ المدفوع والتكلفة","error"); return; }
-    if(!sub.value.trim()) { notify("أدخل نوع الاشتراك","error"); return; }
-    
-    let phoneVal = customerPhone.value.trim();
-    if(phoneVal && phoneVal !== '-') {
-        let digits = phoneVal.replace(/\D/g,'');
-        if(digits.length < 7) { notify("رقم الجوال يبدو غير صحيح","error"); return; }
-    }
+    if(!sub.value) { notify("يرجى اختيار الخدمة","error"); return; }
     
     let paid=+paidAmount.value, cost=+costAmount.value;
     let paidCur=paidCurrency.value, costCur=costCurrency.value;
@@ -1837,14 +1886,14 @@ function addPurchase(){
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
             <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${sub.value}</div>
-            <div><i class="fas fa-user"></i> <b>العميل:</b> ${customer.value||'—'} ${phoneVal?'('+phoneVal+')':''}</div>
+            <div><i class="fas fa-user"></i> <b>العميل:</b> ${customer.value||'—'} ${customerPhone.value?'('+customerPhone.value+')':''}</div>
             <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration} شهر</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
-                <span style="color:var(--success)"> مدفوع: ${paid}${paidCur}</span> &nbsp;|&nbsp;
-                <span style="color:var(--danger)"> تكلفة: ${cost}${costCur}</span>
+                <span style="color:var(--success)">💰 مدفوع: ${paid}${paidCur}</span> &nbsp;|&nbsp;
+                <span style="color:var(--danger)">💸 تكلفة: ${cost}${costCur}</span>
             </div>
-            <div> <b>صافي الربح تقريباً:</b> <b style="color:var(--primary)">${profitStr}</b></div>
-            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"> من: ${from} &nbsp;|&nbsp;  إلى: ${wallet.value}</div>
+            <div>📊 <b>صافي الربح تقريباً:</b> <b style="color:var(--primary)">${profitStr}</b></div>
+            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)">⬅️ من: ${from} &nbsp;|&nbsp; ➡️ إلى: ${wallet.value}</div>
         </div>`;
     
     document.getElementById("purchaseConfirmModal").style.display = "flex";
@@ -1923,7 +1972,7 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
         toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
     });
     
-    refreshAll(); pushToGithub(); notify(" تمت العملية بنجاح");
+    refreshAll(); pushToGithub(); notify("✅ تمت العملية بنجاح");
     paidAmount.value=""; costAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; subDuration.value="1";
 }
 function refreshAll(){
@@ -1951,7 +2000,7 @@ function refreshAll(){
         'analytics': refreshAnalytics,
         'logs': refreshLogs,
         'stock': refreshStock,
-        'modify': () => { refreshTodoList(); }
+        'modify': () => { refreshTodoList(); renderServicesSettings(); }
     };
     
     refreshInvestment();
@@ -2330,10 +2379,20 @@ async function saveUserEdit() {
 function closeStockModal(e) { if(e === 'force' || e.target.id === 'stockModal') document.getElementById("stockModal").classList.add("hidden"); }
 
 function openAddStockModal() {
+    loadServices();
     document.getElementById("stockModalTitle").innerHTML = '<i class="fas fa-plus-circle"></i> إضافة اشتراك للمخزون';
     document.getElementById("stockIndex").value = "-1";
-    ["stService","stEmail","stPass","stNotes"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("stService").value = "";
+    document.getElementById("stVendor").value = "";
+    ["stEmail","stPass","stNotes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("stDuration").value = "1";
+    
+    // Ensure inputs are enabled (fixing the conflict bug)
+    let btnSave = document.querySelector("#stockModal .btn-primary");
+    let inputs = document.querySelectorAll("#stockModal input, #stockModal select, #stockModal textarea");
+    btnSave.classList.remove("hidden");
+    inputs.forEach(inp => inp.disabled = false);
+
     document.getElementById("stockModal").classList.remove("hidden");
 }
 
@@ -2341,87 +2400,244 @@ function saveStock() {
     let index = +document.getElementById("stockIndex").value;
     let s = {
         id: index === -1 ? Date.now() + '_' + Math.random().toString(36).substr(2,5) : (safeJSON(localStorage.stock, [])[index]?.id || Date.now()),
-        service: document.getElementById("stService").value.trim(),
+        service: document.getElementById("stService").value,
+        vendor: document.getElementById("stVendor").value,
         duration: document.getElementById("stDuration").value,
         email: document.getElementById("stEmail").value.trim(),
         pass: document.getElementById("stPass").value,
         notes: document.getElementById("stNotes").value,
+        status: index === -1 ? 'active' : (safeJSON(localStorage.stock, [])[index]?.status || 'active'),
         date: new Date().toLocaleDateString('ar-EG'),
         timestamp: new Date().getTime()
     };
-    if(!s.service) return notify("يرجى إدخال اسم الخدمة", "error");
+    if(!s.service) return notify("يرجى اختيار الخدمة", "error");
     let stock = safeJSON(localStorage.stock, []);
     if(index === -1) { stock.push(s); logAction(`إضافة اشتراك للمخزون: ${s.service}`); }
-    else { stock[index] = s; logAction(`تعديل اشتراك في المخزون: ${s.service}`); }
+    else { 
+        let old = stock[index];
+        s.status = old.status;
+        if(old.soldDate) s.soldDate = old.soldDate;
+        if(old.soldTo) s.soldTo = old.soldTo;
+        stock[index] = s; 
+        logAction(`تعديل اشتراك في المخزون: ${s.service}`); 
+    }
     localStorage.stock = JSON.stringify(stock);
     document.getElementById("stockModal").classList.add("hidden");
     refreshStock(); pushToGithub(); notify("تم الحفظ بنجاح");
 }
 
+function switchStockTab(tab, btn) {
+    currentStockTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    refreshStock();
+}
+
 function refreshStock() {
     let stock = safeJSON(localStorage.stock, []);
-    let tbody = document.getElementById("stockBody"); if(!tbody) return;
+    let tbody = document.getElementById("stockBody"); 
+    let thead = document.getElementById("stockHead");
+    if(!tbody || !thead) return;
+
+    let isAdmin = currentUser && currentUser.role === 'admin';
+    let canSell = currentUser && (currentUser.role === 'admin' || currentUser.role === 'employee');
+
+    let searchTerm = document.getElementById("stockSearch").value.toLowerCase();
+    let filtered = stock.filter(item => {
+        let matchesTab = (currentStockTab === 'active') ? (item.status !== 'sold') : (item.status === 'sold');
+        let matchesSearch = (item.service||'').toLowerCase().includes(searchTerm) || 
+                            (item.email||'').toLowerCase().includes(searchTerm) ||
+                            (item.vendor||'').toLowerCase().includes(searchTerm);
+        return matchesTab && matchesSearch;
+    });
+
+    let headerHTML = "";
+    if(currentStockTab === 'active') {
+        headerHTML = `<tr>
+            <th>الخدمة</th>
+            <th>الإيميل</th>
+            <th>البائع</th>
+            <th>المتبقي</th>
+            <th>التفاصيل</th>
+            ${canSell ? '<th>بيع</th>' : ''}
+        </tr>`;
+    } else {
+        headerHTML = `<tr>
+            <th>الخدمة</th>
+            <th>الإيميل</th>
+            <th>تاريخ البيع</th>
+            <th>رقم العميل</th>
+            <th>التفاصيل</th>
+            ${isAdmin ? '<th>حذف</th>' : ''}
+        </tr>`;
+    }
+    thead.innerHTML = headerHTML;
+
     let rows = "";
-    stock.forEach((item, i) => {
+    filtered.forEach((item) => {
+        let realIndex = stock.findIndex(x => x.id === item.id);
         let purchaseDate = new Date(item.timestamp);
         let expiryDate = new Date(purchaseDate);
         expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.duration));
         let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
-        rows += `<tr>
-            <td><span class="badge badge-info">${item.service}</span></td>
-            <td class="eng-num">${item.date}</td>
-            <td class="eng-num">${item.duration} شهر</td>
-            <td class="eng-num"><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
-            <td><button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${i})"><i class="fas fa-eye"></i></button></td>
-            <td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${i})"><i class="fas fa-check"></i> بيع</button></td>
-        </tr>`;
+        
+        if(currentStockTab === 'active') {
+            let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
+            let sellBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> تم البيع</button></td>` : '';
+            rows += `<tr>
+                <td><span class="badge badge-info">${item.service}</span></td>
+                <td class="wide-col" title="${item.email}">${item.email}</td>
+                <td>${item.vendor || '-'}</td>
+                <td class="eng-num"><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
+                <td>${detailsBtn}</td>
+                ${sellBtn}
+            </tr>`;
+        } else {
+            // Sold View
+            let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
+            let delBtn = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
+            
+            rows += `<tr>
+                <td><span class="badge badge-info">${item.service}</span></td>
+                <td class="wide-col" title="${item.email}">${item.email}</td>
+                <td class="eng-num">${item.soldDate || '-'}</td>
+                <td class="eng-num">${item.soldTo || '-'}</td>
+                <td>${viewBtn}</td>
+                ${delBtn}
+            </tr>`;
+        }
     });
-    tbody.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>لا يوجد اشتراكات في المخزون</td></tr>";
+    tbody.innerHTML = rows || `<tr><td colspan='7' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
+function filterStock() {
+    refreshStock();
+}
+
+// Edit Active Stock (Admin only can save)
 function editStock(i) {
     let stock = safeJSON(localStorage.stock, []), item = stock[i];
-    document.getElementById("stockModalTitle").innerHTML = '<i class="fas fa-edit"></i> تعديل المخزون';
+    let isAdmin = currentUser.role === 'admin';
+
+    loadServices();
+    document.getElementById("stockModalTitle").innerHTML = isAdmin ? '<i class="fas fa-edit"></i> تعديل المخزون' : '<i class="fas fa-eye"></i> تفاصيل المخزون';
     document.getElementById("stockIndex").value = i;
-    document.getElementById("stService").value = item.service;
+    
+    // Set Values
+    let sel = document.getElementById("stService");
+    sel.value = item.service;
+    if(sel.value !== item.service) { // Fallback if service was deleted
+         let o = document.createElement("option"); o.value=item.service; o.text=item.service; sel.appendChild(o);
+         sel.value = item.service;
+    }
+    document.getElementById("stVendor").value = item.vendor || "";
     document.getElementById("stDuration").value = item.duration;
     document.getElementById("stEmail").value = item.email;
     document.getElementById("stPass").value = item.pass;
     document.getElementById("stNotes").value = item.notes;
+
+    // Permissions
+    let btnSave = document.querySelector("#stockModal .btn-primary");
+    let inputs = document.querySelectorAll("#stockModal input, #stockModal select, #stockModal textarea");
+    
+    if (!isAdmin) {
+        btnSave.classList.add("hidden");
+        inputs.forEach(inp => inp.disabled = true);
+    } else {
+        btnSave.classList.remove("hidden");
+        inputs.forEach(inp => inp.disabled = false);
+    }
+
     document.getElementById("stockModal").classList.remove("hidden");
 }
 
-async function sellStock(i) {
-    let ok = await showConfirm("بيع الاشتراك", "سيتم إزالة هذا الاشتراك من المخزون.", "بيع", "إلغاء", '<i class="fas fa-shopping-cart"></i>');
-    if(!ok) return;
-    let stock = safeJSON(localStorage.stock, []);
-    let removed = stock.splice(i, 1);
-    localStorage.stock = JSON.stringify(stock);
-    logAction(`بيع اشتراك من المخزون: ${removed[0].service}`);
-    refreshStock(); pushToGithub(); notify("تم بيع الاشتراك");
+// View Sold Details (Read Only Modal)
+function viewSoldDetails(i) {
+    let stock = safeJSON(localStorage.stock, []), item = stock[i];
+    
+    let body = document.getElementById("modalBody");
+    body.innerHTML = "";
+    
+    body.innerHTML += row("الخدمة", item.service);
+    body.innerHTML += row("الإيميل", item.email);
+    body.innerHTML += row("كلمة المرور", item.pass);
+    body.innerHTML += row("البائع", item.vendor || "-");
+    body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+    body.innerHTML += row("تاريخ البيع", item.soldDate);
+    body.innerHTML += row("بيع لـ", item.soldTo || "-");
+    body.innerHTML += `<div style="margin-top:10px; background:var(--bg-input); padding:10px; border-radius:8px; font-size:13px;"><b>ملاحظات:</b><br>${item.notes||'لا يوجد'}</div>`;
+    
+    document.getElementById("detailsModal").classList.remove("hidden");
 }
 
-function checkExpiringOnLogin() {
-    let p = safeJSON(localStorage.purchases, []);
-    let now = new Date().getTime(), days3 = 3 * 86400000;
-    let expiring = p.filter(x => x.expiry && !x.expiryDismissed && (x.expiry - now < days3 && x.expiry - now > -2592000000));
+async function deleteSoldStock(i) {
+    let ok = await showConfirm("حذف نهائي", "هل أنت متأكد من حذف هذا السجل من الأرشيف؟ لا يمكن التراجع.", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    if(!ok) return;
     
-    if(expiring.length > 0) {
-        let expired = expiring.filter(x => x.expiry < now).length;
-        let soon = expiring.length - expired;
-        
-        setTimeout(() => {
-            if(expired > 0) notify(` ${expired} اشتراك منتهي الصلاحية`, "error");
-            if(soon > 0) setTimeout(() => notify(` ${soon} اشتراك ينتهي خلال 3 أيام`, "error"), 1000);
-        }, 1500);
-        
-        let badge = document.getElementById("expiryBadge");
-        if(badge) { badge.textContent = expiring.length; badge.style.display = "inline-flex"; }
+    let stock = safeJSON(localStorage.stock, []);
+    stock.splice(i, 1);
+    localStorage.stock = JSON.stringify(stock);
+    logAction("حذف سجل مباع من المخزون");
+    refreshStock(); pushToGithub(); notify("تم الحذف");
+}
+
+async function sellStock(i) {
+    let stock = safeJSON(localStorage.stock, []);
+    let item = stock[i];
+    
+    let customerNum = await showPrompt("إتمام البيع", `بيع اشتراك: ${item.service}`, "رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
+    if (customerNum === null) return; 
+
+    item.status = 'sold';
+    item.soldDate = new Date().toLocaleDateString('ar-EG');
+    item.soldTo = customerNum;
+    
+    stock[i] = item;
+    localStorage.stock = JSON.stringify(stock);
+    
+    logAction(`تم بيع اشتراك من المخزون: ${item.service}`);
+    refreshStock(); pushToGithub(); notify("تم نقل الاشتراك إلى المباع");
+}
+
+// --- SERVICES MANAGEMENT ---
+function renderServicesSettings() {
+    let list = safeJSON(localStorage.services, []);
+    let div = document.getElementById("servicesList");
+    let isAdmin = currentUser.role === 'admin';
+    div.innerHTML = "";
+    
+    // Toggle Add Input Visibility
+    let addArea = document.querySelector("#sec-manage-services .inner-box > div:first-child");
+    if(addArea) addArea.style.display = isAdmin ? "flex" : "none";
+
+    list.forEach((s, idx) => {
+        let delIcon = isAdmin ? `<i class="fas fa-times" style="margin-right:8px; cursor:pointer; color:red" onclick="deleteService(${idx})"></i>` : '';
+        div.innerHTML += `<span class="badge badge-info" style="padding:10px; font-size:14px;">${s} ${delIcon}</span>`;
+    });
+}
+function addService() {
+    let inp = document.getElementById("newServiceName");
+    let val = inp.value.trim();
+    if(!val) return;
+    let list = safeJSON(localStorage.services, []);
+    if(!list.includes(val)) {
+        list.push(val);
+        localStorage.services = JSON.stringify(list);
+        logAction(`إضافة خدمة جديدة: ${val}`);
+        renderServicesSettings();
+        pushToGithub();
     }
+    inp.value = "";
+}
+function deleteService(idx) {
+    let list = safeJSON(localStorage.services, []);
+    list.splice(idx, 1);
+    localStorage.services = JSON.stringify(list);
+    renderServicesSettings();
+    pushToGithub();
 }
 
 window.onload=init;
 </script>
 </body>
 </html>
-
