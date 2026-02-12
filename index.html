@@ -281,7 +281,7 @@
     <div class="menu-items">
         <button onclick="showPage('purchase', this)" class="active" id="btnPurchase"><i class="fas fa-shopping-cart"></i> عملية شراء</button>
         <button onclick="showPage('stock', this)" id="btnStock" class="hidden"><i class="fas fa-cubes"></i> المخزون</button>
-        <button onclick="showPage('expiring', this)" id="btnExpiring"><i class="fas fa-hourglass-half"></i> تنبيهات الانتهاء</button>
+        <button onclick="showPage('expiring', this)" id="btnExpiring"><i class="fas fa-hourglass-half"></i> تنبيهات الانتهاء <span id="expiringBadge" style="display:none; background:#ef4444; color:white; border-radius:50%; width:20px; height:20px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; margin-right:4px; min-width:20px; padding:0 4px;"></span></button>
         <button onclick="showPage('wallets', this)" id="btnWallets"><i class="fas fa-wallet"></i> أرصدة المحافظ</button>
         <button onclick="showPage('history', this)" id="btnHistory"><i class="fas fa-history"></i> سجل العمليات</button>
         <button onclick="showPage('analytics', this)" id="btnAnalytics"><i class="fas fa-chart-bar"></i> الإحصائيات</button>
@@ -401,9 +401,18 @@
     </div>
 
     <div id="stock" class="card hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
             <h3 style="margin-bottom:0"><i class="fas fa-cubes"></i> المخزون (اشتراكات متوفرة)</h3>
-            <button class="btn btn-primary" onclick="openAddStockModal()"><i class="fas fa-plus"></i> إضافة</button>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-warning" onclick="exportStockCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+                <button class="btn btn-primary" onclick="openAddStockModal()"><i class="fas fa-plus"></i> إضافة</button>
+            </div>
+        </div>
+        <div class="input-group" style="margin-bottom:15px">
+            <div style="position:relative">
+                <input id="stockSearch" onkeyup="refreshStock()" placeholder="بحث في المخزون..." style="padding-right:40px">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
         </div>
         <div class="table-container">
             <table>
@@ -432,9 +441,10 @@
     </div>
 
     <div id="history" class="card hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px">
-            <h3><i class="fas fa-list-ul"></i> الأرشيف المالي</h3>
-            <div style="display:flex; gap:10px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:10px;">
+            <h3 style="margin-bottom:0"><i class="fas fa-list-ul"></i> الأرشيف المالي</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-warning" onclick="exportHistoryCSV()"><i class="fas fa-file-csv"></i> تصدير CSV</button>
                 <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
                 <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash"></i> مسح الكل</button>
             </div>
@@ -461,42 +471,7 @@
             <div style="margin-bottom:15px; font-size:13px; color:var(--text-muted);">
                 <i class="fas fa-info-circle"></i> <b>تنبيه:</b> المبلغ سيتم خصمه تلقائياً بنفس عملة المحفظة المختارة.
             </div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px">
-                
-                <div class="input-group">
-                    <label>سحب من حصة أحمد</label>
-                    <div style="display:flex; flex-direction:column; gap:8px">
-                        <select id="wWalletAhmad" style="width:100%"><option value="">اختر محفظة السحب</option></select>
-                        <div style="display:flex; gap:5px">
-                            <input id="withdrawAhmad" type="number" placeholder="0.00" style="width:100%">
-                        </div>
-                        <button class="btn btn-danger" onclick="withdrawPartial('ahmad')" style="width:100%">سحب</button>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label>سحب من حصة محمد</label>
-                    <div style="display:flex; flex-direction:column; gap:8px">
-                        <select id="wWalletMohamed" style="width:100%"><option value="">اختر محفظة السحب</option></select>
-                        <div style="display:flex; gap:5px">
-                            <input id="withdrawMohamed" type="number" placeholder="0.00" style="width:100%">
-                        </div>
-                        <button class="btn btn-danger" onclick="withdrawPartial('mohamed')" style="width:100%">سحب</button>
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label>سحب من حصة المتجر</label>
-                    <div style="display:flex; flex-direction:column; gap:8px">
-                        <select id="wWalletStore" style="width:100%"><option value="">اختر محفظة السحب</option></select>
-                        <div style="display:flex; gap:5px">
-                            <input id="withdrawStore" type="number" placeholder="0.00" style="width:100%">
-                        </div>
-                        <button class="btn btn-danger" onclick="withdrawPartial('store')" style="width:100%">سحب</button>
-                    </div>
-                </div>
-
-            </div>
+            <div id="withdrawBoxDynamic" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px"></div>
         </div>
     </div>
 
@@ -570,11 +545,7 @@
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end">
                     <div class="input-group" style="flex:1; min-width:150px">
                         <label>الشريك / الجهة</label>
-                        <select id="setSharePerson">
-                            <option value="ahmad">أحمد</option>
-                            <option value="mohamed">محمد</option>
-                            <option value="store">المتجر</option>
-                        </select>
+                        <select id="setSharePerson"></select>
                     </div>
                     <div class="input-group" style="width:100px">
                         <label>العملة</label>
@@ -611,12 +582,13 @@
         </div>
 
         <div id="sec-profit-settings">
-            <h3><i class="fas fa-percent"></i> إعدادات توزيع الأرباح</h3>
+            <h3><i class="fas fa-percent"></i> إعدادات توزيع الأرباح والشركاء</h3>
             <div class="settings-section" style="margin-bottom:40px; margin-top:0;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                    <div class="input-group"><label>نسبة أحمد (%)</label><input type="number" id="setAhmadProp" placeholder="35"></div>
-                    <div class="input-group"><label>نسبة محمد (%)</label><input type="number" id="setMohamedProp" placeholder="35"></div>
-                    <div class="input-group"><label>نسبة المتجر (%)</label><input type="number" id="setStoreProp" placeholder="30"></div>
+                <div id="partnersShareBox" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:15px; margin-bottom:15px;"></div>
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; padding:15px; background:var(--bg-input); border-radius:12px; border:1px dashed var(--primary); margin-bottom:15px;">
+                    <div class="input-group" style="flex:1; min-width:130px; margin-bottom:0"><label>اسم الشريك الجديد</label><input id="newPartnerName" placeholder="مثال: خالد"></div>
+                    <div class="input-group" style="width:100px; margin-bottom:0"><label>النسبة (%)</label><input id="newPartnerShare" type="number" placeholder="0"></div>
+                    <button class="btn btn-primary" style="height:48px" onclick="addPartner()"><i class="fas fa-user-plus"></i> إضافة</button>
                 </div>
                 <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" id="setDeductCost" style="width: 20px; height: 20px;">
@@ -730,7 +702,7 @@ let syncTimer = null;
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
     repo: localStorage.getItem("gh_repo") || "",
-    token: localStorage.getItem("gh_token") || "",
+    token: (() => { try { return atob(localStorage.getItem("gh_token") || ""); } catch(e) { return localStorage.getItem("gh_token") || ""; } })(),
     file: localStorage.getItem("gh_file") || "db.json",
     sha: ""
 };
@@ -742,12 +714,17 @@ const MAX_RETRIES = 10;
 
 const DEFAULT_USER = {
     username: "Mohamed Ahmed",
-    password: "0000",
+    password: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", // SHA-256 of "0000"
     role: "admin", 
     status: "active",
     lastLogin: "-",
     deviceInfo: "-"
 };
+
+async function hashPassword(pw) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
 
 // --- MODAL UTILS ---
 function showModalDetails(details) {
@@ -875,18 +852,55 @@ function init(){
     // ALWAYS INITIALIZE DEFAULT DATA FIRST TO PREVENT NULL ERRORS
     if(!localStorage.users) localStorage.users = JSON.stringify([DEFAULT_USER]);
     if(!localStorage.wallets){
-        localStorage.wallets=JSON.stringify({
-            "جوال باي — سعاد":{bal:0, cur:"₪", active:true},
-            "جوال باي — محمد":{bal:0, cur:"₪", active:true},
-            "بال باي — أحمد":{bal:0, cur:"₪", active:true},
-            "بايننس — احمد":{bal:0, cur:"$", active:true}
-        });
+        localStorage.wallets=JSON.stringify([
+            {id:"w_1", name:"جوال باي — سعاد", bal:0, cur:"₪", active:true},
+            {id:"w_2", name:"جوال باي — محمد", bal:0, cur:"₪", active:true},
+            {id:"w_3", name:"بال باي — أحمد",  bal:0, cur:"₪", active:true},
+            {id:"w_4", name:"بايننس — احمد",   bal:0, cur:"$", active:true}
+        ]);
+    } else {
+        // MIGRATE old object-keyed wallets to new array format
+        let raw = JSON.parse(localStorage.wallets);
+        if(!Array.isArray(raw)) {
+            let migrated = Object.entries(raw).map(([name, v], i) => ({id:"w_m"+(i+1), name, bal:v.bal||0, cur:v.cur||"₪", active:v.active!==false}));
+            localStorage.wallets = JSON.stringify(migrated);
+        }
     }
     if(!localStorage.purchases) localStorage.purchases="[]";
-    if(!localStorage.invest) localStorage.invest=JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}});
+    if(!localStorage.invest) {
+        let sInit = JSON.parse(localStorage.settings);
+        let invInit = {};
+        (sInit.partners||[{id:"ahmad"},{id:"mohamed"},{id:"store"}]).forEach(p => invInit[p.id]={d:0,s:0});
+        localStorage.invest = JSON.stringify(invInit);
+    } else {
+        // Ensure all partners have invest entries
+        let sInit = JSON.parse(localStorage.settings);
+        let invInit = JSON.parse(localStorage.invest);
+        let changed2 = false;
+        (sInit.partners||[]).forEach(p => { if(!invInit[p.id]){ invInit[p.id]={d:0,s:0}; changed2=true; } });
+        if(changed2) localStorage.invest = JSON.stringify(invInit);
+    }
     if(!localStorage.generalNotes) localStorage.generalNotes="[]";
     if(!localStorage.todoList) localStorage.todoList="[]";
-    if(!localStorage.settings) localStorage.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'});
+    if(!localStorage.settings) localStorage.settings = JSON.stringify({
+        partners: [
+            {id:"ahmad", name:"أحمد", share:35},
+            {id:"mohamed", name:"محمد", share:35},
+            {id:"store", name:"المتجر", share:30}
+        ],
+        deductCost: true, exchangeRate: 0, logsVis: 'all'
+    }); else {
+        // MIGRATE old settings format
+        let s2 = JSON.parse(localStorage.settings);
+        if(!s2.partners) {
+            s2.partners = [
+                {id:"ahmad", name:"أحمد", share: s2.ahmad||35},
+                {id:"mohamed", name:"محمد", share: s2.mohamed||35},
+                {id:"store", name:"المتجر", share: s2.store||30}
+            ];
+            localStorage.settings = JSON.stringify(s2);
+        }
+    }
     if(!localStorage.activityLog) localStorage.activityLog = "[]";
     if(!localStorage.stock) localStorage.stock = "[]";
 
@@ -969,7 +983,7 @@ async function setupCloudAndFetch() {
     btn.classList.add('loading');
     
     localStorage.setItem("gh_user", u); localStorage.setItem("gh_repo", r);
-    localStorage.setItem("gh_token", t); localStorage.setItem("gh_file", "db.json");
+    localStorage.setItem("gh_token", btoa(t)); localStorage.setItem("gh_file", "db.json");
     ghConfig = { user: u, repo: r, token: t, file: "db.json", sha: "" };
     
     document.getElementById("cloudMsg").innerText = "جاري الاتصال والتحقق...";
@@ -1054,7 +1068,8 @@ async function attemptLogin() {
     // Simulate delay for UX
     await new Promise(r => setTimeout(r, 800));
 
-    let userObj = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+    const hashed = await hashPassword(p);
+    let userObj = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === hashed);
 
     if (userObj) {
         if(userObj.username === "Mohamed Ahmed") {
@@ -1081,7 +1096,7 @@ async function attemptLogin() {
         
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadGithubInputs(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadGithubInputs(); refreshAll(); applyRBAC(); loadPartnersUI();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${currentUser.username} (${getRoleName(currentUser.role)})`;
     } else { 
         alert("بيانات الدخول غير صحيحة"); 
@@ -1263,12 +1278,13 @@ function clearLogs() {
     }
 }
 
-function addNewUser() {
+async function addNewUser() {
     const u = document.getElementById("newUserName").value.trim(), p = document.getElementById("newUserPass").value.trim(), r = document.getElementById("newUserRole").value;
     if(!u || !p) return notify("يرجى ملء البيانات", "error");
     let users = JSON.parse(localStorage.users);
     if(users.some(x => x.username.toLowerCase() === u.toLowerCase())) return notify("اسم المستخدم موجود", "error");
-    users.push({ username: u, password: p, role: r, status: "active", lastLogin: "-", deviceInfo: "-" });
+    const hp = await hashPassword(p);
+    users.push({ username: u, password: hp, role: r, status: "active", lastLogin: "-", deviceInfo: "-" });
     localStorage.users = JSON.stringify(users);
     logAction(`إضافة مستخدم جديد: ${u} بصلاحية ${r}`);
     document.getElementById("newUserName").value = ""; document.getElementById("newUserPass").value = "";
@@ -1315,14 +1331,15 @@ function changeUserRole(index) {
     }
 }
 
-function changeMyPassword() {
+async function changeMyPassword() {
     let newP = document.getElementById("changePassInput").value.trim();
     if(!newP) return notify("أدخل كلمة المرور الجديدة", "error");
     let users = JSON.parse(localStorage.users);
     let myIndex = users.findIndex(u => u.username === currentUser.username);
     if(myIndex !== -1) {
-        users[myIndex].password = newP;
-        currentUser.password = newP; 
+        const hNewP = await hashPassword(newP);
+        users[myIndex].password = hNewP;
+        currentUser.password = hNewP; 
         localStorage.users = JSON.stringify(users);
         document.getElementById("changePassInput").value = "";
         logAction("قام بتغيير كلمة المرور الخاصة به");
@@ -1457,13 +1474,13 @@ function notify(msg,type="success"){
 
 function loadWallets(){
     let wallets=JSON.parse(localStorage.wallets);
-    const selects = [wallet, modWallet, fromWallet, renameWalletSelect, tfFromWallet, tfToWallet, wWalletAhmad, wWalletMohamed, wWalletStore];
+    const selects = [wallet, modWallet, fromWallet, renameWalletSelect, tfFromWallet, tfToWallet];
     selects.forEach(s => { 
         if(s) { 
-            s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' : ""; 
-            Object.keys(wallets).forEach(w=>{ 
+            s.innerHTML = ""; 
+            wallets.forEach(w=>{ 
                 let o=document.createElement("option"); 
-                o.value=w; o.text=w + ` (${wallets[w].cur})`; 
+                o.value=w.id; o.text=w.name + ` (${w.cur})`; 
                 s.appendChild(o); 
             }); 
         } 
@@ -1476,7 +1493,7 @@ function loadProfitSettings(){
 }
 function loadGithubInputs(){
     document.getElementById("ghUser").value = ghConfig.user; document.getElementById("ghRepo").value = ghConfig.repo;
-    document.getElementById("ghToken").value = ghConfig.token; document.getElementById("ghFile").value = ghConfig.file;
+    document.getElementById("ghToken").value = ghConfig.token ? "••••••••••••••••" : ""; document.getElementById("ghFile").value = ghConfig.file;
 }
 function saveProfitSettings(){
     let a = +setAhmadProp.value, m = +setMohamedProp.value, s = +setStoreProp.value;
@@ -1488,9 +1505,12 @@ function saveProfitSettings(){
     pushToGithub(); notify("تم الحفظ");
 }
 function saveGithubSettings() {
-    const u = document.getElementById("ghUser").value.trim(), r = document.getElementById("ghRepo").value.trim(), t = document.getElementById("ghToken").value.trim(), f = document.getElementById("ghFile").value.trim() || "db.json";
+    const u = document.getElementById("ghUser").value.trim(), r = document.getElementById("ghRepo").value.trim(), f = document.getElementById("ghFile").value.trim() || "db.json";
+    let tRaw = document.getElementById("ghToken").value.trim();
+    if(tRaw === "••••••••••••••••") tRaw = ghConfig.token; // keep existing if not changed
+    const t = tRaw;
     if(!u || !r || !t) return notify("يرجى تعبئة جميع الحقول", "error");
-    localStorage.setItem("gh_user", u); localStorage.setItem("gh_repo", r); localStorage.setItem("gh_token", t); localStorage.setItem("gh_file", f);
+    localStorage.setItem("gh_user", u); localStorage.setItem("gh_repo", r); localStorage.setItem("gh_token", btoa(t)); localStorage.setItem("gh_file", f);
     ghConfig = {user: u, repo: r, token: t, file: f, sha: ""};
     logAction("تعديل إعدادات الربط السحابي");
     notify("تم الحفظ، جاري الاتصال...", "success"); fetchFromGithub();
@@ -1498,24 +1518,29 @@ function saveGithubSettings() {
 function addPurchase(){
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     if(paidAmount.value === "" || costAmount.value === "") { notify("املأ البيانات","error"); return; }
-    let paid=+paidAmount.value, cost=+costAmount.value, paidCur=paidCurrency.value, costCur=costCurrency.value, wallets=JSON.parse(localStorage.wallets), invest=JSON.parse(localStorage.invest), purchases=JSON.parse(localStorage.purchases), settings=JSON.parse(localStorage.settings), from=fromWallet.value, duration = +subDuration.value;
-    if(wallets[from].bal < cost && wallets[from].cur == costCur){notify("رصيد غير كافي","error"); return;}
+    let paid=+paidAmount.value, cost=+costAmount.value, paidCur=paidCurrency.value, costCur=costCurrency.value, wallets=JSON.parse(localStorage.wallets), invest=JSON.parse(localStorage.invest), purchases=JSON.parse(localStorage.purchases), settings=JSON.parse(localStorage.settings), from=fromWallet.value, toW=wallet.value, duration = +subDuration.value;
+    let wFrom = wallets.find(x=>x.id===from), wTo = wallets.find(x=>x.id===toW);
+    if(!wFrom || !wTo){ notify("خطأ: محفظة غير موجودة","error"); return; }
+    if(wFrom.bal < cost && wFrom.cur == costCur){notify("رصيد غير كافي","error"); return;}
     
     // SNAPSHOTS FOR LOGS
-    let wBefore = wallets[from].bal;
-    let tBefore = wallets[wallet.value].bal;
+    let wBefore = wFrom.bal;
+    let tBefore = wTo.bal;
 
     let invest_before_profit = JSON.parse(JSON.stringify(invest));
-    wallets[from].bal -= cost;
+    wFrom.bal -= cost;
     let rate = 0;
     if(settings.exchangeRate && settings.exchangeRate > 0) rate = settings.exchangeRate;
     else if (paidCur !== costCur) { rate = +prompt("سعر الصرف (1$ = ?₪):"); if(!rate && rate!==0) return; }
-    if(costCur === '$') { if(invest.store.d >= cost) invest.store.d -= cost; else { let rem = cost - invest.store.d; invest.store.d = 0; if(rate===0) rate=+prompt("سعر الصرف للخصم من الشيكل:"); invest.store.s -= (rem * rate); } } else { if(invest.store.s >= cost) invest.store.s -= cost; else { let rem = cost - invest.store.s; invest.store.s = 0; if(rate===0) rate=+prompt("سعر الصرف للخصم من الدولار:"); invest.store.d -= (rem / rate); } }
+    // Deduct cost from store partner (first partner with 'store' in id, or last)
+    let storeKey = (settings.partners||[{id:'store'}]).find(x=>x.id.includes('store')) || settings.partners?.[settings.partners.length-1] || {id:'store'};
+    let sk = storeKey.id;
+    if(!invest[sk]) invest[sk]={d:0,s:0};
+    if(costCur === '$') { if(invest[sk].d >= cost) invest[sk].d -= cost; else { let rem = cost - invest[sk].d; invest[sk].d = 0; if(rate===0) rate=+prompt("سعر الصرف للخصم من الشيكل:"); invest[sk].s -= (rem * rate); } } else { if(invest[sk].s >= cost) invest[sk].s -= cost; else { let rem = cost - invest[sk].s; invest[sk].s = 0; if(rate===0) rate=+prompt("سعر الصرف للخصم من الدولار:"); invest[sk].d -= (rem / rate); } }
     let profitBase = paid, costInPaidCurrency = 0;
     if(settings.deductCost){ if(paidCur === costCur){ profitBase = paid - cost; costInPaidCurrency = cost; } else { let costCv = (paidCur == "$") ? cost/rate : cost*rate; profitBase = paid - costCv; costInPaidCurrency = costCv; } }
-    let aP = +(profitBase * (settings.ahmad/100)).toFixed(2), mP = +(profitBase * (settings.mohamed/100)).toFixed(2), sP = +(profitBase * (settings.store/100)).toFixed(2);
-    if(paidCur=="$"){ invest.ahmad.d += aP; invest.mohamed.d += mP; invest.store.d += sP; if(settings.deductCost) invest.store.d += costInPaidCurrency; } else { invest.ahmad.s += aP; invest.mohamed.s += mP; invest.store.s += sP; if(settings.deductCost) invest.store.s += costInPaidCurrency; }
-    wallets[wallet.value].bal += paid;
+    distributeProfit(invest, profitBase, paidCur, settings, costInPaidCurrency);
+    wTo.bal += paid;
     let d = new Date(), exp = new Date(d); exp.setMonth(exp.getMonth() + duration);
     if(exp.getDate()!==d.getDate()) exp.setDate(0);
     
@@ -1529,8 +1554,10 @@ function addPurchase(){
         duration: duration, 
         paid:paid+paidCur, 
         cost:cost+costCur, 
-        wallet:wallet.value, 
-        fromWallet: from,
+        walletId: toW,
+        walletName: wTo.name,
+        fromWalletId: from,
+        fromWalletName: wFrom.name,
         expiry: exp.getTime(),
         investSnapshot: invest_before_profit
     });
@@ -1544,12 +1571,12 @@ function addPurchase(){
         sub: sub.value,
         cost: cost + costCur,
         paid: paid + paidCur,
-        wName: from,
+        wName: wFrom.name,
         wBefore: wBefore,
-        wAfter: wallets[from].bal,
-        toName: wallet.value,
+        wAfter: wFrom.bal,
+        toName: wTo.name,
         tBefore: tBefore,
-        tAfter: wallets[wallet.value].bal
+        tAfter: wTo.bal
     });
 
     refreshAll(); pushToGithub(); notify("تمت العملية");
@@ -1592,6 +1619,13 @@ function refreshExpiring() {
         body.innerHTML += `<tr class="${item.reminded?'reminded':''}"><td>${serviceDisplay}</td><td>${item.customer}</td><td>${phoneDisplay}</td><td>${new Date(item.expiry).toLocaleDateString('ar-EG')}</td><td><span class="badge ${daysLeft<=0?'badge-danger':'badge-warning'}">${status}</span></td><td>${btnHTML}</td></tr>`;
     });
     if(list.length===0) body.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:30px'>لا توجد تنبيهات</td></tr>";
+    // UPDATE BADGE
+    let badge = document.getElementById("expiringBadge");
+    if(badge) {
+        let urgent = list.filter(x => Math.ceil((x.d.expiry - now) / 86400000) <= 3).length;
+        if(urgent > 0) { badge.textContent = urgent; badge.style.display = "inline-flex"; }
+        else { badge.style.display = "none"; }
+    }
 }
 function markAsReminded(i) { let p = JSON.parse(localStorage.purchases); p[i].reminded = true; localStorage.purchases = JSON.stringify(p); refreshExpiring(); pushToGithub(); }
 function deleteExpired() { 
@@ -1600,14 +1634,14 @@ function deleteExpired() {
     localStorage.purchases = JSON.stringify(p); logAction("إخفاء الاشتراكات المنتهية"); refreshAll(); pushToGithub(); 
 }
 function refreshWallets(){
-    let w=JSON.parse(localStorage.wallets), td=0, ts=0; walletList.innerHTML="";
+    let wallets=JSON.parse(localStorage.wallets), td=0, ts=0; walletList.innerHTML="";
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
-    for(let k in w){
-        let act = w[k].active !== false;
-        let balDisplay = isRestricted ? '****' : fix(w[k].bal);
-        walletList.innerHTML+=`<tr><td><b>${k}</b></td><td><span class="badge ${w[k].cur=='$'?'badge-success':'badge-info'}">${w[k].cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
-        if(w[k].cur=="$") td+=w[k].bal; else ts+=w[k].bal;
-    }
+    wallets.forEach(w => {
+        let act = w.active !== false;
+        let balDisplay = isRestricted ? '****' : fix(w.bal);
+        walletList.innerHTML+=`<tr><td><b>${w.name}</b></td><td><span class="badge ${w.cur=='$'?'badge-success':'badge-info'}">${w.cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
+        if(w.cur=="$") td+=w.bal; else ts+=w.bal;
+    });
     if(!isRestricted) {
         statDollar.textContent=fix(td)+" $"; statShekel.textContent=fix(ts)+" ₪";
     }
@@ -1620,7 +1654,7 @@ function refreshHistory(){
         let subD = isRestricted ? '----' : `<span class="badge badge-info">${p.sub}</span>`;
         let paidD = isRestricted ? '----' : p.paid;
         let costD = isRestricted ? '----' : p.cost;
-        let walletD = isRestricted ? '----' : p.wallet;
+        let walletD = isRestricted ? '----' : (p.walletName || p.wallet || '-');
         
         historyBody.innerHTML+=`<tr><td>${p.date}</td><td><b>${p.customer}</b></td><td>${phoneD}</td><td>${subD}</td><td>${p.duration||'-'} شهر</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
     });
@@ -1643,7 +1677,11 @@ function refreshAnalytics() {
     if(currentUser && currentUser.role === 'viewer') {
         // Empty or dummy chart
     } else {
-        myProfitChart = new Chart(document.getElementById('profitChart').getContext('2d'), { type: 'doughnut', data: { labels: ['أحمد', 'محمد', 'المتجر'], datasets: [{ data: [invest.ahmad.d*3.5+invest.ahmad.s, invest.mohamed.d*3.5+invest.mohamed.s, invest.store.d*3.5+invest.store.s], backgroundColor: ['#10b981', '#f59e0b', '#6366f1'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        let sett2 = JSON.parse(localStorage.settings||"{}"), pList = sett2.partners||[{id:"ahmad",name:"أحمد"},{id:"mohamed",name:"محمد"},{id:"store",name:"المتجر"}];
+        let chartData = pList.map(p => { let d=invest[p.id]||{d:0,s:0}; return d.d*3.5+d.s; });
+        let chartLabels = pList.map(p=>p.name);
+        let chartColors = ['#10b981','#f59e0b','#6366f1','#a855f7','#06b6d4','#f43f5e'];
+        myProfitChart = new Chart(document.getElementById('profitChart').getContext('2d'), { type: 'doughnut', data: { labels: chartLabels, datasets: [{ data: chartData, backgroundColor: chartColors.slice(0,pList.length), borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
     
     let months = {}, labels = [], data = [];
@@ -1736,8 +1774,26 @@ function withdrawPartial(p){
     pushToGithub(); notify("تم السحب بنجاح");
 }
 
-function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
-function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=JSON.parse(localStorage.purchases); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
+function addNewWallet(){ 
+    let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=JSON.parse(localStorage.wallets); 
+    if(!n) return notify("أدخل اسم المحفظة","error"); 
+    if(w.some(x=>x.name===n)) return notify("الاسم موجود مسبقاً","error"); 
+    let newId = "w_" + Date.now(); 
+    w.push({id:newId, name:n, bal:0, cur:c, active:true}); 
+    localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); 
+}
+function renameWallet(){ 
+    let id=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=JSON.parse(localStorage.wallets); 
+    if(!n) return notify("أدخل الاسم الجديد","error"); 
+    if(w.some(x=>x.name===n && x.id!==id)) return notify("الاسم موجود مسبقاً","error"); 
+    let oldName = (w.find(x=>x.id===id)||{}).name||id;
+    w.find(x=>x.id===id).name = n; 
+    localStorage.wallets=JSON.stringify(w); 
+    let p=JSON.parse(localStorage.purchases); 
+    p.forEach(x=>{ if(x.walletId===id) x.walletName=n; if(x.fromWalletId===id) x.fromWalletName=n; });
+    localStorage.purchases=JSON.stringify(p); 
+    loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة: ${oldName} -> ${n}`); pushToGithub(); notify("تم"); 
+}
 
 // --- TRANSFER LOGIC: DEDUCT FEE FROM STORE CAPITAL (AUTO CURRENCY) ---
 function calculateTransfer() {
@@ -1894,7 +1950,16 @@ function setProfitShare() {
     notify("تم تحديث الحصة");
 }
 
-function deleteWallet(){ if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); if(!confirm("حذف؟"))return; let w=JSON.parse(localStorage.wallets); delete w[modWallet.value]; localStorage.wallets=JSON.stringify(w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets(); pushToGithub(); }
+function deleteWallet(){ 
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); 
+    if(!confirm("حذف المحفظة نهائياً؟"))return; 
+    let w=JSON.parse(localStorage.wallets), idx=w.findIndex(x=>x.id===modWallet.value); 
+    if(idx===-1) return; 
+    let name = w[idx].name; 
+    w.splice(idx,1); 
+    localStorage.wallets=JSON.stringify(w); 
+    logAction(`حذف محفظة ${name}`); loadWallets(); refreshWallets(); pushToGithub(); 
+}
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(localStorage)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
@@ -1912,13 +1977,13 @@ function undoLastPurchase(){
     let lastP = purchases.pop();
     let wallets = JSON.parse(localStorage.wallets);
     
-    // RESTORE WALLETS
-    if(lastP.fromWallet && wallets[lastP.fromWallet]) {
-        wallets[lastP.fromWallet].bal += parseFloat(lastP.cost);
-    }
-    if(lastP.wallet && wallets[lastP.wallet]) {
-        wallets[lastP.wallet].bal -= parseFloat(lastP.paid);
-    }
+    // RESTORE WALLETS — use id-based lookup (supports both old and new format)
+    let fwId = lastP.fromWalletId || lastP.fromWallet;
+    let twId = lastP.walletId || lastP.wallet;
+    let wFr = wallets.find(x=>x.id===fwId || x.name===fwId);
+    let wTo2 = wallets.find(x=>x.id===twId || x.name===twId);
+    if(wFr) wFr.bal += parseFloat(lastP.cost);
+    if(wTo2) wTo2.bal -= parseFloat(lastP.paid);
     
     localStorage.wallets = JSON.stringify(wallets);
     localStorage.purchases = JSON.stringify(purchases);
@@ -1934,6 +1999,211 @@ function undoLastPurchase(){
 }
 function clearHistory(){ if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); if(confirm("مسح الكل؟")){ localStorage.purchases="[]"; logAction("مسح سجل العمليات بالكامل"); refreshHistory(); pushToGithub(); } }
 
+// ═══════════════════════════════════
+// DYNAMIC PARTNERS FUNCTIONS
+// ═══════════════════════════════════
+function loadPartnersUI() {
+    let settings = JSON.parse(localStorage.settings);
+    let partners = settings.partners || [];
+    let invest = JSON.parse(localStorage.invest || "{}");
+    
+    // Populate setSharePerson select
+    let sp = document.getElementById("setSharePerson");
+    if(sp) { sp.innerHTML = ""; partners.forEach(p => { let o=document.createElement("option"); o.value=p.id; o.text=p.name; sp.appendChild(o); }); }
+    
+    // Render partner share inputs in settings
+    let box = document.getElementById("partnersShareBox");
+    if(box) {
+        box.innerHTML = "";
+        partners.forEach(p => {
+            box.innerHTML += `<div class="input-group" style="background:var(--bg-input); padding:12px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <label style="margin-bottom:0; font-weight:700">${p.name}</label>
+                    ${partners.length > 2 ? `<button onclick="removePartner('${p.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:13px"><i class="fas fa-trash"></i></button>` : ''}
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="number" id="share_${p.id}" value="${p.share}" placeholder="%" style="flex:1">
+                    <span style="color:var(--text-muted)">%</span>
+                </div>
+            </div>`;
+        });
+    }
+
+    // Render dynamic withdraw boxes
+    let wb = document.getElementById("withdrawBoxDynamic");
+    if(wb) {
+        wb.innerHTML = "";
+        partners.forEach(p => {
+            wb.innerHTML += `<div class="input-group">
+                <label>سحب من حصة ${p.name}</label>
+                <div style="display:flex; flex-direction:column; gap:8px">
+                    <select id="wWallet_${p.id}" style="width:100%"><option value="">اختر محفظة السحب</option></select>
+                    <input id="withdraw_${p.id}" type="number" placeholder="0.00" style="width:100%">
+                    <button class="btn btn-danger" onclick="withdrawPartial('${p.id}')" style="width:100%">سحب</button>
+                </div>
+            </div>`;
+        });
+        // Populate wallet selects in withdraw
+        let wallets = JSON.parse(localStorage.wallets || "[]");
+        partners.forEach(p => {
+            let sel = document.getElementById(`wWallet_${p.id}`);
+            if(sel) wallets.forEach(w => { let o=document.createElement("option"); o.value=w.id; o.text=w.name+` (${w.cur})`; sel.appendChild(o); });
+        });
+    }
+
+    // Re-render investment box
+    refreshInvestment();
+}
+
+function addPartner() {
+    let name = document.getElementById("newPartnerName").value.trim();
+    let share = parseFloat(document.getElementById("newPartnerShare").value);
+    if(!name) return notify("أدخل اسم الشريك","error");
+    if(isNaN(share) || share < 0) return notify("أدخل نسبة صحيحة","error");
+    let settings = JSON.parse(localStorage.settings);
+    let id = "p_" + name.replace(/\s+/g,'_').toLowerCase() + "_" + Date.now();
+    settings.partners.push({id, name, share});
+    let invest = JSON.parse(localStorage.invest);
+    invest[id] = {d:0, s:0};
+    localStorage.settings = JSON.stringify(settings);
+    localStorage.invest = JSON.stringify(invest);
+    document.getElementById("newPartnerName").value = "";
+    document.getElementById("newPartnerShare").value = "";
+    logAction(`إضافة شريك جديد: ${name}`);
+    loadPartnersUI(); loadProfitSettings(); pushToGithub();
+    notify(`تمت إضافة ${name}`);
+}
+
+function removePartner(pid) {
+    if(!confirm("حذف هذا الشريك؟ سيتم الاحتفاظ بسجلاته.")) return;
+    let settings = JSON.parse(localStorage.settings);
+    let pName = (settings.partners.find(x=>x.id===pid)||{}).name||pid;
+    settings.partners = settings.partners.filter(x=>x.id!==pid);
+    localStorage.settings = JSON.stringify(settings);
+    logAction(`حذف شريك: ${pName}`); loadPartnersUI(); loadProfitSettings(); pushToGithub();
+    notify("تم حذف الشريك");
+}
+
+function loadProfitSettings() {
+    let settings = JSON.parse(localStorage.settings);
+    document.getElementById("setDeductCost").checked = settings.deductCost;
+    document.getElementById("setExchangeRate").value = settings.exchangeRate || 0;
+    loadPartnersUI();
+}
+
+function saveProfitSettings() {
+    let settings = JSON.parse(localStorage.settings);
+    let total = 0;
+    settings.partners.forEach(p => {
+        let val = parseFloat(document.getElementById("share_" + p.id)?.value || 0);
+        p.share = val; total += val;
+    });
+    if(Math.abs(total - 100) > 0.01) { notify(`مجموع النسب = ${total}% (يجب أن يساوي 100%)`, "error"); return; }
+    settings.deductCost = document.getElementById("setDeductCost").checked;
+    settings.exchangeRate = parseFloat(document.getElementById("setExchangeRate").value) || 0;
+    localStorage.settings = JSON.stringify(settings);
+    logAction("تعديل إعدادات توزيع الأرباح");
+    pushToGithub(); notify("تم الحفظ");
+}
+
+// ═══════════════════════════════════
+// UPDATED refreshInvestment — dynamic
+// ═══════════════════════════════════
+function refreshInvestment() {
+    let invest = JSON.parse(localStorage.invest || "{}");
+    let settings = JSON.parse(localStorage.settings || "{}");
+    let partners = settings.partners || [{id:"ahmad",name:"أحمد"},{id:"mohamed",name:"محمد"},{id:"store",name:"المتجر"}];
+    let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
+    let colors = ['var(--success)', 'var(--accent)', 'var(--primary)', '#a855f7', '#06b6d4', '#f43f5e'];
+    investBox.innerHTML = "";
+    partners.forEach((p, idx) => {
+        let iData = invest[p.id] || {d:0, s:0};
+        let display = isRestricted ? "****" : `${fix(iData.d)}$ | ${fix(iData.s)}₪`;
+        investBox.innerHTML += `<div class="card" style="border-top:5px solid ${colors[idx%colors.length]}"><div style="font-weight:700; margin-bottom:8px">${p.name} (${p.share||0}%)</div><div style="font-size:20px; font-weight:900">${display}</div></div>`;
+    });
+}
+
+// ═══════════════════════════════════
+// UPDATED addPurchase profit distribution — dynamic
+// ═══════════════════════════════════
+// Override invest distribution in addPurchase
+function distributeProfit(invest, profitBase, paidCur, settings, costInPaidCurrency) {
+    let partners = settings.partners || [];
+    partners.forEach(p => {
+        let share = +(profitBase * (p.share/100)).toFixed(2);
+        if(!invest[p.id]) invest[p.id] = {d:0, s:0};
+        if(paidCur === "$") invest[p.id].d += share;
+        else invest[p.id].s += share;
+    });
+    // Add back cost to store (first partner with id containing 'store', or last partner)
+    let storeP = partners.find(x=>x.id.includes('store')) || partners[partners.length-1];
+    if(storeP && settings.deductCost && costInPaidCurrency > 0) {
+        if(paidCur === "$") invest[storeP.id].d += costInPaidCurrency;
+        else invest[storeP.id].s += costInPaidCurrency;
+    }
+}
+
+// ═══════════════════════════════════
+// CSV EXPORT FUNCTIONS
+// ═══════════════════════════════════
+function exportHistoryCSV() {
+    if(currentUser.role === 'viewer') return notify("ليس لديك صلاحية", "error");
+    let p = JSON.parse(localStorage.purchases || "[]");
+    let rows = [["التاريخ","العميل","الجوال","الخدمة","المدة","المدفوع","التكلفة","المحفظة"]];
+    p.forEach(x => rows.push([x.date, x.customer, x.phone, x.sub, (x.duration||'-')+' شهر', x.paid, x.cost, x.walletName||x.wallet||'-']));
+    downloadCSV(rows, `سجل_العمليات_${new Date().toLocaleDateString('en')}.csv`);
+    logAction("تصدير سجل العمليات CSV");
+}
+
+function exportStockCSV() {
+    if(currentUser.role === 'viewer') return notify("ليس لديك صلاحية", "error");
+    let stock = JSON.parse(localStorage.stock || "[]");
+    let rows = [["الخدمة","تاريخ الشراء","المدة","البريد","ملاحظات"]];
+    stock.forEach(x => rows.push([x.service, x.date, x.duration+' شهر', x.email, x.notes]));
+    downloadCSV(rows, `المخزون_${new Date().toLocaleDateString('en')}.csv`);
+    logAction("تصدير المخزون CSV");
+}
+
+function downloadCSV(rows, filename) {
+    let csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('
+');
+    let bom = '﻿'; // UTF-8 BOM for Arabic support in Excel
+    let blob = new Blob([bom + csv], {type: 'text/csv;charset=utf-8;'});
+    let a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = filename; a.click();
+}
+
+// ═══════════════════════════════════
+// UPDATED refreshStock — with search
+// ═══════════════════════════════════
+function refreshStock() {
+    let stock = JSON.parse(localStorage.stock || "[]");
+    let search = (document.getElementById("stockSearch")?.value || "").toLowerCase();
+    let tbody = document.getElementById("stockBody"); if(!tbody) return;
+    tbody.innerHTML = "";
+    let filtered = stock.filter(item => !search || item.service.toLowerCase().includes(search) || (item.notes||'').toLowerCase().includes(search));
+    filtered.forEach((item, i) => {
+        let realIdx = stock.indexOf(item);
+        let purchaseDate = new Date(item.timestamp);
+        let expiryDate = new Date(purchaseDate);
+        expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.duration));
+        let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
+        tbody.innerHTML += `<tr>
+            <td><span class="badge badge-info">${item.service}</span></td>
+            <td>${item.date}</td>
+            <td>${item.duration} شهر</td>
+            <td><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
+            <td><button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIdx})"><i class="fas fa-eye"></i></button></td>
+            <td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIdx})"><i class="fas fa-check"></i> بيع</button></td>
+        </tr>`;
+    });
+    if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>${search ? 'لا نتائج للبحث' : 'لا يوجد اشتراكات في المخزون'}</td></tr>`;
+}
+
+// ═══════════════════════════════════
+// CALL loadPartnersUI after login
+// ═══════════════════════════════════
+
 // --- EDIT USER MODAL FUNCTIONS ---
 function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserModal') document.getElementById("editUserModal").classList.add("hidden"); }
 
@@ -1946,12 +2216,12 @@ function openEditUserModal(index) {
     document.getElementById("editUserModal").classList.remove("hidden");
 }
 
-function saveUserEdit() {
+async function saveUserEdit() {
     let index = +document.getElementById("editUserIndex").value;
     let newPass = document.getElementById("editUserPassInput").value.trim();
     let newRole = document.getElementById("editUserRoleSelect").value;
     let users = JSON.parse(localStorage.users);
-    if(newPass) users[index].password = newPass;
+    if(newPass) { users[index].password = await hashPassword(newPass); }
     if(users[index].username === currentUser.username && newRole !== 'admin') {
         if(!confirm("ستقلل صلاحيتك من أدمن. هل أنت متأكد؟")) return;
     }
