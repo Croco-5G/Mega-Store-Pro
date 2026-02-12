@@ -197,6 +197,15 @@
             font-size: 24px; 
         }
 
+        /* ICON COLORS & DARK MODE FIX */
+        .icon-bg-primary { background: #e0e7ff; color: var(--primary); }
+        .icon-bg-success { background: #dcfce7; color: var(--success); }
+        .icon-bg-warning { background: #fef3c7; color: var(--accent); }
+        
+        body.dark-mode .icon-bg-primary { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
+        body.dark-mode .icon-bg-success { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+        body.dark-mode .icon-bg-warning { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+
         /* --- FORMS & INPUTS --- */
         .input-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-muted); font-size: 13px; }
@@ -553,15 +562,15 @@
     
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon" style="background: #e0e7ff; color: var(--primary);"><i class="fas fa-dollar-sign"></i></div>
+            <div class="stat-icon icon-bg-primary"><i class="fas fa-dollar-sign"></i></div>
             <div><label>إجمالي الدولار</label><div id="statDollar" style="font-size: 22px; font-weight: 800;">0.00 $</div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background: #dcfce7; color: var(--success);"><i class="fas fa-coins"></i></div>
+            <div class="stat-icon icon-bg-success"><i class="fas fa-coins"></i></div>
             <div><label>إجمالي الشيكل</label><div id="statShekel" style="font-size: 22px; font-weight: 800;">0.00 ₪</div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background: #fef3c7; color: var(--accent);"><i class="fas fa-shopping-bag"></i></div>
+            <div class="stat-icon icon-bg-warning"><i class="fas fa-shopping-bag"></i></div>
             <div><label>عمليات اليوم</label><div id="statSales" style="font-size: 22px; font-weight: 800;">0</div></div>
         </div>
     </div>
@@ -1510,7 +1519,7 @@ function applyRBAC() {
         document.getElementById("btnUndo").classList.add("hidden");
         document.getElementById("btnClearHistory").classList.add("hidden");
         document.getElementById("btnHideExpired").classList.add("hidden");
-        document.getElementById("btnStock").classList.add("hidden"); // Ensure stock hidden
+        document.getElementById("btnStock").classList.add("hidden"); 
 
         document.querySelector("#generalNotes textarea").style.display = "none";
         document.querySelector("#generalNotes button").style.display = "none";
@@ -1527,7 +1536,7 @@ function applyRBAC() {
         document.getElementById("btnUndo").classList.add("hidden");
         document.getElementById("btnClearHistory").classList.add("hidden");
         document.getElementById("btnHideExpired").classList.add("hidden");
-        document.getElementById("btnStock").classList.add("hidden"); // Ensure stock hidden
+        document.getElementById("btnStock").classList.add("hidden"); 
         
         document.querySelector("#generalNotes textarea").style.display = "none";
         document.querySelector("#generalNotes button").style.display = "none";
@@ -2462,13 +2471,15 @@ function refreshStock() {
             ${canSell ? '<th>بيع</th>' : ''}
         </tr>`;
     } else {
+        // Only show 'Delete' column header if Admin
+        let delTh = isAdmin ? '<th>حذف</th>' : '';
         headerHTML = `<tr>
             <th>الخدمة</th>
             <th>الإيميل</th>
             <th>تاريخ البيع</th>
             <th>رقم العميل</th>
             <th>التفاصيل</th>
-            ${isAdmin ? '<th>حذف</th>' : ''}
+            ${delTh}
         </tr>`;
     }
     thead.innerHTML = headerHTML;
@@ -2495,7 +2506,8 @@ function refreshStock() {
         } else {
             // Sold View
             let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
-            let delBtn = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
+            // Only generate Delete cell if Admin
+            let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
             
             rows += `<tr>
                 <td><span class="badge badge-info">${item.service}</span></td>
@@ -2503,11 +2515,13 @@ function refreshStock() {
                 <td class="eng-num">${item.soldDate || '-'}</td>
                 <td class="eng-num">${item.soldTo || '-'}</td>
                 <td>${viewBtn}</td>
-                ${delBtn}
+                ${delCell}
             </tr>`;
         }
     });
-    tbody.innerHTML = rows || `<tr><td colspan='7' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
+    // Adjust colspan based on columns shown
+    let colSpan = currentStockTab === 'active' ? (canSell ? 6 : 5) : (isAdmin ? 6 : 5);
+    tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
 function filterStock() {
