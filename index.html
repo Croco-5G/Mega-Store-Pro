@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | System</title>
+    <title>Mega Store Pro | Closed System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -888,9 +888,9 @@
             </div>
         </div>
 
-        <div style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
+        <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
             <h3 style="color: var(--yellow-text); margin-top:0"><i class="fas fa-tasks"></i> المهام (To-Do)</h3>
-            <div style="display:flex; gap:10px; margin-bottom:20px">
+            <div id="todoInputArea" style="display:flex; gap:10px; margin-bottom:20px">
                 <input id="todoInput" placeholder="اكتب المهمة..." style="background:white; border-color:var(--yellow-border)">
                 <button class="btn" style="background:var(--yellow-btn-bg); color:white" onclick="addTodo()">إضافة</button>
             </div>
@@ -1394,7 +1394,18 @@ function applyRBAC() {
     document.getElementById("btnBackup").classList.add("hidden");
     document.getElementById("btnLogs").classList.add("hidden");
     document.getElementById("demo-mode-section").classList.add("hidden");
+    document.getElementById("btnInvestment").classList.add("hidden"); // Default hidden
     
+    // Hide all RBAC sensitive sections in Settings by default
+    document.getElementById("sec-manual-wallet").classList.add("hidden");
+    document.getElementById("sec-set-wallet-balance").classList.add("hidden");
+    document.getElementById("sec-set-profit-share").classList.add("hidden");
+    document.getElementById("sec-manage-wallets").classList.add("hidden");
+    document.getElementById("sec-rename-wallet").classList.add("hidden");
+    document.getElementById("sec-profit-settings").classList.add("hidden");
+    document.getElementById("todoSection").classList.add("hidden");
+    document.getElementById("todoInputArea").classList.add("hidden");
+
     document.getElementById("btnSettings").classList.remove("hidden");
     document.getElementById("btnClearLogs").classList.add("hidden");
     document.getElementById("btnVisLogs").classList.add("hidden");
@@ -1409,6 +1420,7 @@ function applyRBAC() {
         document.getElementById("btnClearLogs").classList.remove("hidden"); 
         document.getElementById("btnVisLogs").classList.remove("hidden"); 
         document.getElementById("demo-mode-section").classList.remove("hidden");
+        document.getElementById("btnInvestment").classList.remove("hidden");
         
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
         document.getElementById("sec-set-wallet-balance").classList.remove("hidden");
@@ -1416,6 +1428,9 @@ function applyRBAC() {
         document.getElementById("sec-manage-wallets").classList.remove("hidden");
         document.getElementById("sec-rename-wallet").classList.remove("hidden");
         document.getElementById("sec-profit-settings").classList.remove("hidden");
+        
+        document.getElementById("todoSection").classList.remove("hidden");
+        document.getElementById("todoInputArea").classList.remove("hidden");
         
         document.getElementById("btnStock").classList.remove("hidden");
         document.getElementById("btnUndo").classList.remove("hidden");
@@ -1428,30 +1443,44 @@ function applyRBAC() {
         }
         document.getElementById("demo-mode-section").classList.remove("hidden");
         
+        // Employee can see manual transfer but NOT adding/renaming wallets or profit settings
         document.getElementById("sec-manual-wallet").classList.remove("hidden");
-        document.getElementById("sec-set-wallet-balance").classList.add("hidden");
-        document.getElementById("sec-set-profit-share").classList.add("hidden");
         
-        document.getElementById("sec-manage-wallets").classList.remove("hidden");
-        document.getElementById("sec-rename-wallet").classList.remove("hidden");
-        document.getElementById("sec-profit-settings").classList.remove("hidden");
+        // Employee Can Edit To-Do
+        document.getElementById("todoSection").classList.remove("hidden");
+        document.getElementById("todoInputArea").classList.remove("hidden");
+        
         document.getElementById("btnStock").classList.remove("hidden");
         document.getElementById("btnUndo").classList.remove("hidden");
         document.getElementById("btnHideExpired").classList.remove("hidden");
         document.getElementById("btnClearHistory").classList.add("hidden");
     }
-    else if (role === 'viewer' || role === 'viewer_plus') {
+    else if (role === 'viewer_plus') {
         if(logsVis !== 'no_viewer' && logsVis !== 'admin_only') {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
         document.getElementById("btnPurchase").classList.add("hidden");
         
-        document.getElementById("sec-manual-wallet").classList.add("hidden");
-        document.getElementById("sec-set-wallet-balance").classList.add("hidden");
-        document.getElementById("sec-set-profit-share").classList.add("hidden");
-        document.getElementById("sec-manage-wallets").classList.add("hidden");
-        document.getElementById("sec-rename-wallet").classList.add("hidden");
-        document.getElementById("sec-profit-settings").classList.add("hidden");
+        // Viewer Plus can SEE To-Do list but NOT add
+        document.getElementById("todoSection").classList.remove("hidden");
+        document.getElementById("todoInputArea").classList.add("hidden");
+        
+        document.getElementById("btnUndo").classList.add("hidden");
+        document.getElementById("btnClearHistory").classList.add("hidden");
+        document.getElementById("btnHideExpired").classList.add("hidden");
+        
+        document.querySelector("#generalNotes textarea").style.display = "none";
+        document.querySelector("#generalNotes button").style.display = "none";
+
+        showPage('history', document.getElementById('btnHistory'));
+    }
+    else if (role === 'viewer') {
+        if(logsVis !== 'no_viewer' && logsVis !== 'admin_only') {
+            document.getElementById("btnLogs").classList.remove("hidden");
+        }
+        document.getElementById("btnPurchase").classList.add("hidden");
+        
+        // Viewer sees NO To-Do section
         
         document.getElementById("btnUndo").classList.add("hidden");
         document.getElementById("btnClearHistory").classList.add("hidden");
@@ -1671,6 +1700,9 @@ function showPage(id, btn){
     if(currentUser) {
         if((currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') && (id === 'purchase' || id === 'security' || id === 'backup')) return notify("ليس لديك صلاحية", "error");
         if(currentUser.role === 'employee' && (id === 'security' || id === 'backup')) return notify("ليس لديك صلاحية", "error");
+        
+        // Strict Check for Investment Page
+        if(id === 'investment' && currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     }
     document.querySelectorAll(".card").forEach(x=>x.classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
@@ -2051,14 +2083,24 @@ function refreshGeneralNotes(){
     box.innerHTML = rows;
 }
 function deleteNote(i){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let n=safeJSON(localStorage.generalNotes, []); n.splice(i,1); localStorage.generalNotes=JSON.stringify(n); logAction("حذف ملاحظة"); refreshGeneralNotes(); pushToGithub(); }
-function addTodo(){ let t=todoInput.value.trim(); if(!t)return; let l=safeJSON(localStorage.todoList, []); l.push({text:t, date:new Date().toLocaleString("ar-EG")}); localStorage.todoList=JSON.stringify(l); todoInput.value=""; logAction("إضافة مهمة جديدة"); refreshTodoList(); pushToGithub(); }
+function addTodo(){ 
+    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
+    let t=todoInput.value.trim(); if(!t)return; let l=safeJSON(localStorage.todoList, []); l.push({text:t, date:new Date().toLocaleString("ar-EG")}); localStorage.todoList=JSON.stringify(l); todoInput.value=""; logAction("إضافة مهمة جديدة"); refreshTodoList(); pushToGithub(); 
+}
 function refreshTodoList(){ 
     let l=safeJSON(localStorage.todoList, []); 
     let rows=""; 
-    l.forEach((x,i)=>{ rows+=`<div class="todo-item"><div>${x.text}</div><button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="completeTodo(${i})">تمت</button></div>`; }); 
+    let canEdit = currentUser ? (currentUser.role === 'admin' || currentUser.role === 'employee') : false;
+    l.forEach((x,i)=>{ 
+        let btnHtml = canEdit ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="completeTodo(${i})">تمت</button>` : '';
+        rows+=`<div class="todo-item"><div>${x.text}</div>${btnHtml}</div>`; 
+    }); 
     todoBox.innerHTML=rows;
 }
-function completeTodo(i){ let l=safeJSON(localStorage.todoList, []); logAction(`إكمال مهمة: ${l[i].text}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); }
+function completeTodo(i){ 
+    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
+    let l=safeJSON(localStorage.todoList, []); logAction(`إكمال مهمة: ${l[i].text}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); 
+}
 
 async function withdrawPartial(p){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
@@ -2382,4 +2424,3 @@ window.onload=init;
 </script>
 </body>
 </html>
-
