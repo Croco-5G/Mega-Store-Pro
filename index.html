@@ -699,10 +699,20 @@ let currentUser = null;
 let isDemoMode = false;
 let syncTimer = null; 
 
+function decodeToken(raw) {
+    if (!raw) return "";
+    try {
+        let d1 = atob(raw);
+        if (d1.startsWith("ghp_") || d1.startsWith("github_pat_")) return d1;
+        try { let d2 = atob(d1); if (d2.startsWith("ghp_") || d2.startsWith("github_pat_")) return d2; } catch(e) {}
+        return d1;
+    } catch(e) { return raw; }
+}
+
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
     repo: localStorage.getItem("gh_repo") || "",
-    token: (() => { try { return atob(localStorage.getItem("gh_token") || ""); } catch(e) { return localStorage.getItem("gh_token") || ""; } })(),
+    token: decodeToken(localStorage.getItem("gh_token")),
     file: localStorage.getItem("gh_file") || "db.json",
     sha: ""
 };
@@ -1065,12 +1075,16 @@ async function attemptLogin() {
     const btn = document.getElementById("btnLogin");
     const u = document.getElementById("loginUser").value.trim();
     const p = document.getElementById("loginPass").value.trim();
-    let users = JSON.parse(localStorage.users || "[]");
-    
-    btn.classList.add('loading'); // START SPINNER
 
-    // Simulate delay for UX
-    await new Promise(r => setTimeout(r, 800));
+    btn.classList.add('loading');
+
+    // ✅ FIX: Always fetch latest data from GitHub before checking credentials
+    if(ghConfig.user && ghConfig.repo && ghConfig.token && !isDemoMode) {
+        updateSyncStatus("جاري جلب البيانات...", "loading");
+        try { await fetchFromGithub(true); } catch(e) {}
+    }
+
+    let users = JSON.parse(localStorage.users || "[]");
 
     const hashed = await hashPassword(p);
     let userObj = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === hashed);
@@ -1106,7 +1120,7 @@ async function attemptLogin() {
         alert("بيانات الدخول غير صحيحة"); 
     }
     
-    btn.classList.remove('loading'); // STOP SPINNER
+    btn.classList.remove('loading');
 }
 
 function getOS() {
