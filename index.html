@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | System</title>
+    <title>Mega Store Pro | Closed System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -355,8 +355,8 @@
         .dialog-modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index: 5000; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(4px); animation: fadeIn 0.2s; padding: 20px; }
         .dialog-box { background: var(--bg-card); border-radius: var(--radius-xl); padding: 35px; width: 100%; max-width: 420px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); border: 1px solid var(--border-color); animation: slideUp 0.2s forwards; text-align: center; }
         .dialog-icon { font-size: 48px; margin-bottom: 20px; color: var(--primary); display: flex; justify-content: center; }
-        .dialog-actions { display: flex; gap: 12px; margin-top: 25px; }
-        .dialog-actions .btn { flex: 1; }
+        .dialog-actions { display: flex; gap: 10px; margin-top: 25px; flex-wrap: wrap; }
+        .dialog-actions .btn { flex: 1; min-width: 100px; padding: 12px; }
 
         /* --- RESPONSIVE UTILS --- */
         .mobile-menu-btn { display: none; position: fixed; top: 20px; right: 20px; z-index: 1001; background: var(--bg-card); color: var(--primary); border: 1px solid var(--border-color); padding: 10px; border-radius: 12px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -507,6 +507,7 @@
         <p id="cdMsg" style="color:var(--text-muted); margin-bottom:25px; font-size:14px; line-height:1.6"></p>
         <div class="dialog-actions">
             <button id="cdOkBtn" class="btn btn-primary"></button>
+            <button id="cdThirdBtn" class="btn btn-warning" style="display:none;"></button>
             <button id="cdCancelBtn" class="btn btn-danger" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="resolveConfirm(false)"></button>
         </div>
     </div>
@@ -736,7 +737,7 @@
         </div>
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
-                <input id="historySearch" onkeyup="filterHistory()" placeholder="بحث باسم العميل..." style="padding-right: 40px;">
+                <input id="historySearch" onkeyup="currentPage.history=1; filterHistory()" placeholder="بحث باسم العميل أو الخدمة..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
@@ -746,6 +747,7 @@
                 <tbody id="historyBody"></tbody>
             </table>
         </div>
+        <div id="historyPagination" class="pagination"></div>
     </div>
 
     <div id="investment" class="card hidden">
@@ -1047,7 +1049,7 @@ function esc(s) { if(typeof s !== 'string') return s; return s.replace(/&/g, "&a
 let _confirmResolve = null;
 let _promptResolve = null;
 
-function showConfirm(title, msg, okText = "تأكيد", cancelText = "إلغاء", iconHtml = '<i class="fas fa-exclamation-triangle"></i>') {
+function showConfirm(title, msg, okText = "تأكيد", cancelText = "إلغاء", iconHtml = '<i class="fas fa-exclamation-triangle"></i>', thirdText = null) {
     return new Promise(resolve => {
         _confirmResolve = resolve;
         document.getElementById("cdIcon").innerHTML = iconHtml; 
@@ -1055,6 +1057,16 @@ function showConfirm(title, msg, okText = "تأكيد", cancelText = "إلغاء
         document.getElementById("cdMsg").textContent = msg;
         document.getElementById("cdOkBtn").innerHTML = okText;
         document.getElementById("cdCancelBtn").innerHTML = cancelText;
+        
+        let tBtn = document.getElementById("cdThirdBtn");
+        if(thirdText) {
+            tBtn.innerHTML = thirdText;
+            tBtn.style.display = "block";
+            tBtn.onclick = () => resolveConfirm('third');
+        } else {
+            tBtn.style.display = "none";
+        }
+        
         document.getElementById("cdOkBtn").onclick = () => resolveConfirm(true);
         document.getElementById("customConfirmDialog").style.display = "flex";
     });
@@ -1107,7 +1119,7 @@ let syncTimer = null;
 let currentStockTab = 'active';
 
 // Pagination state
-let currentPage = { logs: 1, expiring: 1, stock: 1 };
+let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1 };
 const ITEMS_PER_PAGE = 50;
 
 let ghConfig = {
@@ -1709,15 +1721,24 @@ function refreshLogs() {
 
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
-    let ok = await showConfirm("مسح سجل الحركات", "سيتم حذف جميع سجلات الحركات نهائياً.", "مسح", "إلغاء", '<i class="fas fa-trash-alt"></i>');
-    if(ok) {
+    let res = await showConfirm("مسح سجل الحركات", "سيتم حذف السجلات نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 (توفير مساحة)");
+    if(!res) return;
+    
+    let logs = safeJSON(localStorage.activityLog, []);
+    if(res === 'third') {
+        if(logs.length > ITEMS_PER_PAGE) logs.splice(-ITEMS_PER_PAGE, ITEMS_PER_PAGE);
+        else logs = [];
+        localStorage.activityLog = JSON.stringify(logs);
+        logAction("قام الأدمن بمسح أقدم 50 سجل نشاط لتوفير المساحة");
+    } else {
         localStorage.activityLog = "[]";
-        currentPage.logs = 1;
-        refreshLogs();
-        logAction("قام الأدمن بمسح سجل الحركات");
-        pushToGithub();
-        notify("تم مسح السجل");
+        logAction("قام الأدمن بمسح سجل الحركات بالكامل");
     }
+    
+    currentPage.logs = 1;
+    refreshLogs();
+    pushToGithub();
+    notify("تم المسح بنجاح");
 }
 
 function addNewUser() {
@@ -2071,6 +2092,7 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
         toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
     });
     
+    currentPage.history = 1;
     refreshAll(); pushToGithub(); notify("تمت العملية بنجاح");
     paidAmount.value=""; costAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; subDuration.value="1";
 }
@@ -2171,19 +2193,30 @@ function refreshWallets(){
     }
 }
 function refreshHistory(){
+    let p = safeJSON(localStorage.purchases, []);
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
-    let rows = "";
-    safeJSON(localStorage.purchases, []).slice().reverse().forEach(p=>{
-        let phoneD = isRestricted ? '----' : esc(p.phone);
-        let subD = isRestricted ? '----' : `<span class="badge badge-info">${esc(p.sub)}</span>`;
-        let paidD = isRestricted ? '----' : esc(p.paid);
-        let costD = isRestricted ? '----' : esc(p.cost);
-        let walletD = isRestricted ? '----' : esc(p.wallet);
-        rows+=`<tr><td>${p.date}</td><td><b>${esc(p.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td>${p.duration||'-'} شهر</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
+    let v = document.getElementById("historySearch").value.toLowerCase();
+    
+    let filtered = p.slice().reverse().filter(item => {
+        return !v || (item.customer||'').toLowerCase().includes(v) || (item.sub||'').toLowerCase().includes(v) || (item.phone||'').includes(v);
     });
-    historyBody.innerHTML = rows;
+    
+    renderPagination(filtered.length, 'history', refreshHistory, 'historyPagination');
+    let paginated = filtered.slice((currentPage.history - 1) * ITEMS_PER_PAGE, currentPage.history * ITEMS_PER_PAGE);
+    
+    let rows = "";
+    paginated.forEach(item => {
+        let phoneD = isRestricted ? '----' : esc(item.phone);
+        let subD = isRestricted ? '----' : `<span class="badge badge-info">${esc(item.sub)}</span>`;
+        let paidD = isRestricted ? '----' : esc(item.paid);
+        let costD = isRestricted ? '----' : esc(item.cost);
+        let walletD = isRestricted ? '----' : esc(item.wallet);
+        rows+=`<tr><td>${item.date}</td><td><b>${esc(item.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td>${item.duration||'-'} شهر</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
+    });
+    document.getElementById("historyBody").innerHTML = rows || `<tr><td colspan='8' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
-function filterHistory() { let v = document.getElementById("historySearch").value.toLowerCase(); document.querySelectorAll("#historyBody tr").forEach(r => r.style.display = r.innerText.toLowerCase().includes(v) ? "" : "none"); }
+function filterHistory() { refreshHistory(); }
+
 function refreshInvestment(){
     let i=safeJSON(localStorage.invest, {});
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
@@ -2431,6 +2464,7 @@ function importData(){
     r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); Object.keys(d).forEach(k=>localStorage.setItem(k,d[k])); notify("تم الاستعادة، جاري التحديث..."); logAction("استيراد بيانات من نسخة احتياطية"); await pushToGithub(true); location.reload(); }catch(err){notify("ملف تالف","error");} }; 
     if(f) r.readAsText(f); else notify("اختر ملف","error"); 
 }
+
 async function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     let purchases = safeJSON(localStorage.purchases, []);
@@ -2445,12 +2479,31 @@ async function undoLastPurchase(){
     localStorage.purchases = JSON.stringify(purchases);
     if(lastP.investSnapshot) { localStorage.invest = JSON.stringify(lastP.investSnapshot); }
     logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, refunded: lastP.cost, deducted: lastP.paid });
+    
+    currentPage.history = 1;
     refreshAll(); pushToGithub(); notify("تم التراجع"); 
 }
+
 async function clearHistory(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); 
-    let ok = await showConfirm("مسح سجل العمليات", "سيتم حذف جميع العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>');
-    if(ok){ localStorage.purchases="[]"; logAction("مسح سجل العمليات بالكامل"); refreshHistory(); pushToGithub(); notify("تم المسح"); } 
+    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 عملية");
+    if(!res) return;
+    
+    let purchases = safeJSON(localStorage.purchases, []);
+    if(res === 'third') {
+        if(purchases.length > ITEMS_PER_PAGE) purchases.splice(0, ITEMS_PER_PAGE); 
+        else purchases = [];
+        localStorage.purchases = JSON.stringify(purchases);
+        logAction("قام الأدمن بمسح أقدم 50 عملية مالية لتوفير المساحة");
+    } else {
+        localStorage.purchases="[]"; 
+        logAction("مسح سجل العمليات بالكامل"); 
+    }
+    
+    currentPage.history = 1;
+    refreshHistory(); 
+    pushToGithub(); 
+    notify("تم المسح بنجاح");
 }
 
 function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserModal') document.getElementById("editUserModal").classList.add("hidden"); }
@@ -2547,14 +2600,24 @@ function switchStockTab(tab, btn) {
 }
 
 async function deleteAllSoldStock() {
-    let ok = await showConfirm("حذف كل المباع", "هل أنت متأكد من حذف كافة الاشتراكات المباعة نهائياً من الأرشيف؟", "حذف الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>');
-    if(!ok) return;
+    let res = await showConfirm("حذف المباع", "سيتم حذف كافة الاشتراكات المباعة نهائياً من الأرشيف.", "حذف الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 مباع");
+    if(!res) return;
+    
     let stock = safeJSON(localStorage.stock, []);
-    stock = stock.filter(s => s.status !== 'sold');
+    if(res === 'third') {
+        let soldItems = stock.filter(s => s.status === 'sold');
+        soldItems.sort((a, b) => a.timestamp - b.timestamp); // Oldest first
+        let toRemove = soldItems.slice(0, ITEMS_PER_PAGE).map(s => s.id);
+        stock = stock.filter(s => !toRemove.includes(s.id));
+        logAction("قام الأدمن بحذف أقدم 50 اشتراك مباع");
+    } else {
+        stock = stock.filter(s => s.status !== 'sold');
+        logAction("قام الأدمن بحذف كافة الاشتراكات المباعة");
+    }
+    
     localStorage.stock = JSON.stringify(stock);
-    logAction("قام الأدمن بحذف كافة الاشتراكات المباعة");
     currentPage.stock = 1;
-    refreshStock(); pushToGithub(); notify("تم مسح السجل بنجاح");
+    refreshStock(); pushToGithub(); notify("تم المسح بنجاح");
 }
 
 function refreshStock() {
@@ -2608,7 +2671,6 @@ function refreshStock() {
 
     let rows = "";
     paginated.forEach((item) => {
-        // Need exact index in original array for editing
         let realIndex = stock.findIndex(x => x.id === item.id);
         
         let purchaseDate = new Date(item.timestamp);
@@ -2776,4 +2838,3 @@ window.onload=init;
 </script>
 </body>
 </html>
-
