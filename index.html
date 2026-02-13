@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | System</title>
+    <title>Mega Store Pro | Closed System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -647,6 +647,11 @@
                 <button id="btnClearLogs" class="btn btn-danger hidden" onclick="clearLogs()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-trash-alt"></i> مسح السجل</button>
             </div>
         </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchLogsTab('financial', this)">حركات مالية وتفصيلية</button>
+            <button class="tab-btn" onclick="switchLogsTab('general', this)">حركات عامة</button>
+        </div>
         
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
@@ -1118,6 +1123,7 @@ let currentUser = null;
 let isDemoMode = false;
 let syncTimer = null; 
 let currentStockTab = 'active';
+let currentLogsTab = 'financial';
 
 let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1 };
 const ITEMS_PER_PAGE = 50;
@@ -1659,13 +1665,26 @@ function changePage(key, dir, func) {
     func();
 }
 
+function switchLogsTab(tab, btn) {
+    currentLogsTab = tab;
+    document.querySelectorAll('#logs .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPage.logs = 1;
+    refreshLogs();
+}
+
 function refreshLogs() {
     let logs = safeJSON(localStorage.activityLog, []);
     let search = document.getElementById("logsSearch").value.toLowerCase();
     const tbody = document.getElementById("logsTableBody");
     let isViewer = currentUser && currentUser.role === 'viewer';
     
-    let filtered = logs.filter(log => {
+    let tabFiltered = logs.filter(log => {
+        if(currentLogsTab === 'financial') return log.details != null;
+        else return log.details == null;
+    });
+
+    let filtered = tabFiltered.filter(log => {
         return !search || log.user.toLowerCase().includes(search) || log.action.toLowerCase().includes(search);
     });
 
@@ -1677,27 +1696,35 @@ function refreshLogs() {
         let detailsBtn = "";
         if(log.details && !isViewer) {
             detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
+        } else if (!log.details) {
+            detailsBtn = `<span style="color:var(--text-muted); font-size:12px;">-</span>`;
         }
         rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
     });
-    tbody.innerHTML = rows;
+    tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
-    let res = await showConfirm("مسح سجل الحركات", "سيتم حذف السجلات نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
+    
+    let tabName = currentLogsTab === 'financial' ? "الحركات المالية" : "الحركات العامة";
+    let res = await showConfirm(`مسح ${tabName}`, `سيتم حذف سجلات ${tabName} نهائياً.`, "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
-    let logs = safeJSON(localStorage.activityLog, []);
+    let allLogs = safeJSON(localStorage.activityLog, []);
+    let targetLogs = allLogs.filter(log => (currentLogsTab === 'financial' ? log.details != null : log.details == null));
+    
+    let logsToSave = [];
     if(res === 'third') {
-        if(logs.length > ITEMS_PER_PAGE) logs.splice(-ITEMS_PER_PAGE, ITEMS_PER_PAGE);
-        else logs = [];
-        localStorage.activityLog = JSON.stringify(logs);
-        logAction("قام الأدمن بمسح أقدم 50 سجل نشاط لتوفير المساحة");
+        let itemsToRemove = targetLogs.slice(-ITEMS_PER_PAGE);
+        logsToSave = allLogs.filter(l => !itemsToRemove.includes(l));
     } else {
-        localStorage.activityLog = "[]";
-        logAction("قام الأدمن بمسح سجل الحركات بالكامل");
+        logsToSave = allLogs.filter(log => (currentLogsTab === 'financial' ? log.details == null : log.details != null));
     }
+    
+    localStorage.activityLog = JSON.stringify(logsToSave);
+    
+    logAction(`قام الأدمن بمسح ${res === 'third' ? 'أقدم 50 سجل من' : 'كافة'} ${tabName}`);
     
     currentPage.logs = 1;
     refreshLogs();
@@ -1955,7 +1982,14 @@ function validatePhoneInput(el) {
 
 function addPurchase(){
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
-    if(paidAmount.value === "" || costAmount.value === "") { notify("املأ المبلغ المدفوع والتكلفة","error"); return; }
+    
+    let paid = parseFloat(paidAmount.value);
+    let cost = parseFloat(costAmount.value);
+    
+    if(isNaN(paid) || isNaN(cost) || paid < 0 || cost < 0) { 
+        notify("يرجى إدخال مبالغ صحيحة وموجبة", "error"); 
+        return; 
+    }
     
     let stockId = sub.value;
     if(!stockId) { notify("يرجى اختيار الاشتراك من المخزون","error"); return; }
@@ -1963,7 +1997,6 @@ function addPurchase(){
     let stItem = stockList.find(x => x.id === stockId);
     if(!stItem || stItem.status !== 'active') { notify("هذا الاشتراك لم يعد متاحاً","error"); return; }
     
-    let paid=+paidAmount.value, cost=+costAmount.value;
     let paidCur=paidCurrency.value, costCur=costCurrency.value;
     let from=fromWallet.value, duration = +subDuration.value;
     let settings=safeJSON(localStorage.settings, {});
@@ -2483,7 +2516,7 @@ async function undoLastPurchase(){
         let sItem = stockList.find(x => x.id === lastP.stockId);
         if(sItem) {
             sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1);
-            if(sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop(); // Remove the last buyer
+            if(sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop(); 
             if(sItem.status === 'sold') {
                 sItem.status = 'active';
                 delete sItem.soldDate;
@@ -2501,7 +2534,7 @@ async function undoLastPurchase(){
 
 async function clearHistory(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); 
-    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 عملية");
+    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
     let purchases = safeJSON(localStorage.purchases, []);
@@ -2642,7 +2675,7 @@ async function deleteAllSoldStock() {
     let stock = safeJSON(localStorage.stock, []);
     if(res === 'third') {
         let soldItems = stock.filter(s => s.status === 'sold');
-        soldItems.sort((a, b) => a.timestamp - b.timestamp); // Oldest first
+        soldItems.sort((a, b) => a.timestamp - b.timestamp); 
         let toRemove = soldItems.slice(0, ITEMS_PER_PAGE).map(s => s.id);
         stock = stock.filter(s => !toRemove.includes(s.id));
         logAction("قام الأدمن بحذف أقدم 50 اشتراك مباع");
@@ -2676,7 +2709,6 @@ function refreshStock() {
         return matchesTab && matchesSearch;
     });
 
-    // Sort newest first
     filtered.sort((a, b) => b.timestamp - a.timestamp);
 
     renderPagination(filtered.length, 'stock', refreshStock, 'stockPagination');
@@ -2891,4 +2923,3 @@ window.onload=init;
 </script>
 </body>
 </html>
-
