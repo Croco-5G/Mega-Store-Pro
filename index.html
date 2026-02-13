@@ -834,7 +834,7 @@
 
                 <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);">
                     <label style="color:var(--yellow-text)">الصافي للمستلم:</label>
-                    <input type="number" id="tfResult" placeholder="0.00" readonly style="background:transparent; border:none; font-weight:800; font-size:18px; color:var(--yellow-text); padding:0;">
+                    <input type="number" id="tfResult" placeholder="0.00" style="background:var(--bg-card); border:1px solid var(--yellow-border); font-weight:800; font-size:18px; color:var(--yellow-text); padding:8px 12px; border-radius:var(--radius-md); width:100%; box-sizing:border-box;">
                 </div>
 
                 <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="executeTransfer()">إتمام التحويل</button>
@@ -1020,7 +1020,7 @@ let _promptResolve = null;
 function showConfirm(title, msg, okText = "تأكيد", cancelText = "إلغاء", iconHtml = '<i class="fas fa-exclamation-triangle"></i>') {
     return new Promise(resolve => {
         _confirmResolve = resolve;
-        document.getElementById("cdIcon").innerHTML = iconHtml; // Changed to innerHTML
+        document.getElementById("cdIcon").innerHTML = iconHtml; 
         document.getElementById("cdTitle").textContent = title;
         document.getElementById("cdMsg").textContent = msg;
         document.getElementById("cdOkBtn").innerHTML = okText;
@@ -1037,7 +1037,7 @@ function resolveConfirm(val) {
 function showPrompt(title, msg = "", placeholder = "", iconHtml = '<i class="fas fa-pen"></i>') {
     return new Promise(resolve => {
         _promptResolve = resolve;
-        document.getElementById("pdIcon").innerHTML = iconHtml; // Changed to innerHTML
+        document.getElementById("pdIcon").innerHTML = iconHtml; 
         document.getElementById("pdTitle").textContent = title;
         document.getElementById("pdMsg").textContent = msg;
         document.getElementById("pdInput").placeholder = placeholder;
@@ -1565,12 +1565,13 @@ async function changeLogsVis() {
     document.getElementById("customPromptDialog").style.display = "flex";
     
     let prevResolve = _promptResolve;
-    _promptResolve = (ok) => {
-        let newVal = ok ? document.getElementById("logsVisSelect")?.value : null;
+    _promptResolve = (valFromPrompt) => {
+        let isConfirmed = valFromPrompt !== null;
+        let newVal = isConfirmed ? document.getElementById("logsVisSelect")?.value : null;
         sel.remove(); inp.style.display = "";
         document.getElementById("customPromptDialog").style.display = "none";
         _promptResolve = null;
-        if(newVal) {
+        if(newVal && newVal !== current) {
             let settings = safeJSON(localStorage.settings, {});
             settings.logsVis = newVal;
             localStorage.settings = JSON.stringify(settings);
@@ -1604,10 +1605,12 @@ function refreshLogs() {
     let search = document.getElementById("logsSearch").value.toLowerCase();
     const tbody = document.getElementById("logsTableBody");
     let rows = "";
+    let isViewer = currentUser && currentUser.role === 'viewer';
+    
     logs.forEach((log, index) => {
         if(search && !log.user.toLowerCase().includes(search) && !log.action.toLowerCase().includes(search)) return;
         let detailsBtn = "";
-        if(log.details) {
+        if(log.details && !isViewer) {
             detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
         }
         rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${log.user}</b></td><td>${log.action}</td><td>${detailsBtn}</td></tr>`;
@@ -1864,7 +1867,6 @@ function saveGithubSettings() {
 function validatePhoneInput(el) {
     let v = el.value.trim();
     if(!v) { el.style.borderColor = ""; return; }
-    // Relaxed validation: Just check if it has content
     el.style.borderColor = "var(--success)";
 }
 
@@ -1898,11 +1900,11 @@ function addPurchase(){
             <div><i class="fas fa-user"></i> <b>العميل:</b> ${customer.value||'—'} ${customerPhone.value?'('+customerPhone.value+')':''}</div>
             <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration} شهر</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
-                <span style="color:var(--success)">💰 مدفوع: ${paid}${paidCur}</span> &nbsp;|&nbsp;
-                <span style="color:var(--danger)">💸 تكلفة: ${cost}${costCur}</span>
+                <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span> &nbsp;|&nbsp;
+                <span style="color:var(--danger)"><i class="fas fa-hand-holding-usd"></i> تكلفة: ${cost}${costCur}</span>
             </div>
-            <div>📊 <b>صافي الربح تقريباً:</b> <b style="color:var(--primary)">${profitStr}</b></div>
-            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)">⬅️ من: ${from} &nbsp;|&nbsp; ➡️ إلى: ${wallet.value}</div>
+            <div><i class="fas fa-chart-line"></i> <b>صافي الربح تقريباً:</b> <b style="color:var(--primary)">${profitStr}</b></div>
+            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-left"></i> من: ${from} &nbsp;|&nbsp; <i class="fas fa-arrow-right"></i> إلى: ${wallet.value}</div>
         </div>`;
     
     document.getElementById("purchaseConfirmModal").style.display = "flex";
@@ -1981,7 +1983,7 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
         toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
     });
     
-    refreshAll(); pushToGithub(); notify("✅ تمت العملية بنجاح");
+    refreshAll(); pushToGithub(); notify("تمت العملية بنجاح");
     paidAmount.value=""; costAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; subDuration.value="1";
 }
 function refreshAll(){
@@ -2456,7 +2458,8 @@ function refreshStock() {
         let matchesTab = (currentStockTab === 'active') ? (item.status !== 'sold') : (item.status === 'sold');
         let matchesSearch = (item.service||'').toLowerCase().includes(searchTerm) || 
                             (item.email||'').toLowerCase().includes(searchTerm) ||
-                            (item.vendor||'').toLowerCase().includes(searchTerm);
+                            (item.vendor||'').toLowerCase().includes(searchTerm) ||
+                            (item.soldTo||'').toLowerCase().includes(searchTerm);
         return matchesTab && matchesSearch;
     });
 
