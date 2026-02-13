@@ -590,7 +590,7 @@
         <h3><i class="fas fa-cart-plus" style="color:var(--primary)"></i> تسجيل اشتراك جديد</h3>
         <div class="grid-2">
             <div class="input-group"><label>نوع الاشتراك</label>
-                <select id="sub"><option value="">اختر الخدمة...</option></select>
+                <select id="sub"><option value="">اختر من المخزون المتاح...</option></select>
             </div>
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
@@ -1024,6 +1024,9 @@
         <div class="input-group"><label>نوع الخدمة</label>
             <select id="stService"><option value="">اختر الخدمة...</option></select>
         </div>
+        <div class="input-group"><label>عدد البروفايلات (حسابات)</label>
+            <input type="number" id="stProfiles" min="1" step="1" value="1" oninput="this.value = Math.max(1, Math.floor(this.value||1))">
+        </div>
         <div class="input-group"><label>اسم البائع</label><input id="stVendor" placeholder="اسم البائع"></div>
         <div class="input-group"><label>المدة</label>
             <select id="stDuration"><option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="6">6 شهور</option><option value="12">12 شهر</option></select>
@@ -1042,10 +1045,9 @@ function safeJSON(str, fallback) {
     try { return str ? JSON.parse(str) : fallback; }
     catch(e) { console.warn("JSON parse error:", e); return fallback; }
 }
-// Sanitizer to prevent XSS
 function esc(s) { if(typeof s !== 'string') return s; return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 
-// --- UPDATED DIALOG SYSTEM (With HTML Support for Icons) ---
+// --- UPDATED DIALOG SYSTEM ---
 let _confirmResolve = null;
 let _promptResolve = null;
 
@@ -1098,11 +1100,10 @@ function resolvePrompt(ok) {
     if(_promptResolve) { _promptResolve(val); _promptResolve = null; }
 }
 
-// Global Keys
 document.addEventListener("keydown", e => {
     if(e.key === "Enter") {
         if(document.getElementById("customPromptDialog").style.display === "flex") resolvePrompt(true);
-        if(document.getElementById("customConfirmDialog").style.display === "flex") resolveConfirm(true);
+        if(document.getElementById("customConfirmDialog").style.display === "flex" && document.getElementById("cdThirdBtn").style.display === "none") resolveConfirm(true);
     }
     if(e.key === "Escape") {
         if(document.getElementById("customPromptDialog").style.display === "flex") resolvePrompt(false);
@@ -1118,7 +1119,6 @@ let isDemoMode = false;
 let syncTimer = null; 
 let currentStockTab = 'active';
 
-// Pagination state
 let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1 };
 const ITEMS_PER_PAGE = 50;
 
@@ -1482,7 +1482,7 @@ async function attemptLogin() {
         
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadGithubInputs(); loadServices(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadGithubInputs(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         checkExpiringOnLogin();
     } else { 
@@ -1617,42 +1617,6 @@ function applyRBAC() {
 
         showPage('history', document.getElementById('btnHistory'));
     }
-}
-
-async function changeLogsVis() {
-    if(currentUser.role !== 'admin') return;
-    let current = (safeJSON(localStorage.settings, {})).logsVis || 'all';
-    let map = {'all': 'للجميع', 'no_viewer': 'إخفاء عن المشاهد', 'no_employee': 'إخفاء عن الموظف', 'admin_only': 'للأدمن فقط'};
-    
-    document.getElementById("pdIcon").innerHTML = '<i class="fas fa-eye"></i>';
-    document.getElementById("pdTitle").textContent = "إعدادات ظهور سجل الحركات";
-    document.getElementById("pdMsg").textContent = `الوضع الحالي: ${map[current]}`;
-    let inp = document.getElementById("pdInputContainer");
-    inp.style.display = "none"; // Hide input
-    
-    let sel = document.createElement("select");
-    sel.id = "logsVisSelect"; sel.className = "dialog-input";
-    sel.style.width = "100%"; sel.style.padding = "12px"; sel.style.borderRadius = "10px"; sel.style.border = "2px solid var(--border-color)";
-    sel.innerHTML = `<option value="all">إظهار للجميع</option><option value="no_viewer">إخفاء عن المشاهد</option><option value="no_employee">إخفاء عن الموظف</option><option value="admin_only">للأدمن فقط</option>`;
-    sel.value = current;
-    inp.parentNode.insertBefore(sel, inp.nextSibling);
-    
-    document.getElementById("customPromptDialog").style.display = "flex";
-    
-    _promptResolve = (valFromPrompt) => {
-        let isConfirmed = valFromPrompt !== null;
-        let newVal = isConfirmed ? document.getElementById("logsVisSelect")?.value : null;
-        sel.remove(); inp.style.display = "block";
-        document.getElementById("customPromptDialog").style.display = "none";
-        _promptResolve = null;
-        if(newVal && newVal !== current) {
-            let settings = safeJSON(localStorage.settings, {});
-            settings.logsVis = newVal;
-            localStorage.settings = JSON.stringify(settings);
-            logAction(`تغيير إعدادات ظهور السجل إلى: ${map[newVal]}`);
-            pushToGithub(); notify("تم تحديث إعدادات الخصوصية"); applyRBAC();
-        }
-    };
 }
 
 function renderUsersTable() {
@@ -1877,7 +1841,7 @@ function showPage(id, btn){
     document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     
-    if(id === 'purchase') loadServices();
+    if(id === 'purchase') { loadServices(); loadPurchaseStock(); }
     if(id === 'generalNotes') refreshGeneralNotes();
     if(id === 'investment') refreshInvestment();
     if(id === 'history') refreshHistory();
@@ -1939,13 +1903,23 @@ function loadWallets(){
 function loadServices() {
     let services = safeJSON(localStorage.services, []);
     let selStock = document.getElementById("stService");
-    let selPurchase = document.getElementById("sub");
     
     let html = '<option value="">اختر الخدمة...</option>';
     services.forEach(s => { html += `<option value="${esc(s)}">${esc(s)}</option>`; });
-    
     if(selStock) selStock.innerHTML = html;
-    if(selPurchase) selPurchase.innerHTML = html;
+}
+function loadPurchaseStock() {
+    let stock = safeJSON(localStorage.stock, []);
+    let selPurchase = document.getElementById("sub");
+    if(selPurchase) {
+        let html = '<option value="">اختر من المخزون المتاح...</option>';
+        stock.filter(s => s.status === 'active').forEach(s => {
+            let sp = s.soldProfiles || 0;
+            let tp = s.totalProfiles || 1;
+            html += `<option value="${s.id}">${esc(s.displayName || s.service)} (${sp}/${tp})</option>`;
+        });
+        selPurchase.innerHTML = html;
+    }
 }
 function loadProfitSettings(){
     let s = safeJSON(localStorage.settings, {});
@@ -1982,7 +1956,12 @@ function validatePhoneInput(el) {
 function addPurchase(){
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     if(paidAmount.value === "" || costAmount.value === "") { notify("املأ المبلغ المدفوع والتكلفة","error"); return; }
-    if(!sub.value) { notify("يرجى اختيار الخدمة","error"); return; }
+    
+    let stockId = sub.value;
+    if(!stockId) { notify("يرجى اختيار الاشتراك من المخزون","error"); return; }
+    let stockList = safeJSON(localStorage.stock, []);
+    let stItem = stockList.find(x => x.id === stockId);
+    if(!stItem || stItem.status !== 'active') { notify("هذا الاشتراك لم يعد متاحاً","error"); return; }
     
     let paid=+paidAmount.value, cost=+costAmount.value;
     let paidCur=paidCurrency.value, costCur=costCurrency.value;
@@ -2005,7 +1984,7 @@ function addPurchase(){
     
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
-            <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(sub.value)}</div>
+            <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(stItem.displayName || stItem.service)}</div>
             <div><i class="fas fa-user"></i> <b>العميل:</b> ${esc(customer.value)||'—'} ${customerPhone.value?'('+esc(customerPhone.value)+')':''}</div>
             <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration} شهر</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
@@ -2019,11 +1998,11 @@ function addPurchase(){
     document.getElementById("purchaseConfirmModal").style.display = "flex";
     document.getElementById("purchaseConfirmOkBtn").onclick = () => {
         document.getElementById("purchaseConfirmModal").style.display = "none";
-        _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings);
+        _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem);
     };
 }
 
-function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings) {
+function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem) {
     let wallets=safeJSON(localStorage.wallets, {}), invest=safeJSON(localStorage.invest, {}), purchases=safeJSON(localStorage.purchases, []);
     
     let wBefore = wallets[from].bal;
@@ -2064,12 +2043,25 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
     exp.setMonth(exp.getMonth() + duration);
     if(exp.getDate() !== d.getDate()) exp.setDate(0);
     
+    // Update Stock
+    stItem.soldProfiles = (stItem.soldProfiles || 0) + 1;
+    if(stItem.soldProfiles >= (stItem.totalProfiles || 1)) {
+        stItem.status = 'sold';
+        stItem.soldDate = new Date().toLocaleDateString('ar-EG');
+        stItem.soldTo = customer.value || customerPhone.value || "مباشر";
+    }
+    let stockList = safeJSON(localStorage.stock, []);
+    let stIdx = stockList.findIndex(x => x.id === stItem.id);
+    if(stIdx !== -1) stockList[stIdx] = stItem;
+    localStorage.stock = JSON.stringify(stockList);
+
     purchases.push({
         id: Date.now() + '_' + Math.random().toString(36).substr(2,5),
         date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(),
         customer: customer.value||"عميل",
         phone: customerPhone.value||"-",
-        sub: sub.value,
+        sub: stItem.displayName || stItem.service,
+        stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
         cost: cost+costCur,
@@ -2083,16 +2075,17 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
     localStorage.invest=JSON.stringify(invest);
     localStorage.purchases=JSON.stringify(purchases);
     
-    logAction(`إضافة عملية شراء: ${sub.value} للعميل ${customer.value}`, {
+    logAction(`إضافة عملية شراء: ${stItem.displayName || stItem.service} للعميل ${customer.value}`, {
         type: 'purchase',
         customer: customer.value||"عميل",
-        sub: sub.value,
+        sub: stItem.displayName || stItem.service,
         cost: cost+costCur, paid: paid+paidCur,
         wName: from, wBefore: wBefore, wAfter: wallets[from].bal,
         toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
     });
     
     currentPage.history = 1;
+    loadPurchaseStock();
     refreshAll(); pushToGithub(); notify("تمت العملية بنجاح");
     paidAmount.value=""; costAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; subDuration.value="1";
 }
@@ -2478,9 +2471,26 @@ async function undoLastPurchase(){
     localStorage.wallets = JSON.stringify(wallets);
     localStorage.purchases = JSON.stringify(purchases);
     if(lastP.investSnapshot) { localStorage.invest = JSON.stringify(lastP.investSnapshot); }
+    
+    // Reverse Stock if attached
+    if(lastP.stockId) {
+        let stockList = safeJSON(localStorage.stock, []);
+        let sItem = stockList.find(x => x.id === lastP.stockId);
+        if(sItem) {
+            sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1);
+            if(sItem.status === 'sold') {
+                sItem.status = 'active';
+                delete sItem.soldDate;
+                delete sItem.soldTo;
+            }
+            localStorage.stock = JSON.stringify(stockList);
+        }
+    }
+    
     logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, refunded: lastP.cost, deducted: lastP.paid });
     
     currentPage.history = 1;
+    loadPurchaseStock();
     refreshAll(); pushToGithub(); notify("تم التراجع"); 
 }
 
@@ -2541,6 +2551,7 @@ function openAddStockModal() {
     document.getElementById("stockModalTitle").innerHTML = '<i class="fas fa-plus-circle"></i> إضافة اشتراك للمخزون';
     document.getElementById("stockIndex").value = "-1";
     document.getElementById("stService").value = "";
+    document.getElementById("stProfiles").value = "1";
     document.getElementById("stVendor").value = "";
     ["stEmail","stPass","stNotes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("stDuration").value = "1";
@@ -2555,32 +2566,52 @@ function openAddStockModal() {
 
 function saveStock() {
     let index = +document.getElementById("stockIndex").value;
+    let stService = document.getElementById("stService").value;
+    let stProfiles = parseInt(document.getElementById("stProfiles").value) || 1;
+    if(stProfiles < 1) stProfiles = 1;
+    
+    if(!stService) return notify("يرجى اختيار الخدمة", "error");
+    
+    let baseName = stService + (stProfiles > 1 ? " Shared" : "");
+    let stock = safeJSON(localStorage.stock, []);
+    
+    let activeStock = stock.filter(x => x.status === 'active' && x.id !== (index === -1 ? null : stock[index].id));
+    let finalName = baseName;
+    let counter = 2;
+    while(activeStock.some(x => (x.displayName || x.service) === finalName)) {
+        finalName = baseName + counter;
+        counter++;
+    }
+
     let s = {
-        id: index === -1 ? Date.now() + '_' + Math.random().toString(36).substr(2,5) : (safeJSON(localStorage.stock, [])[index]?.id || Date.now()),
-        service: document.getElementById("stService").value,
+        id: index === -1 ? Date.now() + '_' + Math.random().toString(36).substr(2,5) : stock[index].id,
+        service: stService,
+        displayName: finalName,
+        totalProfiles: stProfiles,
+        soldProfiles: index === -1 ? 0 : (stock[index].soldProfiles || 0),
         vendor: document.getElementById("stVendor").value,
         duration: document.getElementById("stDuration").value,
         email: document.getElementById("stEmail").value.trim(),
         pass: document.getElementById("stPass").value,
         notes: document.getElementById("stNotes").value,
-        status: index === -1 ? 'active' : (safeJSON(localStorage.stock, [])[index]?.status || 'active'),
+        status: index === -1 ? 'active' : (stock[index].status || 'active'),
         date: new Date().toLocaleDateString('ar-EG'),
         timestamp: new Date().getTime()
     };
-    if(!s.service) return notify("يرجى اختيار الخدمة", "error");
-    let stock = safeJSON(localStorage.stock, []);
-    if(index === -1) { stock.push(s); logAction(`إضافة اشتراك للمخزون: ${s.service}`); }
-    else { 
+    
+    if(index !== -1) {
         let old = stock[index];
-        s.status = old.status;
         if(old.soldDate) s.soldDate = old.soldDate;
         if(old.soldTo) s.soldTo = old.soldTo;
-        stock[index] = s; 
-        logAction(`تعديل اشتراك في المخزون: ${s.service}`); 
     }
+    
+    if(index === -1) { stock.unshift(s); logAction(`إضافة اشتراك للمخزون: ${s.displayName}`); }
+    else { stock[index] = s; logAction(`تعديل اشتراك في المخزون: ${s.displayName}`); }
+    
     localStorage.stock = JSON.stringify(stock);
     document.getElementById("stockModal").classList.add("hidden");
     currentPage.stock = 1;
+    loadPurchaseStock();
     refreshStock(); pushToGithub(); notify("تم الحفظ بنجاح");
 }
 
@@ -2627,13 +2658,12 @@ function refreshStock() {
     if(!tbody || !thead) return;
 
     let isAdmin = currentUser && currentUser.role === 'admin';
-    let canSell = currentUser && (currentUser.role === 'admin' || currentUser.role === 'employee');
 
     let searchTerm = document.getElementById("stockSearch").value.toLowerCase();
     
     let filtered = stock.filter(item => {
         let matchesTab = (currentStockTab === 'active') ? (item.status !== 'sold') : (item.status === 'sold');
-        let matchesSearch = (item.service||'').toLowerCase().includes(searchTerm) || 
+        let matchesSearch = (item.displayName||item.service||'').toLowerCase().includes(searchTerm) || 
                             (item.email||'').toLowerCase().includes(searchTerm) ||
                             (item.vendor||'').toLowerCase().includes(searchTerm) ||
                             (item.soldTo||'').toLowerCase().includes(searchTerm);
@@ -2652,15 +2682,17 @@ function refreshStock() {
             <th>الخدمة</th>
             <th>الإيميل</th>
             <th>البائع</th>
+            <th>البروفايلات</th>
             <th>المتبقي</th>
             <th>التفاصيل</th>
-            ${canSell ? '<th>بيع</th>' : ''}
+            ${isAdmin ? '<th>بيع</th>' : ''}
         </tr>`;
     } else {
         let delTh = isAdmin ? '<th>حذف</th>' : '';
         headerHTML = `<tr>
             <th>الخدمة</th>
             <th>الإيميل</th>
+            <th>البروفايلات</th>
             <th>تاريخ البيع</th>
             <th>رقم العميل</th>
             <th>التفاصيل</th>
@@ -2678,13 +2710,16 @@ function refreshStock() {
         expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.duration));
         let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
         
+        let profStr = `${item.soldProfiles || 0}/${item.totalProfiles || 1}`;
+
         if(currentStockTab === 'active') {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
-            let sellBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> تم البيع</button></td>` : '';
+            let sellBtn = isAdmin ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> بيع</button></td>` : '';
             rows += `<tr>
-                <td><span class="badge badge-info">${esc(item.service)}</span></td>
+                <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
                 <td>${esc(item.vendor) || '-'}</td>
+                <td class="eng-num" style="font-weight:bold;">${profStr}</td>
                 <td class="eng-num"><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
                 <td>${detailsBtn}</td>
                 ${sellBtn}
@@ -2694,8 +2729,9 @@ function refreshStock() {
             let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
             
             rows += `<tr>
-                <td><span class="badge badge-info">${esc(item.service)}</span></td>
+                <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
+                <td class="eng-num" style="font-weight:bold;">${profStr}</td>
                 <td class="eng-num">${item.soldDate || '-'}</td>
                 <td class="eng-num">${esc(item.soldTo) || '-'}</td>
                 <td>${viewBtn}</td>
@@ -2703,7 +2739,7 @@ function refreshStock() {
             </tr>`;
         }
     });
-    let colSpan = currentStockTab === 'active' ? (canSell ? 6 : 5) : (isAdmin ? 6 : 5);
+    let colSpan = currentStockTab === 'active' ? (isAdmin ? 7 : 6) : (isAdmin ? 7 : 6);
     tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
@@ -2711,7 +2747,6 @@ function filterStock() {
     refreshStock();
 }
 
-// Edit Active Stock (Admin only can save)
 function editStock(i) {
     let stock = safeJSON(localStorage.stock, []), item = stock[i];
     let isAdmin = currentUser.role === 'admin';
@@ -2720,20 +2755,20 @@ function editStock(i) {
     document.getElementById("stockModalTitle").innerHTML = isAdmin ? '<i class="fas fa-edit"></i> تعديل المخزون' : '<i class="fas fa-eye"></i> تفاصيل المخزون';
     document.getElementById("stockIndex").value = i;
     
-    // Set Values
     let sel = document.getElementById("stService");
     sel.value = item.service;
-    if(sel.value !== item.service) { // Fallback if service was deleted
+    if(sel.value !== item.service) { 
          let o = document.createElement("option"); o.value=item.service; o.text=item.service; sel.appendChild(o);
          sel.value = item.service;
     }
+    
+    document.getElementById("stProfiles").value = item.totalProfiles || 1;
     document.getElementById("stVendor").value = item.vendor || "";
     document.getElementById("stDuration").value = item.duration;
     document.getElementById("stEmail").value = item.email;
     document.getElementById("stPass").value = item.pass;
     document.getElementById("stNotes").value = item.notes;
 
-    // Permissions
     let btnSave = document.querySelector("#stockModal .btn-primary");
     let inputs = document.querySelectorAll("#stockModal input, #stockModal select, #stockModal textarea");
     
@@ -2748,17 +2783,17 @@ function editStock(i) {
     document.getElementById("stockModal").classList.remove("hidden");
 }
 
-// View Sold Details (Read Only Modal)
 function viewSoldDetails(i) {
     let stock = safeJSON(localStorage.stock, []), item = stock[i];
     
     let body = document.getElementById("modalBody");
     body.innerHTML = "";
     
-    body.innerHTML += row("الخدمة", esc(item.service));
+    body.innerHTML += row("الخدمة", esc(item.displayName || item.service));
     body.innerHTML += row("الإيميل", esc(item.email));
     body.innerHTML += row("كلمة المرور", esc(item.pass));
     body.innerHTML += row("البائع", esc(item.vendor) || "-");
+    body.innerHTML += row("البروفايلات", `${item.soldProfiles || 0} / ${item.totalProfiles || 1}`);
     body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
     body.innerHTML += row("تاريخ البيع", item.soldDate);
     body.innerHTML += row("بيع لـ", esc(item.soldTo) || "-");
@@ -2782,9 +2817,10 @@ async function sellStock(i) {
     let stock = safeJSON(localStorage.stock, []);
     let item = stock[i];
     
-    let customerNum = await showPrompt("إتمام البيع", `بيع اشتراك: ${esc(item.service)}`, "رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
+    let customerNum = await showPrompt("إتمام البيع", `بيع اشتراك: ${esc(item.displayName || item.service)}`, "رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
     if (customerNum === null) return; 
 
+    item.soldProfiles = item.totalProfiles || 1;
     item.status = 'sold';
     item.soldDate = new Date().toLocaleDateString('ar-EG');
     item.soldTo = customerNum;
@@ -2792,18 +2828,16 @@ async function sellStock(i) {
     stock[i] = item;
     localStorage.stock = JSON.stringify(stock);
     
-    logAction(`تم بيع اشتراك من المخزون: ${item.service}`);
-    refreshStock(); pushToGithub(); notify("تم نقل الاشتراك إلى المباع");
+    logAction(`تم بيع اشتراك من المخزون يدوياً: ${item.displayName || item.service}`);
+    refreshStock(); loadPurchaseStock(); pushToGithub(); notify("تم نقل الاشتراك إلى المباع");
 }
 
-// --- SERVICES MANAGEMENT ---
 function renderServicesSettings() {
     let list = safeJSON(localStorage.services, []);
     let div = document.getElementById("servicesList");
     let isAdmin = currentUser.role === 'admin';
     div.innerHTML = "";
     
-    // Toggle Add Input Visibility
     let addArea = document.querySelector("#sec-manage-services .inner-box > div:first-child");
     if(addArea) addArea.style.display = isAdmin ? "flex" : "none";
 
