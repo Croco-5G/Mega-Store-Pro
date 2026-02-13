@@ -1685,7 +1685,7 @@ function refreshLogs() {
 
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
-    let res = await showConfirm("مسح سجل الحركات", "سيتم حذف السجلات نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 (توفير مساحة)");
+    let res = await showConfirm("مسح سجل الحركات", "سيتم حذف السجلات نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
     let logs = safeJSON(localStorage.activityLog, []);
@@ -1982,9 +1982,11 @@ function addPurchase(){
         : paid;
     let profitStr = `${fix(profit)} ${paidCur}`;
     
+    let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
+
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
-            <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(stItem.displayName || stItem.service)}</div>
+            <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(cleanName)}</div>
             <div><i class="fas fa-user"></i> <b>العميل:</b> ${esc(customer.value)||'—'} ${customerPhone.value?'('+esc(customerPhone.value)+')':''}</div>
             <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration} شهر</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
@@ -1998,11 +2000,11 @@ function addPurchase(){
     document.getElementById("purchaseConfirmModal").style.display = "flex";
     document.getElementById("purchaseConfirmOkBtn").onclick = () => {
         document.getElementById("purchaseConfirmModal").style.display = "none";
-        _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem);
+        _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem, cleanName);
     };
 }
 
-function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem) {
+function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem, cleanName) {
     let wallets=safeJSON(localStorage.wallets, {}), invest=safeJSON(localStorage.invest, {}), purchases=safeJSON(localStorage.purchases, []);
     
     let wBefore = wallets[from].bal;
@@ -2043,8 +2045,6 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
     exp.setMonth(exp.getMonth() + duration);
     if(exp.getDate() !== d.getDate()) exp.setDate(0);
     
-    let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
-
     let buyerInfo = (customer.value ? customer.value : "عميل") + (customerPhone.value ? ` - ${customerPhone.value}` : "");
     if(!stItem.buyers) stItem.buyers = [];
     stItem.buyers.push(buyerInfo);
@@ -2487,7 +2487,6 @@ async function undoLastPurchase(){
             if(sItem.status === 'sold') {
                 sItem.status = 'active';
                 delete sItem.soldDate;
-                delete sItem.soldTo;
             }
             localStorage.stock = JSON.stringify(stockList);
         }
@@ -2502,7 +2501,7 @@ async function undoLastPurchase(){
 
 async function clearHistory(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); 
-    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
+    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 عملية");
     if(!res) return;
     
     let purchases = safeJSON(localStorage.purchases, []);
@@ -2609,7 +2608,6 @@ function saveStock() {
     if(index !== -1) {
         let old = stock[index];
         if(old.soldDate) s.soldDate = old.soldDate;
-        if(old.soldTo) s.soldTo = old.soldTo;
     }
     
     if(index === -1) { stock.unshift(s); logAction(`إضافة اشتراك للمخزون: ${s.displayName}`); }
@@ -2674,7 +2672,6 @@ function refreshStock() {
         let matchesSearch = (item.displayName||item.service||'').toLowerCase().includes(searchTerm) || 
                             (item.email||'').toLowerCase().includes(searchTerm) ||
                             (item.vendor||'').toLowerCase().includes(searchTerm) ||
-                            (item.soldTo||'').toLowerCase().includes(searchTerm) ||
                             (item.buyers && item.buyers.some(b => b.toLowerCase().includes(searchTerm)));
         return matchesTab && matchesSearch;
     });
@@ -2703,7 +2700,6 @@ function refreshStock() {
             <th>الإيميل</th>
             <th>البروفايلات</th>
             <th>تاريخ البيع</th>
-            <th>العملاء (المشترين)</th>
             <th>التفاصيل</th>
             ${delTh}
         </tr>`;
@@ -2737,23 +2733,17 @@ function refreshStock() {
             let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
             let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
             
-            // Multiple buyers rendering for the table
-            let soldToDisplay = item.buyers && item.buyers.length > 0 
-                ? item.buyers.map(b => esc(b)).join('<br>') 
-                : (esc(item.soldTo) || '-');
-
             rows += `<tr>
                 <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
                 <td class="eng-num" style="font-weight:bold;">${profStr}</td>
                 <td class="eng-num">${item.soldDate || '-'}</td>
-                <td class="eng-num" style="line-height:1.6; text-align:right;">${soldToDisplay}</td>
                 <td>${viewBtn}</td>
                 ${delCell}
             </tr>`;
         }
     });
-    let colSpan = currentStockTab === 'active' ? (canSell ? 7 : 6) : (isAdmin ? 7 : 6);
+    let colSpan = currentStockTab === 'active' ? (canSell ? 7 : 6) : (isAdmin ? 6 : 5);
     tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
@@ -2813,9 +2803,9 @@ function viewSoldDetails(i) {
     
     let buyersHtml = "";
     if(item.buyers && item.buyers.length > 0) {
-        buyersHtml = item.buyers.map((b, idx) => `<div style="padding:4px; border-bottom:1px solid var(--border-color);">${idx+1}- ${esc(b)}</div>`).join('');
+        buyersHtml = item.buyers.map((b, idx) => `<div style="padding:8px 0; border-bottom:1px solid var(--border-color);">${idx+1}. ${esc(b)}</div>`).join('');
     } else {
-        buyersHtml = esc(item.soldTo) || "-";
+        buyersHtml = "مباشر (يدوي)";
     }
     
     body.innerHTML += `<div class="detail-row" style="flex-direction:column; align-items:flex-start;">
