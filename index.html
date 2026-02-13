@@ -413,7 +413,7 @@
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         /* Pagination */
-        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 15px; align-items: center; }
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 15px; align-items: center; flex-wrap: wrap; }
         .page-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text-muted); transition: 0.2s; outline:none; }
         .page-btn:hover:not(.disabled) { background: var(--bg-input); color: var(--primary); }
         .page-btn.disabled { opacity: 0.5; pointer-events: none; }
@@ -689,7 +689,7 @@
                 <button class="tab-btn active" onclick="switchStockTab('active', this)">لم يتم بيعه (متاح)</button>
                 <button class="tab-btn" onclick="switchStockTab('sold', this)">تم بيعه</button>
             </div>
-            <button id="btnDeleteAllSold" class="btn btn-danger hidden" onclick="deleteAllSoldStock()"><i class="fas fa-trash-alt"></i> حذف كل المباع</button>
+            <button id="btnDeleteAllSold" class="btn btn-danger hidden" onclick="deleteAllSoldStock()"><i class="fas fa-trash-alt"></i> مسح المباع</button>
         </div>
 
         <div class="input-group" style="margin-bottom:20px;">
@@ -732,7 +732,7 @@
             <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
             <div style="display:flex; gap:8px; flex-wrap:wrap">
                 <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
-                <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح الكل</button>
+                <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
             </div>
         </div>
         <div class="input-group" style="margin-bottom:20px;">
@@ -1880,7 +1880,7 @@ function _processNotifyQueue() {
     _notifyBusy = true;
     let {msg, type} = _notifyQueue.shift();
     let n = document.getElementById("notification");
-    n.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'}"></i> ` + msg;
+    n.innerHTML = (type==='success' ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-exclamation-triangle"></i> ') + msg;
     n.style.background = type === "success" ? "#10b981" : "#ef4444";
     n.style.display = "flex";
     setTimeout(() => { n.style.display = "none"; setTimeout(_processNotifyQueue, 200); }, 2800);
@@ -1992,7 +1992,7 @@ function addPurchase(){
                 <span style="color:var(--danger)"><i class="fas fa-hand-holding-usd"></i> تكلفة: ${cost}${costCur}</span>
             </div>
             <div><i class="fas fa-chart-line"></i> <b>صافي الربح تقريباً:</b> <b style="color:var(--primary)">${profitStr}</b></div>
-            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-left"></i> من: ${from} &nbsp;|&nbsp; <i class="fas fa-arrow-right"></i> إلى: ${wallet.value}</div>
+            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-left"></i> من: ${esc(from)} &nbsp;|&nbsp; <i class="fas fa-arrow-right"></i> إلى: ${esc(wallet.value)}</div>
         </div>`;
     
     document.getElementById("purchaseConfirmModal").style.display = "flex";
@@ -2043,12 +2043,16 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
     exp.setMonth(exp.getMonth() + duration);
     if(exp.getDate() !== d.getDate()) exp.setDate(0);
     
-    // Update Stock
+    let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
+
+    let buyerInfo = (customer.value ? customer.value : "عميل") + (customerPhone.value ? ` - ${customerPhone.value}` : "");
+    if(!stItem.buyers) stItem.buyers = [];
+    stItem.buyers.push(buyerInfo);
+    
     stItem.soldProfiles = (stItem.soldProfiles || 0) + 1;
     if(stItem.soldProfiles >= (stItem.totalProfiles || 1)) {
         stItem.status = 'sold';
         stItem.soldDate = new Date().toLocaleDateString('ar-EG');
-        stItem.soldTo = customer.value || customerPhone.value || "مباشر";
     }
     let stockList = safeJSON(localStorage.stock, []);
     let stIdx = stockList.findIndex(x => x.id === stItem.id);
@@ -2060,7 +2064,7 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
         date: d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(),
         customer: customer.value||"عميل",
         phone: customerPhone.value||"-",
-        sub: stItem.displayName || stItem.service,
+        sub: cleanName,
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
@@ -2075,10 +2079,10 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
     localStorage.invest=JSON.stringify(invest);
     localStorage.purchases=JSON.stringify(purchases);
     
-    logAction(`إضافة عملية شراء: ${stItem.displayName || stItem.service} للعميل ${customer.value}`, {
+    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customer.value}`, {
         type: 'purchase',
         customer: customer.value||"عميل",
-        sub: stItem.displayName || stItem.service,
+        sub: cleanName,
         cost: cost+costCur, paid: paid+paidCur,
         wName: from, wBefore: wBefore, wAfter: wallets[from].bal,
         toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
@@ -2373,6 +2377,7 @@ function executeTransfer() {
     let result = parseFloat(document.getElementById("tfResult").value); // Taking manual input if modified
 
     if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
+    if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
     let w = safeJSON(localStorage.wallets, {});
@@ -2478,6 +2483,7 @@ async function undoLastPurchase(){
         let sItem = stockList.find(x => x.id === lastP.stockId);
         if(sItem) {
             sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1);
+            if(sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop(); // Remove the last buyer
             if(sItem.status === 'sold') {
                 sItem.status = 'active';
                 delete sItem.soldDate;
@@ -2496,7 +2502,7 @@ async function undoLastPurchase(){
 
 async function clearHistory(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); 
-    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 عملية");
+    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
     let purchases = safeJSON(localStorage.purchases, []);
@@ -2594,6 +2600,7 @@ function saveStock() {
         email: document.getElementById("stEmail").value.trim(),
         pass: document.getElementById("stPass").value,
         notes: document.getElementById("stNotes").value,
+        buyers: index === -1 ? [] : (stock[index].buyers || []),
         status: index === -1 ? 'active' : (stock[index].status || 'active'),
         date: new Date().toLocaleDateString('ar-EG'),
         timestamp: new Date().getTime()
@@ -2631,7 +2638,7 @@ function switchStockTab(tab, btn) {
 }
 
 async function deleteAllSoldStock() {
-    let res = await showConfirm("حذف المباع", "سيتم حذف كافة الاشتراكات المباعة نهائياً من الأرشيف.", "حذف الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 مباع");
+    let res = await showConfirm("حذف المباع", "سيتم حذف كافة الاشتراكات المباعة نهائياً من الأرشيف.", "حذف الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة مباعة");
     if(!res) return;
     
     let stock = safeJSON(localStorage.stock, []);
@@ -2658,6 +2665,7 @@ function refreshStock() {
     if(!tbody || !thead) return;
 
     let isAdmin = currentUser && currentUser.role === 'admin';
+    let canSell = currentUser && (currentUser.role === 'admin' || currentUser.role === 'employee');
 
     let searchTerm = document.getElementById("stockSearch").value.toLowerCase();
     
@@ -2666,7 +2674,8 @@ function refreshStock() {
         let matchesSearch = (item.displayName||item.service||'').toLowerCase().includes(searchTerm) || 
                             (item.email||'').toLowerCase().includes(searchTerm) ||
                             (item.vendor||'').toLowerCase().includes(searchTerm) ||
-                            (item.soldTo||'').toLowerCase().includes(searchTerm);
+                            (item.soldTo||'').toLowerCase().includes(searchTerm) ||
+                            (item.buyers && item.buyers.some(b => b.toLowerCase().includes(searchTerm)));
         return matchesTab && matchesSearch;
     });
 
@@ -2685,7 +2694,7 @@ function refreshStock() {
             <th>البروفايلات</th>
             <th>المتبقي</th>
             <th>التفاصيل</th>
-            ${isAdmin ? '<th>بيع</th>' : ''}
+            ${canSell ? '<th>بيع</th>' : ''}
         </tr>`;
     } else {
         let delTh = isAdmin ? '<th>حذف</th>' : '';
@@ -2694,7 +2703,7 @@ function refreshStock() {
             <th>الإيميل</th>
             <th>البروفايلات</th>
             <th>تاريخ البيع</th>
-            <th>رقم العميل</th>
+            <th>العملاء (المشترين)</th>
             <th>التفاصيل</th>
             ${delTh}
         </tr>`;
@@ -2714,7 +2723,7 @@ function refreshStock() {
 
         if(currentStockTab === 'active') {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
-            let sellBtn = isAdmin ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> بيع</button></td>` : '';
+            let sellBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> بيع</button></td>` : '';
             rows += `<tr>
                 <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
@@ -2728,18 +2737,23 @@ function refreshStock() {
             let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
             let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
             
+            // Multiple buyers rendering for the table
+            let soldToDisplay = item.buyers && item.buyers.length > 0 
+                ? item.buyers.map(b => esc(b)).join('<br>') 
+                : (esc(item.soldTo) || '-');
+
             rows += `<tr>
                 <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
                 <td class="eng-num" style="font-weight:bold;">${profStr}</td>
                 <td class="eng-num">${item.soldDate || '-'}</td>
-                <td class="eng-num">${esc(item.soldTo) || '-'}</td>
+                <td class="eng-num" style="line-height:1.6; text-align:right;">${soldToDisplay}</td>
                 <td>${viewBtn}</td>
                 ${delCell}
             </tr>`;
         }
     });
-    let colSpan = currentStockTab === 'active' ? (isAdmin ? 7 : 6) : (isAdmin ? 7 : 6);
+    let colSpan = currentStockTab === 'active' ? (canSell ? 7 : 6) : (isAdmin ? 7 : 6);
     tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
@@ -2796,7 +2810,19 @@ function viewSoldDetails(i) {
     body.innerHTML += row("البروفايلات", `${item.soldProfiles || 0} / ${item.totalProfiles || 1}`);
     body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
     body.innerHTML += row("تاريخ البيع", item.soldDate);
-    body.innerHTML += row("بيع لـ", esc(item.soldTo) || "-");
+    
+    let buyersHtml = "";
+    if(item.buyers && item.buyers.length > 0) {
+        buyersHtml = item.buyers.map((b, idx) => `<div style="padding:4px; border-bottom:1px solid var(--border-color);">${idx+1}- ${esc(b)}</div>`).join('');
+    } else {
+        buyersHtml = esc(item.soldTo) || "-";
+    }
+    
+    body.innerHTML += `<div class="detail-row" style="flex-direction:column; align-items:flex-start;">
+        <span class="detail-label" style="margin-bottom:8px;">قائمة العملاء (المشترين):</span>
+        <div style="background:var(--bg-input); width:100%; padding:10px; border-radius:8px; font-weight:bold; color:var(--primary);">${buyersHtml}</div>
+    </div>`;
+
     body.innerHTML += `<div style="margin-top:10px; background:var(--bg-input); padding:10px; border-radius:8px; font-size:13px;"><b>ملاحظات:</b><br>${esc(item.notes)||'لا يوجد'}</div>`;
     
     document.getElementById("detailsModal").classList.remove("hidden");
@@ -2817,13 +2843,16 @@ async function sellStock(i) {
     let stock = safeJSON(localStorage.stock, []);
     let item = stock[i];
     
-    let customerNum = await showPrompt("إتمام البيع", `بيع اشتراك: ${esc(item.displayName || item.service)}`, "رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
+    let customerNum = await showPrompt("إتمام البيع يدوياً", `تسجيل بيع لاشتراك: ${esc(item.displayName || item.service)}`, "أدخل اسم/رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
     if (customerNum === null) return; 
+
+    let buyerInfo = customerNum ? `تسجيل يدوي: ${customerNum}` : "مباشر (يدوي)";
+    if(!item.buyers) item.buyers = [];
+    item.buyers.push(buyerInfo);
 
     item.soldProfiles = item.totalProfiles || 1;
     item.status = 'sold';
     item.soldDate = new Date().toLocaleDateString('ar-EG');
-    item.soldTo = customerNum;
     
     stock[i] = item;
     localStorage.stock = JSON.stringify(stock);
