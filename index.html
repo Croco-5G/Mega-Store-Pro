@@ -392,7 +392,6 @@
         
         /* Loading Spinner */
         .loading-spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; display: none; }
-        /* When button has .loading class, show spinner and hide text */
         .btn.loading .loading-spinner { display: block; } 
         .btn.loading span { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -412,6 +411,13 @@
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .tab-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); cursor: pointer; font-weight: 600; color: var(--text-muted); transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 15px; align-items: center; }
+        .page-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text-muted); transition: 0.2s; outline:none; }
+        .page-btn:hover:not(.disabled) { background: var(--bg-input); color: var(--primary); }
+        .page-btn.disabled { opacity: 0.5; pointer-events: none; }
+        .page-info { display: flex; align-items: center; font-size: 13px; font-weight: 700; color: var(--text-main); margin: 0 10px; }
     </style>
 </head>
 
@@ -511,7 +517,9 @@
         <div id="pdIcon" class="dialog-icon"></div>
         <h3 id="pdTitle" style="font-size:18px; margin-top:0;"></h3>
         <p id="pdMsg" style="color:var(--text-muted); margin-bottom:15px; font-size:14px;"></p>
-        <input id="pdInput" class="dialog-input" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none;" placeholder="">
+        <div id="pdInputContainer" style="width:100%;">
+            <input id="pdInput" class="dialog-input" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none;" placeholder="">
+        </div>
         <div class="dialog-actions">
             <button class="btn btn-primary" onclick="resolvePrompt(true)">تأكيد</button>
             <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted);" onclick="resolvePrompt(false)">إلغاء</button>
@@ -641,7 +649,7 @@
         
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
-                <input id="logsSearch" onkeyup="refreshLogs()" placeholder="بحث في السجل..." style="padding-right: 40px;">
+                <input id="logsSearch" onkeyup="currentPage.logs=1; refreshLogs()" placeholder="بحث في السجل..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
@@ -652,6 +660,7 @@
                 <tbody id="logsTableBody"></tbody>
             </table>
         </div>
+        <div id="logsPagination" class="pagination"></div>
     </div>
 
     <div id="expiring" class="card hidden">
@@ -665,6 +674,7 @@
                 <tbody id="expiringBody"></tbody>
             </table>
         </div>
+        <div id="expiringPagination" class="pagination"></div>
     </div>
 
     <div id="stock" class="card hidden">
@@ -673,14 +683,17 @@
             <button id="btnAddStock" class="btn btn-primary" onclick="openAddStockModal()"><i class="fas fa-plus"></i> إضافة</button>
         </div>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchStockTab('active', this)">لم يتم بيعه (متاح)</button>
-            <button class="tab-btn" onclick="switchStockTab('sold', this)">تم بيعه</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+            <div class="tabs" style="margin-bottom:0;">
+                <button class="tab-btn active" onclick="switchStockTab('active', this)">لم يتم بيعه (متاح)</button>
+                <button class="tab-btn" onclick="switchStockTab('sold', this)">تم بيعه</button>
+            </div>
+            <button id="btnDeleteAllSold" class="btn btn-danger hidden" onclick="deleteAllSoldStock()"><i class="fas fa-trash-alt"></i> حذف كل المباع</button>
         </div>
 
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
-                <input id="stockSearch" onkeyup="filterStock()" placeholder="بحث في الجدول..." style="padding-right: 40px;">
+                <input id="stockSearch" onkeyup="currentPage.stock=1; filterStock()" placeholder="بحث في الجدول..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
@@ -692,6 +705,7 @@
                 <tbody id="stockBody"></tbody>
             </table>
         </div>
+        <div id="stockPagination" class="pagination"></div>
     </div>
 
     <div id="analytics" class="card hidden">
@@ -778,6 +792,20 @@
 
     <div id="modify" class="card hidden">
         
+        <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
+            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-hdd" style="color:var(--primary)"></i> مساحة التخزين المستهلكة</h3>
+            <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; font-weight:700;">
+                    <span>المستهلك: <span id="storageUsed">0</span> ميجابايت</span>
+                    <span>المتبقي: <span id="storageFree">5</span> ميجابايت</span>
+                </div>
+                <div style="width:100%; background:var(--border-color); height:10px; border-radius:10px; overflow:hidden;">
+                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition:0.3s;"></div>
+                </div>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:10px; margin-bottom:0;">ملاحظة: المساحة (5MB) مخصصة لهذا الموقع فقط ولا تشاركها مع مواقع أخرى.</p>
+            </div>
+        </div>
+
         <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 25px; border-radius: var(--radius-lg); margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -1012,6 +1040,8 @@ function safeJSON(str, fallback) {
     try { return str ? JSON.parse(str) : fallback; }
     catch(e) { console.warn("JSON parse error:", e); return fallback; }
 }
+// Sanitizer to prevent XSS
+function esc(s) { if(typeof s !== 'string') return s; return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 
 // --- UPDATED DIALOG SYSTEM (With HTML Support for Icons) ---
 let _confirmResolve = null;
@@ -1042,6 +1072,10 @@ function showPrompt(title, msg = "", placeholder = "", iconHtml = '<i class="fas
         document.getElementById("pdMsg").textContent = msg;
         document.getElementById("pdInput").placeholder = placeholder;
         document.getElementById("pdInput").value = "";
+        
+        let selectExists = document.getElementById("logsVisSelect");
+        if(!selectExists) document.getElementById("pdInputContainer").style.display = "block";
+        
         document.getElementById("customPromptDialog").style.display = "flex";
         setTimeout(() => document.getElementById("pdInput").focus(), 100);
     });
@@ -1072,6 +1106,10 @@ let isDemoMode = false;
 let syncTimer = null; 
 let currentStockTab = 'active';
 
+// Pagination state
+let currentPage = { logs: 1, expiring: 1, stock: 1 };
+const ITEMS_PER_PAGE = 50;
+
 let ghConfig = {
     user: localStorage.getItem("gh_user") || "",
     repo: localStorage.getItem("gh_repo") || "",
@@ -1101,25 +1139,25 @@ function showModalDetails(details) {
     
     if(details.type === 'manual') {
         body.innerHTML += row("العملية", "تعديل رصيد محفظة");
-        body.innerHTML += row("السبب", details.reason);
-        body.innerHTML += row("المحفظة", details.wallet);
+        body.innerHTML += row("السبب", esc(details.reason));
+        body.innerHTML += row("المحفظة", esc(details.wallet));
         body.innerHTML += row("الرصيد السابق", fix(details.before), false);
         body.innerHTML += row("التغيير", (details.diff >= 0 ? "+"+details.diff : details.diff), true, details.diff >= 0);
         body.innerHTML += row("الرصيد الجديد", fix(details.after), false);
     } 
     else if(details.type === 'manual_invest') {
         body.innerHTML += row("العملية", "تعديل حصة شريك");
-        body.innerHTML += row("الشريك", details.person);
+        body.innerHTML += row("الشريك", esc(details.person));
         body.innerHTML += row("العملة", details.currency === 'd' ? 'دولار' : 'شيكل');
-        body.innerHTML += row("السبب", details.reason);
+        body.innerHTML += row("السبب", esc(details.reason));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("قبل التعديل", fix(details.before));
         body.innerHTML += row("بعد التعديل", fix(details.after));
     }
     else if (details.type === 'transfer') {
         body.innerHTML += row("العملية", "تحويل أرصدة");
-        body.innerHTML += row("من", details.from);
-        body.innerHTML += row("إلى", details.to);
+        body.innerHTML += row("من", esc(details.from));
+        body.innerHTML += row("إلى", esc(details.to));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("المبلغ الكلي", details.amount + " (" + details.fromCur + ")");
         body.innerHTML += row("العمولة", details.fee + " (" + details.fromCur + ")", true, false);
@@ -1130,24 +1168,24 @@ function showModalDetails(details) {
         body.innerHTML += row("المودع (مستلم)", "+"+details.result + " (" + details.toCur + ")", true, true);
     } else if (details.type === 'purchase') {
         body.innerHTML += row("العملية", "تسجيل شراء");
-        body.innerHTML += row("العميل", details.customer);
-        body.innerHTML += row("الخدمة", details.sub);
+        body.innerHTML += row("العميل", esc(details.customer));
+        body.innerHTML += row("الخدمة", esc(details.sub));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        body.innerHTML += `<h4>المحفظة المصدر: ${details.wName}</h4>`;
+        body.innerHTML += `<h4>المحفظة المصدر: ${esc(details.wName)}</h4>`;
         body.innerHTML += row("قبل الخصم", fix(details.wBefore));
         body.innerHTML += row("المخصوم", "-"+details.cost, true, false);
         body.innerHTML += row("بعد الخصم", fix(details.wAfter));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        body.innerHTML += `<h4>المحفظة المستلمة: ${details.toName}</h4>`;
+        body.innerHTML += `<h4>المحفظة المستلمة: ${esc(details.toName)}</h4>`;
         body.innerHTML += row("قبل الإيداع", fix(details.tBefore));
         body.innerHTML += row("المقبوض", "+"+details.paid, true, true);
         body.innerHTML += row("بعد الإيداع", fix(details.tAfter));
     } else if (details.type === 'withdraw') {
         body.innerHTML += row("العملية", "سحب أرباح");
-        body.innerHTML += row("الشريك/الجهة", details.person);
-        body.innerHTML += row("السبب", details.reason);
+        body.innerHTML += row("الشريك/الجهة", esc(details.person));
+        body.innerHTML += row("السبب", esc(details.reason));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-        body.innerHTML += `<h4>محفظة السحب: ${details.walletName}</h4>`;
+        body.innerHTML += `<h4>محفظة السحب: ${esc(details.walletName)}</h4>`;
         body.innerHTML += row("المبلغ المخصوم", "-"+fix(details.amount) + " " + (details.currency==='$'?'$':'₪'), true, false);
         body.innerHTML += row("رصيد المحفظة بعد", fix(details.walletAfter));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
@@ -1159,14 +1197,14 @@ function showModalDetails(details) {
         body.innerHTML += `<div style="text-align:center; color:var(--accent); margin-bottom:10px"><i class="fas fa-undo"></i> تراجع عن عملية</div>`;
         body.innerHTML += `<p style="text-align:center; font-size:13px">تم عكس العملية الأخيرة وإعادة الأرصدة لوضعها السابق:</p>`;
         if(details.data) {
-             body.innerHTML += row("الخدمة الملغاة", details.data.sub);
-             body.innerHTML += row("العميل", details.data.customer);
+             body.innerHTML += row("الخدمة الملغاة", esc(details.data.sub));
+             body.innerHTML += row("العميل", esc(details.data.customer));
              body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-             body.innerHTML += row(`استرجاع تكلفة (${details.data.fromWallet})`, "+"+details.data.cost, true, true);
-             body.innerHTML += row(`خصم ربح (${details.data.wallet})`, "-"+details.data.paid, true, false);
+             body.innerHTML += row(`استرجاع تكلفة (${esc(details.data.fromWallet)})`, "+"+details.data.cost, true, true);
+             body.innerHTML += row(`خصم ربح (${esc(details.data.wallet)})`, "-"+details.data.paid, true, false);
         }
     } else {
-        body.innerHTML += `<p>${JSON.stringify(details)}</p>`;
+        body.innerHTML += `<p>${esc(JSON.stringify(details))}</p>`;
     }
     
     document.getElementById("detailsModal").classList.remove("hidden");
@@ -1212,7 +1250,10 @@ function logAction(actionDescription, details=null) {
     });
     if(logs.length > 500) logs = logs.slice(0, 500);
     localStorage.activityLog = JSON.stringify(logs);
-    if(document.getElementById("logs").classList.contains("hidden") === false) refreshLogs();
+    if(document.getElementById("logs").classList.contains("hidden") === false) {
+        currentPage.logs = 1;
+        refreshLogs();
+    }
 }
 
 function init(){
@@ -1257,6 +1298,27 @@ function init(){
     }
     
     startSyncLoop();
+    updateStorageUI();
+}
+
+function updateStorageUI() {
+    let total = 0;
+    for(let x in localStorage) {
+        if(localStorage.hasOwnProperty(x)) {
+            total += ((localStorage[x].length + x.length) * 2);
+        }
+    }
+    let usedMB = (total / 1024 / 1024).toFixed(2);
+    let freeMB = (5.00 - usedMB).toFixed(2);
+    let pct = (usedMB / 5.00) * 100;
+    
+    document.getElementById("storageUsed").innerText = usedMB;
+    document.getElementById("storageFree").innerText = freeMB;
+    document.getElementById("storageBar").style.width = Math.min(100, pct) + "%";
+    
+    if(pct > 80) document.getElementById("storageBar").style.background = "var(--danger)";
+    else if(pct > 50) document.getElementById("storageBar").style.background = "var(--accent)";
+    else document.getElementById("storageBar").style.background = "var(--success)";
 }
 
 function startSyncLoop() {
@@ -1409,7 +1471,7 @@ async function attemptLogin() {
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadGithubInputs(); loadServices(); refreshAll(); applyRBAC();
-        document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${currentUser.username} (${getRoleName(currentUser.role)})`;
+        document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         checkExpiringOnLogin();
     } else { 
         notify("بيانات الدخول غير صحيحة", "error");
@@ -1553,22 +1615,22 @@ async function changeLogsVis() {
     document.getElementById("pdIcon").innerHTML = '<i class="fas fa-eye"></i>';
     document.getElementById("pdTitle").textContent = "إعدادات ظهور سجل الحركات";
     document.getElementById("pdMsg").textContent = `الوضع الحالي: ${map[current]}`;
-    let inp = document.getElementById("pdInput");
-    inp.style.display = "none";
+    let inp = document.getElementById("pdInputContainer");
+    inp.style.display = "none"; // Hide input
     
     let sel = document.createElement("select");
     sel.id = "logsVisSelect"; sel.className = "dialog-input";
+    sel.style.width = "100%"; sel.style.padding = "12px"; sel.style.borderRadius = "10px"; sel.style.border = "2px solid var(--border-color)";
     sel.innerHTML = `<option value="all">إظهار للجميع</option><option value="no_viewer">إخفاء عن المشاهد</option><option value="no_employee">إخفاء عن الموظف</option><option value="admin_only">للأدمن فقط</option>`;
     sel.value = current;
     inp.parentNode.insertBefore(sel, inp.nextSibling);
     
     document.getElementById("customPromptDialog").style.display = "flex";
     
-    let prevResolve = _promptResolve;
     _promptResolve = (valFromPrompt) => {
         let isConfirmed = valFromPrompt !== null;
         let newVal = isConfirmed ? document.getElementById("logsVisSelect")?.value : null;
-        sel.remove(); inp.style.display = "";
+        sel.remove(); inp.style.display = "block";
         document.getElementById("customPromptDialog").style.display = "none";
         _promptResolve = null;
         if(newVal && newVal !== current) {
@@ -1595,25 +1657,52 @@ function renderUsersTable() {
         } else { actions = "<small>الحساب الحالي</small>"; }
         let statusClass = u.status === 'active' ? 'security-status-active' : 'security-status-banned';
         let statusText = u.status === 'active' ? 'نشط' : 'محظور';
-        rows += `<tr><td>${u.username}</td><td><span class="badge badge-info">${getRoleName(u.role)}</span></td><td class="${statusClass}">${statusText}</td><td style="font-size:12px">${u.lastLogin}</td><td style="font-size:12px">${u.deviceInfo}</td><td>${actions}</td></tr>`;
+        rows += `<tr><td>${esc(u.username)}</td><td><span class="badge badge-info">${getRoleName(u.role)}</span></td><td class="${statusClass}">${statusText}</td><td style="font-size:12px">${u.lastLogin}</td><td style="font-size:12px">${u.deviceInfo}</td><td>${actions}</td></tr>`;
     });
     tbody.innerHTML = rows;
+}
+
+function renderPagination(totalItems, pageKey, renderFunc, containerId) {
+    let totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+    let container = document.getElementById(containerId);
+    if(!container) return;
+    
+    if(currentPage[pageKey] > totalPages) currentPage[pageKey] = totalPages;
+    if(currentPage[pageKey] < 1) currentPage[pageKey] = 1;
+
+    let html = `
+        <button class="page-btn ${currentPage[pageKey] === 1 ? 'disabled' : ''}" onclick="changePage('${pageKey}', -1, ${renderFunc.name})">السابق</button>
+        <div class="page-info">صفحة ${currentPage[pageKey]} من ${totalPages}</div>
+        <button class="page-btn ${currentPage[pageKey] === totalPages ? 'disabled' : ''}" onclick="changePage('${pageKey}', 1, ${renderFunc.name})">التالي</button>
+    `;
+    container.innerHTML = html;
+}
+
+function changePage(key, dir, func) {
+    currentPage[key] += dir;
+    func();
 }
 
 function refreshLogs() {
     let logs = safeJSON(localStorage.activityLog, []);
     let search = document.getElementById("logsSearch").value.toLowerCase();
     const tbody = document.getElementById("logsTableBody");
-    let rows = "";
     let isViewer = currentUser && currentUser.role === 'viewer';
     
-    logs.forEach((log, index) => {
-        if(search && !log.user.toLowerCase().includes(search) && !log.action.toLowerCase().includes(search)) return;
+    let filtered = logs.filter(log => {
+        return !search || log.user.toLowerCase().includes(search) || log.action.toLowerCase().includes(search);
+    });
+
+    renderPagination(filtered.length, 'logs', refreshLogs, 'logsPagination');
+    let paginated = filtered.slice((currentPage.logs - 1) * ITEMS_PER_PAGE, currentPage.logs * ITEMS_PER_PAGE);
+
+    let rows = "";
+    paginated.forEach((log) => {
         let detailsBtn = "";
         if(log.details && !isViewer) {
             detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
         }
-        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${log.user}</b></td><td>${log.action}</td><td>${detailsBtn}</td></tr>`;
+        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
     });
     tbody.innerHTML = rows;
 }
@@ -1623,6 +1712,7 @@ async function clearLogs() {
     let ok = await showConfirm("مسح سجل الحركات", "سيتم حذف جميع سجلات الحركات نهائياً.", "مسح", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(ok) {
         localStorage.activityLog = "[]";
+        currentPage.logs = 1;
         refreshLogs();
         logAction("قام الأدمن بمسح سجل الحركات");
         pushToGithub();
@@ -1727,7 +1817,7 @@ async function pushToGithub(force = false) {
             ghConfig.sha = data.content.sha;
             retryAttempt = 0; 
             isSyncing = false;
-            
+            updateStorageUI();
             if (syncPending) {
                 syncPending = false;
                 pushToGithub(); 
@@ -1757,9 +1847,7 @@ function showPage(id, btn){
         if((currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') && (id === 'purchase' || id === 'security' || id === 'backup')) return notify("ليس لديك صلاحية", "error");
         if(currentUser.role === 'employee' && (id === 'security' || id === 'backup')) return notify("ليس لديك صلاحية", "error");
         
-        // Strict Check for Investment Page
         if(id === 'investment' && currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
-        // Strict Check for Stock Page
         if(id === 'stock' && (currentUser.role === 'viewer' || currentUser.role === 'viewer_plus')) return notify("ليس لديك صلاحية", "error");
     }
     document.querySelectorAll(".card").forEach(x=>x.classList.add("hidden"));
@@ -1778,7 +1866,7 @@ function showPage(id, btn){
     if(id === 'security') renderUsersTable();
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
-    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); }
+    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); }
 }
 
 function toggleSidebar() {
@@ -1833,7 +1921,7 @@ function loadServices() {
     let selPurchase = document.getElementById("sub");
     
     let html = '<option value="">اختر الخدمة...</option>';
-    services.forEach(s => { html += `<option value="${s}">${s}</option>`; });
+    services.forEach(s => { html += `<option value="${esc(s)}">${esc(s)}</option>`; });
     
     if(selStock) selStock.innerHTML = html;
     if(selPurchase) selPurchase.innerHTML = html;
@@ -1896,8 +1984,8 @@ function addPurchase(){
     
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
-            <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${sub.value}</div>
-            <div><i class="fas fa-user"></i> <b>العميل:</b> ${customer.value||'—'} ${customerPhone.value?'('+customerPhone.value+')':''}</div>
+            <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(sub.value)}</div>
+            <div><i class="fas fa-user"></i> <b>العميل:</b> ${esc(customer.value)||'—'} ${customerPhone.value?'('+esc(customerPhone.value)+')':''}</div>
             <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration} شهر</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
                 <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span> &nbsp;|&nbsp;
@@ -2011,7 +2099,7 @@ function refreshAll(){
         'analytics': refreshAnalytics,
         'logs': refreshLogs,
         'stock': refreshStock,
-        'modify': () => { refreshTodoList(); renderServicesSettings(); }
+        'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); }
     };
     
     refreshInvestment();
@@ -2031,26 +2119,32 @@ function refreshExpiring() {
     let body = document.getElementById("expiringBody"); 
     if(!body) return;
     let now = new Date().getTime(), days3 = 3 * 86400000;
-    let list = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
-    list.sort((a, b) => a.d.expiry - b.d.expiry);
+    
+    let filtered = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
+    filtered.sort((a, b) => a.d.expiry - b.d.expiry);
+    
+    renderPagination(filtered.length, 'expiring', refreshExpiring, 'expiringPagination');
+    let paginated = filtered.slice((currentPage.expiring - 1) * ITEMS_PER_PAGE, currentPage.expiring * ITEMS_PER_PAGE);
     
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let isViewer = currentUser ? (currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') : true;
     
     let rows = "";
-    list.forEach(x => {
+    paginated.forEach(x => {
         let item = x.d, daysLeft = Math.ceil((item.expiry - now) / 86400000);
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
-        let wa = `https://wa.me/${item.phone.replace(/\D/g, '').replace(/^0/, '970')}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
+        let cleanPhone = (item.phone||'').replace(/\D/g, '');
+        if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
+        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
-        let phoneDisplay = isRestricted ? '----' : item.phone;
-        let serviceDisplay = isRestricted ? '----' : `<b>${item.sub}</b>`;
-        rows += `<tr class="${item.reminded?'reminded':''}"><td>${serviceDisplay}</td><td>${item.customer}</td><td>${phoneDisplay}</td><td>${new Date(item.expiry).toLocaleDateString('ar-EG')}</td><td><span class="badge ${daysLeft<=0?'badge-danger':'badge-warning'}">${status}</span></td><td>${btnHTML}</td></tr>`;
+        let phoneDisplay = isRestricted ? '----' : esc(item.phone);
+        let serviceDisplay = isRestricted ? '----' : `<b>${esc(item.sub)}</b>`;
+        rows += `<tr class="${item.reminded?'reminded':''}"><td>${serviceDisplay}</td><td>${esc(item.customer)}</td><td>${phoneDisplay}</td><td>${new Date(item.expiry).toLocaleDateString('ar-EG')}</td><td><span class="badge ${daysLeft<=0?'badge-danger':'badge-warning'}">${status}</span></td><td>${btnHTML}</td></tr>`;
     });
     body.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:30px; color:var(--text-muted)'>لا توجد تنبيهات</td></tr>";
     
     let badge = document.getElementById("expiryBadge");
-    if(badge) { badge.textContent = list.length; badge.style.display = list.length > 0 ? "inline-flex" : "none"; }
+    if(badge) { badge.textContent = filtered.length; badge.style.display = filtered.length > 0 ? "inline-flex" : "none"; }
 }
 function markAsReminded(i) { let p = safeJSON(localStorage.purchases, []); p[i].reminded = true; localStorage.purchases = JSON.stringify(p); refreshExpiring(); pushToGithub(); }
 async function deleteExpired() { 
@@ -2059,7 +2153,7 @@ async function deleteExpired() {
     if(!ok) return;
     let p = safeJSON(localStorage.purchases, []), now = new Date().getTime(); 
     p.forEach(x => { if(x.expiry && x.expiry < now) x.expiryDismissed = true; }); 
-    localStorage.purchases = JSON.stringify(p); logAction("إخفاء الاشتراكات المنتهية"); refreshAll(); pushToGithub(); 
+    localStorage.purchases = JSON.stringify(p); logAction("إخفاء الاشتراكات المنتهية"); currentPage.expiring = 1; refreshAll(); pushToGithub(); 
 }
 function refreshWallets(){
     let w=safeJSON(localStorage.wallets, {}), td=0, ts=0;
@@ -2068,7 +2162,7 @@ function refreshWallets(){
     for(let k in w){
         let act = w[k].active !== false;
         let balDisplay = isRestricted ? '****' : fix(w[k].bal);
-        rows+=`<tr><td><b>${k}</b></td><td><span class="badge ${w[k].cur=='$'?'badge-success':'badge-info'}">${w[k].cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
+        rows+=`<tr><td><b>${esc(k)}</b></td><td><span class="badge ${w[k].cur=='$'?'badge-success':'badge-info'}">${w[k].cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
         if(w[k].cur=="$") td+=w[k].bal; else ts+=w[k].bal;
     }
     walletList.innerHTML=rows;
@@ -2080,12 +2174,12 @@ function refreshHistory(){
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let rows = "";
     safeJSON(localStorage.purchases, []).slice().reverse().forEach(p=>{
-        let phoneD = isRestricted ? '----' : p.phone;
-        let subD = isRestricted ? '----' : `<span class="badge badge-info">${p.sub}</span>`;
-        let paidD = isRestricted ? '----' : p.paid;
-        let costD = isRestricted ? '----' : p.cost;
-        let walletD = isRestricted ? '----' : p.wallet;
-        rows+=`<tr><td>${p.date}</td><td><b>${p.customer}</b></td><td>${phoneD}</td><td>${subD}</td><td>${p.duration||'-'} شهر</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
+        let phoneD = isRestricted ? '----' : esc(p.phone);
+        let subD = isRestricted ? '----' : `<span class="badge badge-info">${esc(p.sub)}</span>`;
+        let paidD = isRestricted ? '----' : esc(p.paid);
+        let costD = isRestricted ? '----' : esc(p.cost);
+        let walletD = isRestricted ? '----' : esc(p.wallet);
+        rows+=`<tr><td>${p.date}</td><td><b>${esc(p.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td>${p.duration||'-'} شهر</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
     });
     historyBody.innerHTML = rows;
 }
@@ -2138,7 +2232,7 @@ function refreshGeneralNotes(){
     n.forEach((x,i)=>{ 
         let isViewerPlus = currentUser ? (currentUser.role === 'viewer_plus') : true;
         let delBtn = isViewerPlus ? '' : `<i class="fas fa-trash-alt" onclick="deleteNote(${i})" style="color:var(--danger); cursor:pointer"></i>`;
-        rows += `<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${x.text}</div></div>${delBtn}</div>`; 
+        rows += `<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${esc(x.text)}</div></div>${delBtn}</div>`; 
     }); 
     box.innerHTML = rows;
 }
@@ -2153,13 +2247,13 @@ function refreshTodoList(){
     let canEdit = currentUser ? (currentUser.role === 'admin' || currentUser.role === 'employee') : false;
     l.forEach((x,i)=>{ 
         let btnHtml = canEdit ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="completeTodo(${i})">تمت</button>` : '';
-        rows+=`<div class="todo-item"><div>${x.text}</div>${btnHtml}</div>`; 
+        rows+=`<div class="todo-item"><div>${esc(x.text)}</div>${btnHtml}</div>`; 
     }); 
     todoBox.innerHTML=rows;
 }
 function completeTodo(i){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
-    let l=safeJSON(localStorage.todoList, []); logAction(`إكمال مهمة: ${l[i].text}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); 
+    let l=safeJSON(localStorage.todoList, []); logAction(`إكمال مهمة: ${esc(l[i].text)}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); 
 }
 
 async function withdrawPartial(p){ 
@@ -2250,7 +2344,7 @@ function executeTransfer() {
     let amount = parseFloat(document.getElementById("tfAmount").value);
     let fee = parseFloat(document.getElementById("tfFee").value) || 0;
     let rate = parseFloat(document.getElementById("tfRate").value) || 1;
-    let result = parseFloat(document.getElementById("tfResult").value);
+    let result = parseFloat(document.getElementById("tfResult").value); // Taking manual input if modified
 
     if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
@@ -2398,7 +2492,6 @@ function openAddStockModal() {
     ["stEmail","stPass","stNotes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("stDuration").value = "1";
     
-    // Ensure inputs are enabled (fixing the conflict bug)
     let btnSave = document.querySelector("#stockModal .btn-primary");
     let inputs = document.querySelectorAll("#stockModal input, #stockModal select, #stockModal textarea");
     btnSave.classList.remove("hidden");
@@ -2434,6 +2527,7 @@ function saveStock() {
     }
     localStorage.stock = JSON.stringify(stock);
     document.getElementById("stockModal").classList.add("hidden");
+    currentPage.stock = 1;
     refreshStock(); pushToGithub(); notify("تم الحفظ بنجاح");
 }
 
@@ -2441,7 +2535,26 @@ function switchStockTab(tab, btn) {
     currentStockTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    
+    if(tab === 'sold' && currentUser.role === 'admin') {
+        document.getElementById('btnDeleteAllSold').classList.remove('hidden');
+    } else {
+        document.getElementById('btnDeleteAllSold').classList.add('hidden');
+    }
+    
+    currentPage.stock = 1;
     refreshStock();
+}
+
+async function deleteAllSoldStock() {
+    let ok = await showConfirm("حذف كل المباع", "هل أنت متأكد من حذف كافة الاشتراكات المباعة نهائياً من الأرشيف؟", "حذف الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    if(!ok) return;
+    let stock = safeJSON(localStorage.stock, []);
+    stock = stock.filter(s => s.status !== 'sold');
+    localStorage.stock = JSON.stringify(stock);
+    logAction("قام الأدمن بحذف كافة الاشتراكات المباعة");
+    currentPage.stock = 1;
+    refreshStock(); pushToGithub(); notify("تم مسح السجل بنجاح");
 }
 
 function refreshStock() {
@@ -2454,6 +2567,7 @@ function refreshStock() {
     let canSell = currentUser && (currentUser.role === 'admin' || currentUser.role === 'employee');
 
     let searchTerm = document.getElementById("stockSearch").value.toLowerCase();
+    
     let filtered = stock.filter(item => {
         let matchesTab = (currentStockTab === 'active') ? (item.status !== 'sold') : (item.status === 'sold');
         let matchesSearch = (item.service||'').toLowerCase().includes(searchTerm) || 
@@ -2462,6 +2576,12 @@ function refreshStock() {
                             (item.soldTo||'').toLowerCase().includes(searchTerm);
         return matchesTab && matchesSearch;
     });
+
+    // Sort newest first
+    filtered.sort((a, b) => b.timestamp - a.timestamp);
+
+    renderPagination(filtered.length, 'stock', refreshStock, 'stockPagination');
+    let paginated = filtered.slice((currentPage.stock - 1) * ITEMS_PER_PAGE, currentPage.stock * ITEMS_PER_PAGE);
 
     let headerHTML = "";
     if(currentStockTab === 'active') {
@@ -2474,7 +2594,6 @@ function refreshStock() {
             ${canSell ? '<th>بيع</th>' : ''}
         </tr>`;
     } else {
-        // Only show 'Delete' column header if Admin
         let delTh = isAdmin ? '<th>حذف</th>' : '';
         headerHTML = `<tr>
             <th>الخدمة</th>
@@ -2488,8 +2607,10 @@ function refreshStock() {
     thead.innerHTML = headerHTML;
 
     let rows = "";
-    filtered.forEach((item) => {
+    paginated.forEach((item) => {
+        // Need exact index in original array for editing
         let realIndex = stock.findIndex(x => x.id === item.id);
+        
         let purchaseDate = new Date(item.timestamp);
         let expiryDate = new Date(purchaseDate);
         expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.duration));
@@ -2499,30 +2620,27 @@ function refreshStock() {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
             let sellBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> تم البيع</button></td>` : '';
             rows += `<tr>
-                <td><span class="badge badge-info">${item.service}</span></td>
-                <td class="wide-col" title="${item.email}">${item.email}</td>
-                <td>${item.vendor || '-'}</td>
+                <td><span class="badge badge-info">${esc(item.service)}</span></td>
+                <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
+                <td>${esc(item.vendor) || '-'}</td>
                 <td class="eng-num"><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
                 <td>${detailsBtn}</td>
                 ${sellBtn}
             </tr>`;
         } else {
-            // Sold View
             let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
-            // Only generate Delete cell if Admin
             let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
             
             rows += `<tr>
-                <td><span class="badge badge-info">${item.service}</span></td>
-                <td class="wide-col" title="${item.email}">${item.email}</td>
+                <td><span class="badge badge-info">${esc(item.service)}</span></td>
+                <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
                 <td class="eng-num">${item.soldDate || '-'}</td>
-                <td class="eng-num">${item.soldTo || '-'}</td>
+                <td class="eng-num">${esc(item.soldTo) || '-'}</td>
                 <td>${viewBtn}</td>
                 ${delCell}
             </tr>`;
         }
     });
-    // Adjust colspan based on columns shown
     let colSpan = currentStockTab === 'active' ? (canSell ? 6 : 5) : (isAdmin ? 6 : 5);
     tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
@@ -2575,14 +2693,14 @@ function viewSoldDetails(i) {
     let body = document.getElementById("modalBody");
     body.innerHTML = "";
     
-    body.innerHTML += row("الخدمة", item.service);
-    body.innerHTML += row("الإيميل", item.email);
-    body.innerHTML += row("كلمة المرور", item.pass);
-    body.innerHTML += row("البائع", item.vendor || "-");
+    body.innerHTML += row("الخدمة", esc(item.service));
+    body.innerHTML += row("الإيميل", esc(item.email));
+    body.innerHTML += row("كلمة المرور", esc(item.pass));
+    body.innerHTML += row("البائع", esc(item.vendor) || "-");
     body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
     body.innerHTML += row("تاريخ البيع", item.soldDate);
-    body.innerHTML += row("بيع لـ", item.soldTo || "-");
-    body.innerHTML += `<div style="margin-top:10px; background:var(--bg-input); padding:10px; border-radius:8px; font-size:13px;"><b>ملاحظات:</b><br>${item.notes||'لا يوجد'}</div>`;
+    body.innerHTML += row("بيع لـ", esc(item.soldTo) || "-");
+    body.innerHTML += `<div style="margin-top:10px; background:var(--bg-input); padding:10px; border-radius:8px; font-size:13px;"><b>ملاحظات:</b><br>${esc(item.notes)||'لا يوجد'}</div>`;
     
     document.getElementById("detailsModal").classList.remove("hidden");
 }
@@ -2602,7 +2720,7 @@ async function sellStock(i) {
     let stock = safeJSON(localStorage.stock, []);
     let item = stock[i];
     
-    let customerNum = await showPrompt("إتمام البيع", `بيع اشتراك: ${item.service}`, "رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
+    let customerNum = await showPrompt("إتمام البيع", `بيع اشتراك: ${esc(item.service)}`, "رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
     if (customerNum === null) return; 
 
     item.status = 'sold';
@@ -2629,7 +2747,7 @@ function renderServicesSettings() {
 
     list.forEach((s, idx) => {
         let delIcon = isAdmin ? `<i class="fas fa-times" style="margin-right:8px; cursor:pointer; color:red" onclick="deleteService(${idx})"></i>` : '';
-        div.innerHTML += `<span class="badge badge-info" style="padding:10px; font-size:14px;">${s} ${delIcon}</span>`;
+        div.innerHTML += `<span class="badge badge-info" style="padding:10px; font-size:14px;">${esc(s)} ${delIcon}</span>`;
     });
 }
 function addService() {
