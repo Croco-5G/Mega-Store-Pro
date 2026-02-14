@@ -2881,8 +2881,97 @@ function deleteService(idx) {
     store.services = JSON.stringify(list); fbSave("services", list);
     renderServicesSettings();
 }
+function refreshStock() {
+    let stock = safeJSON(store.stock, []);
+    let tbody = document.getElementById("stockBody"); 
+    let thead = document.getElementById("stockHead");
+    if(!tbody || !thead) return;
 
+    let isAdmin = currentUser && currentUser.role === 'admin';
+    let canSell = currentUser && (currentUser.role === 'admin' || currentUser.role === 'employee');
+
+    let searchTerm = document.getElementById("stockSearch").value.toLowerCase();
+    
+    let filtered = stock.filter(item => {
+        let matchesTab = (currentStockTab === 'active') ? (item.status !== 'sold') : (item.status === 'sold');
+        let matchesSearch = (item.displayName||item.service||'').toLowerCase().includes(searchTerm) || 
+                            (item.email||'').toLowerCase().includes(searchTerm) ||
+                            (item.vendor||'').toLowerCase().includes(searchTerm) ||
+                            (item.buyers && item.buyers.some(b => b.toLowerCase().includes(searchTerm)));
+        return matchesTab && matchesSearch;
+    });
+
+    filtered.sort((a, b) => b.timestamp - a.timestamp);
+
+    renderPagination(filtered.length, 'stock', refreshStock, 'stockPagination');
+    let paginated = filtered.slice((currentPage.stock - 1) * ITEMS_PER_PAGE, currentPage.stock * ITEMS_PER_PAGE);
+
+    let headerHTML = "";
+    if(currentStockTab === 'active') {
+        headerHTML = `<tr>
+            <th>الخدمة</th>
+            <th>الإيميل</th>
+            <th>البائع</th>
+            <th>البروفايلات</th>
+            <th>المتبقي</th>
+            <th>التفاصيل</th>
+            ${canSell ? '<th>بيع</th>' : ''}
+        </tr>`;
+    } else {
+        let delTh = isAdmin ? '<th>حذف</th>' : '';
+        headerHTML = `<tr>
+            <th>الخدمة</th>
+            <th>الإيميل</th>
+            <th>البروفايلات</th>
+            <th>تاريخ البيع</th>
+            <th>التفاصيل</th>
+            ${delTh}
+        </tr>`;
+    }
+    thead.innerHTML = headerHTML;
+
+    let rows = "";
+    paginated.forEach((item) => {
+        let realIndex = stock.findIndex(x => x.id === item.id);
+        
+        let purchaseDate = new Date(item.timestamp);
+        let expiryDate = new Date(purchaseDate);
+        expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.duration));
+        let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
+        
+        let profStr = `${item.soldProfiles || 0}/${item.totalProfiles || 1}`;
+
+        if(currentStockTab === 'active') {
+            let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
+            let sellBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> بيع</button></td>` : '';
+            rows += `<tr>
+                <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
+                <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
+                <td>${esc(item.vendor) || '-'}</td>
+                <td class="eng-num" style="font-weight:bold;">${profStr}</td>
+                <td class="eng-num"><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
+                <td>${detailsBtn}</td>
+                ${sellBtn}
+            </tr>`;
+        } else {
+            let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
+            let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
+            
+            rows += `<tr>
+                <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
+                <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
+                <td class="eng-num" style="font-weight:bold;">${profStr}</td>
+                <td class="eng-num">${item.soldDate || '-'}</td>
+                <td>${viewBtn}</td>
+                ${delCell}
+            </tr>`;
+        }
+    });
+    let colSpan = currentStockTab === 'active' ? (canSell ? 7 : 6) : (isAdmin ? 6 : 5);
+    tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
+}
 window.onload = init;
 </script>
 </body>
 </html>
+
