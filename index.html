@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <style>
         /* --- CORE VARIABLES --- */
@@ -425,7 +427,7 @@
 
 <div id="demoBanner" title="وضع تجريبي"></div>
 
-<div id="syncStatus" onclick="pushToGithub()">
+<div id="syncStatus">
     <i class="fas fa-cloud"></i> <span>جاري التحميل...</span>
 </div>
 
@@ -438,32 +440,7 @@
         </label>
     </div>
 
-    <div id="cloudSetupCard" class="login-card hidden">
-        <div class="login-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
-        <h2>الربط السحابي (أمان)</h2>
-        <p style="color:var(--text-muted); font-size:14px;">يجب ربط النظام بـ GitHub أولاً لجلب البيانات</p>
-        
-        <div class="custom-input">
-            <input id="loginGhUser" placeholder="Github Username">
-            <i class="fab fa-github"></i>
-        </div>
-        <div class="custom-input">
-            <input id="loginGhRepo" placeholder="Repository Name">
-            <i class="fas fa-folder"></i>
-        </div>
-        <div class="custom-input">
-            <input id="loginGhToken" type="password" placeholder="Access Token">
-            <i class="fas fa-key"></i>
-        </div>
-        
-        <button class="btn btn-primary" style="width:100%; justify-content:center; padding:15px;" id="btnCloudSetup" onclick="setupCloudAndFetch()">
-            <div class="loading-spinner"></div>
-            <span><i class="fas fa-sync"></i> ربط ومزامنة</span>
-        </button>
-        <p id="cloudMsg" style="margin-top:15px; font-size:13px; color:var(--text-muted)"></p>
-    </div>
-
-    <div id="loginCard" class="login-card hidden">
+    <div id="loginCard" class="login-card">
         <div class="login-icon-wrap"><i class="fas fa-shield-alt"></i></div>
         <h2>تسجيل الدخول</h2>
         <p style="color:var(--text-muted); font-size:14px; margin-bottom:30px">أهلاً بك مجدداً في نظام Mega Store</p>
@@ -800,16 +777,25 @@
     <div id="modify" class="card hidden">
         
         <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
-            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-hdd" style="color:var(--primary)"></i> مساحة التخزين المستهلكة</h3>
+            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (1MB Limit)</h3>
             <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; font-weight:700;">
-                    <span>المستهلك: <span id="storageUsed">0</span> ميجابايت</span>
-                    <span>المتبقي: <span id="storageFree">5</span> ميجابايت</span>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;">
+                    <span><i class="fas fa-database"></i> السجلات: <span id="storageUsed" style="color:var(--primary)">0</span></span>
+                    <span id="storageFree">جاري الفحص..</span>
                 </div>
-                <div style="width:100%; background:var(--border-color); height:10px; border-radius:10px; overflow:hidden;">
-                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition:0.3s;"></div>
+                
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);">
+                    <span id="storageSizeText">0 KB / 1024 KB</span>
+                    <span id="storagePercentText">0%</span>
                 </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-top:10px; margin-bottom:0;">ملاحظة: المساحة (5MB) مخصصة لهذا الموقع فقط ولا تشاركها مع مواقع أخرى.</p>
+
+                <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;">
+                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition: width 0.5s ease;"></div>
+                </div>
+                
+                <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                    تنبيه: الحد الأقصى للمستند هو 1 ميجابايت. عند الوصول لـ 90% قم بمسح السجلات القديمة.
+                </p>
             </div>
         </div>
 
@@ -949,22 +935,7 @@
             </div>
         </div>
 
-        <div class="inner-box" style="margin-bottom:40px; background:#1e293b!important; color:white; border:none!important;">
-            <h3 style="color:white; margin-top:0"><i class="fab fa-github"></i> إعدادات الربط السحابي</h3>
-            <div class="grid-2">
-                <div class="input-group"><label style="color:#cbd5e1">اسم المستخدم</label><input id="ghUser" style="background:#334155; border-color:#475569; color:white;"></div>
-                <div class="input-group"><label style="color:#cbd5e1">المستودع</label><input id="ghRepo" style="background:#334155; border-color:#475569; color:white;"></div>
-            </div>
-            <div class="grid-2">
-                <div class="input-group"><label style="color:#cbd5e1">Token</label><input id="ghToken" type="password" style="background:#334155; border-color:#475569; color:white;"></div>
-                <div class="input-group"><label style="color:#cbd5e1">الملف</label><input id="ghFile" value="db.json" style="background:#334155; border-color:#475569; color:white;"></div>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
-                <button class="btn btn-primary" onclick="saveGithubSettings()">حفظ</button>
-                <button class="btn btn-warning" onclick="fetchFromGithub()"><i class="fas fa-download"></i> سحب</button>
-                <button class="btn" style="background:var(--success); color:#fff" onclick="pushToGithub()"><i class="fas fa-upload"></i> رفع</button>
-            </div>
-        </div>
+
 
         <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
             <h3 style="color: var(--yellow-text); margin-top:0"><i class="fas fa-tasks"></i> المهام (To-Do)</h3>
@@ -1045,12 +1016,52 @@
 </div>
 
 <script>
-const fix=n=>Number(n).toFixed(2);
+// --- GLOBAL DEFINITIONS & UTILS ---
+const fix = n => Number(n).toFixed(2);
 function safeJSON(str, fallback) {
     try { return str ? JSON.parse(str) : fallback; }
     catch(e) { console.warn("JSON parse error:", e); return fallback; }
 }
-function esc(s) { if(typeof s !== 'string') return s; return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+function esc(s) { 
+    if(typeof s !== 'string') return s; 
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); 
+}
+
+const DEFAULT_USER = {
+    username: "Mohamed Ahmed",
+    password: "0000",
+    role: "admin", 
+    status: "active",
+    lastLogin: "-",
+    deviceInfo: "-"
+};
+
+// ─── Firebase Configuration ───────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyBDCTQSHeRD7gG4XdyG1nQxAD1ECQHzxNE",
+    authDomain: "mega-store-58cc6.firebaseapp.com",
+    projectId: "mega-store-58cc6",
+    storageBucket: "mega-store-58cc6.firebasestorage.app",
+    messagingSenderId: "477692639493",
+    appId: "1:477692639493:web:3520e16e20fa0fda089f6c",
+    measurementId: "G-PBR93L70M1"
+};
+
+// ─── In-Memory Store (replaces localStorage for app data) ────────
+let store = {};
+let fbDocRef = null;
+let fbConnected = false;
+let isFbSaving = false;
+let fbSavePending = {};
+let myProfitChart = null;
+let mySalesChart = null;
+let currentUser = null; 
+let isDemoMode = false;
+let currentStockTab = 'active';
+let currentLogsTab = 'financial';
+let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1 };
+const ITEMS_PER_PAGE = 50;
+const STORE_KEYS = ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services"];
 
 // --- UPDATED DIALOG SYSTEM ---
 let _confirmResolve = null;
@@ -1117,38 +1128,101 @@ document.addEventListener("keydown", e => {
     }
 });
 
-let myProfitChart = null;
-let mySalesChart = null;
-let currentUser = null; 
-let isDemoMode = false;
-let syncTimer = null; 
-let currentStockTab = 'active';
-let currentLogsTab = 'financial';
+// Save a single key to Firebase (Fixed: Using set with merge)
+function fbSave(key, val) {
+    if (isDemoMode) return;
+    if (!fbDocRef) return;
+    updateSyncStatus("جاري الحفظ...", "loading");
+    
+    fbDocRef.set({ [key]: val }, { merge: true })
+        .catch(err => {
+            console.error("fbSave error:", err);
+            updateSyncStatus("غير متصل", "error");
+        });
+}
 
-let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1 };
-const ITEMS_PER_PAGE = 50;
+function initFirebase() {
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
+    fbDocRef = db.collection("megastore").doc("data");
 
-let ghConfig = {
-    user: localStorage.getItem("gh_user") || "",
-    repo: localStorage.getItem("gh_repo") || "",
-    token: localStorage.getItem("gh_token") || "",
-    file: localStorage.getItem("gh_file") || "db.json",
-    sha: ""
-};
+    updateSyncStatus("جاري الاتصال...", "loading");
 
-let isSyncing = false; 
-let syncPending = false; 
-let retryAttempt = 0;
-const MAX_RETRIES = 10; 
+    // Real-time listener
+    fbDocRef.onSnapshot(
+        { includeMetadataChanges: true },
+        (doc) => {
+            const fromCache = doc.metadata.fromCache;
+            const hasPendingWrites = doc.metadata.hasPendingWrites;
+            
+            if (fromCache || !doc.exists) {
+                fbConnected = false;
+                updateSyncStatus("غير متصل", "error");
+                updateStorageUI();
+                return;
+            }
+            
+            fbConnected = true;
+            
+            if (doc.exists) {
+                const data = doc.data();
+                STORE_KEYS.forEach(k => {
+                    if (data[k] !== undefined) {
+                        store[k] = JSON.stringify(data[k]);
+                    }
+                });
+                if (currentUser) refreshAll();
+            } else {
+                // First time - create document with defaults
+                fbDocRef.set(getDefaultData()).catch(e => console.error(e));
+            }
+            
+            if (!hasPendingWrites) {
+                updateSyncStatus("متزامن", "success");
+            }
+            updateStorageUI();
+            
+            // Show login if not shown yet
+            if (document.getElementById("loginCard").style.display === "none" || 
+                document.getElementById("loginLayer").style.display !== "none") {
+                if (document.getElementById("loginLayer").style.display !== "none") {
+                    document.getElementById("loginCard").style.display = "";
+                }
+            }
+        },
+        (error) => {
+            fbConnected = false;
+            console.error("Firestore error:", error);
+            updateSyncStatus("غير متصل", "error");
+            updateStorageUI();
+        }
+    );
 
-const DEFAULT_USER = {
-    username: "Mohamed Ahmed",
-    password: "0000",
-    role: "admin", 
-    status: "active",
-    lastLogin: "-",
-    deviceInfo: "-"
-};
+    // Network status detection
+    window.addEventListener('online', () => {
+        if (fbConnected) updateSyncStatus("متزامن", "success");
+    });
+    window.addEventListener('offline', () => {
+        fbConnected = false;
+        updateSyncStatus("غير متصل", "error");
+        updateStorageUI();
+    });
+}
+
+function getDefaultData() {
+    return {
+        users: safeJSON(store.users, [DEFAULT_USER]),
+        wallets: safeJSON(store.wallets, {"جوال باي — سعاد":{bal:0,cur:"₪",active:true},"جوال باي — محمد":{bal:0,cur:"₪",active:true},"بال باي — أحمد":{bal:0,cur:"₪",active:true},"بايننس — احمد":{bal:0,cur:"$",active:true}}),
+        purchases: safeJSON(store.purchases, []),
+        invest: safeJSON(store.invest, {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}),
+        settings: safeJSON(store.settings, {ahmad:35,mohamed:35,store:30,deductCost:true,exchangeRate:0,logsVis:"all"}),
+        generalNotes: safeJSON(store.generalNotes, []),
+        todoList: safeJSON(store.todoList, []),
+        activityLog: safeJSON(store.activityLog, []),
+        stock: safeJSON(store.stock, []),
+        services: safeJSON(store.services, [])
+    };
+}
 
 function showModalDetails(details) {
     if(!details) return;
@@ -1251,7 +1325,7 @@ function updateSyncStatus(msg, type="loading") {
         el.innerHTML = `<i class="fas fa-check" style="color:var(--success)"></i> <span>${msg}</span>`;
         setTimeout(() => el.innerHTML = `<i class="fas fa-cloud"></i> <span>متزامن</span>`, 3000);
     } else if (type==="error") {
-        el.innerHTML = `<i class="fas fa-times" style="color:var(--danger)"></i> <span>${msg}</span>`;
+        el.innerHTML = `<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> <span>${msg}</span>`;
     } else {
         el.innerHTML = `<i class="fas fa-cloud"></i> <span>${msg}</span>`;
     }
@@ -1259,7 +1333,7 @@ function updateSyncStatus(msg, type="loading") {
 
 function logAction(actionDescription, details=null) {
     if(!currentUser) return;
-    let logs = safeJSON(localStorage.activityLog, []);
+    let logs = safeJSON(store.activityLog, []);
     logs.unshift({
         user: currentUser.username,
         action: actionDescription,
@@ -1267,7 +1341,7 @@ function logAction(actionDescription, details=null) {
         details: details 
     });
     if(logs.length > 500) logs = logs.slice(0, 500);
-    localStorage.activityLog = JSON.stringify(logs);
+    store.activityLog = JSON.stringify(logs); fbSave("activityLog", logs);
     if(document.getElementById("logs").classList.contains("hidden") === false) {
         currentPage.logs = 1;
         refreshLogs();
@@ -1275,23 +1349,28 @@ function logAction(actionDescription, details=null) {
 }
 
 function init(){
-    if(!localStorage.users) localStorage.users = JSON.stringify([DEFAULT_USER]);
-    if(!localStorage.wallets){
-        localStorage.wallets=JSON.stringify({
+    if(!store.users) store.users = JSON.stringify([DEFAULT_USER]); fbSave("users", [DEFAULT_USER]);
+    if(!store.wallets){
+        store.wallets = JSON.stringify({
+            "جوال باي — سعاد":{bal:0, cur:"₪", active:true},
+            "جوال باي — محمد":{bal:0, cur:"₪", active:true},
+            "بال باي — أحمد":{bal:0, cur:"₪", active:true},
+            "بايننس — احمد":{bal:0, cur:"$", active:true}
+        }); fbSave("wallets", {
             "جوال باي — سعاد":{bal:0, cur:"₪", active:true},
             "جوال باي — محمد":{bal:0, cur:"₪", active:true},
             "بال باي — أحمد":{bal:0, cur:"₪", active:true},
             "بايننس — احمد":{bal:0, cur:"$", active:true}
         });
     }
-    if(!localStorage.purchases) localStorage.purchases="[]";
-    if(!localStorage.invest) localStorage.invest=JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}});
-    if(!localStorage.generalNotes) localStorage.generalNotes="[]";
-    if(!localStorage.todoList) localStorage.todoList="[]";
-    if(!localStorage.settings) localStorage.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'});
-    if(!localStorage.activityLog) localStorage.activityLog = "[]";
-    if(!localStorage.stock) localStorage.stock = "[]";
-    if(!localStorage.services) localStorage.services = "[]";
+    if(!store.purchases) store.purchases = "[]"; fbSave("purchases", []);
+    if(!store.invest) store.invest = JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}); fbSave("invest", {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}});
+    if(!store.generalNotes) store.generalNotes = "[]"; fbSave("generalNotes", []);
+    if(!store.todoList) store.todoList = "[]"; fbSave("todoList", []);
+    if(!store.settings) store.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'}); fbSave("settings", {ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'});
+    if(!store.activityLog) store.activityLog = "[]"; fbSave("activityLog", []);
+    if(!store.stock) store.stock = "[]"; fbSave("stock", []);
+    if(!store.services) store.services = "[]"; fbSave("services", []);
 
     if(localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
@@ -1306,43 +1385,70 @@ function init(){
         updateSyncStatus();
     }
     
-    if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) {
-        document.getElementById("cloudSetupCard").classList.remove("hidden");
-        document.getElementById("loginCard").classList.add("hidden");
-    } else {
-        document.getElementById("cloudSetupCard").classList.add("hidden");
-        document.getElementById("loginCard").classList.remove("hidden");
-        fetchFromGithub(true);
-    }
-    
-    startSyncLoop();
+    // Initialize Firebase & listen for realtime changes
+    initFirebase();
     updateStorageUI();
 }
 
+// --- NEW STORAGE UI FUNCTION ---
 function updateStorageUI() {
-    let total = 0;
-    for(let x in localStorage) {
-        if(localStorage.hasOwnProperty(x)) {
-            total += ((localStorage[x].length + x.length) * 2);
-        }
-    }
-    let usedMB = (total / 1024 / 1024).toFixed(2);
-    let freeMB = (5.00 - usedMB).toFixed(2);
-    let pct = (usedMB / 5.00) * 100;
-    
-    document.getElementById("storageUsed").innerText = usedMB;
-    document.getElementById("storageFree").innerText = freeMB;
-    document.getElementById("storageBar").style.width = Math.min(100, pct) + "%";
-    
-    if(pct > 80) document.getElementById("storageBar").style.background = "var(--danger)";
-    else if(pct > 50) document.getElementById("storageBar").style.background = "var(--accent)";
-    else document.getElementById("storageBar").style.background = "var(--success)";
-}
+    // 1. حساب عدد السجلات (Records Count)
+    let totalRecords = 0;
+    ["purchases","activityLog","stock","users","todoList","generalNotes"].forEach(k => {
+        let arr = safeJSON(store[k], []);
+        if(Array.isArray(arr)) totalRecords += arr.length;
+        else totalRecords += Object.keys(arr).length;
+    });
 
-function startSyncLoop() {
-    if(syncTimer) clearInterval(syncTimer);
-    if(!isDemoMode) {
-        syncTimer = setInterval(() => fetchFromGithub(false), 3000);
+    // 2. تحديث نصوص الحالة (Connection Status)
+    let statusEl = document.getElementById("storageFree");
+    if(statusEl) {
+        statusEl.innerText = fbConnected ? "متصل (Online)" : "غير متصل (Offline)";
+        statusEl.style.color = fbConnected ? "var(--success)" : "var(--danger)";
+    }
+    
+    let usedEl = document.getElementById("storageUsed");
+    if(usedEl) usedEl.innerText = totalRecords;
+
+    // 3. حساب الحجم الفعلي بالبايت (Size Calculation)
+    let dataString = JSON.stringify({
+        users: store.users,
+        wallets: store.wallets,
+        purchases: store.purchases,
+        invest: store.invest,
+        settings: store.settings,
+        generalNotes: store.generalNotes,
+        todoList: store.todoList,
+        activityLog: store.activityLog,
+        stock: store.stock,
+        services: store.services
+    });
+
+    let sizeInBytes = new Blob([dataString]).size; 
+    let limitInBytes = 1048576; // 1 MB = 1024 * 1024 bytes
+    
+    let sizeInKB = (sizeInBytes / 1024).toFixed(2);
+    let percentage = ((sizeInBytes / limitInBytes) * 100).toFixed(1);
+
+    // 4. تحديث الشريط والنصوص (UI Update)
+    let sizeText = document.getElementById("storageSizeText");
+    let percentText = document.getElementById("storagePercentText");
+    let bar = document.getElementById("storageBar");
+
+    if(sizeText) sizeText.innerText = `${sizeInKB} KB مستخدمة من 1024 KB`;
+    if(percentText) percentText.innerText = `${percentage}%`;
+    
+    if(bar) {
+        bar.style.width = `${Math.min(percentage, 100)}%`;
+        
+        // تغيير لون الشريط حسب الخطورة
+        if(percentage < 50) {
+            bar.style.background = "var(--success)"; // أخضر (آمن)
+        } else if (percentage < 85) {
+            bar.style.background = "var(--accent)"; // برتقالي (تنبيه)
+        } else {
+            bar.style.background = "var(--danger)"; // أحمر (خطر)
+        }
     }
 }
 
@@ -1359,95 +1465,8 @@ async function toggleDemoMode() {
         let ok = await showConfirm("إيقاف الوضع التجريبي", "سيتم استعادة البيانات الأصلية من السحابة وحذف أي تعديلات قمت بها الآن.", "إيقاف", "إلغاء", '<i class="fas fa-cloud-download-alt"></i>');
         if(!ok) { document.getElementById("demoModeToggle").checked = true; return; }
         
-        updateSyncStatus("جاري الاستعادة...", "loading");
-        fetchFromGithub(true).then(() => {
-            localStorage.setItem("isDemoMode", "false");
-            location.reload();
-        }).catch(() => {
-            notify("خطأ: لا يمكن إيقاف الوضع التجريبي. تحقق من الاتصال بالإنترنت.", "error");
-            document.getElementById("demoModeToggle").checked = true;
-            updateSyncStatus("فشل الاتصال", "error");
-        });
-    }
-}
-
-async function setupCloudAndFetch() {
-    const btn = document.getElementById("btnCloudSetup");
-    const u = document.getElementById("loginGhUser").value.trim();
-    const r = document.getElementById("loginGhRepo").value.trim();
-    const t = document.getElementById("loginGhToken").value.trim();
-    
-    if(!u || !r || !t) { document.getElementById("cloudMsg").innerText = "يرجى تعبئة جميع الحقول"; return; }
-    
-    btn.classList.add('loading');
-    
-    localStorage.setItem("gh_user", u); localStorage.setItem("gh_repo", r);
-    localStorage.setItem("gh_token", t); localStorage.setItem("gh_file", "db.json");
-    ghConfig = { user: u, repo: r, token: t, file: "db.json", sha: "" };
-    
-    document.getElementById("cloudMsg").innerText = "جاري الاتصال والتحقق...";
-    
-    try {
-        await fetchFromGithub(true);
-    } catch(e) {
-        document.getElementById("cloudMsg").innerText = "حدث خطأ غير متوقع.";
-    }
-    
-    btn.classList.remove('loading');
-}
-
-async function fetchFromGithub(force = false) {
-    if(isDemoMode && !force) return;
-
-    if(force) updateSyncStatus("فحص البيانات السحابية...");
-    
-    const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
-    try {
-        const response = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' }, cache: "no-store" });
-        
-        if (response.status === 404) {
-            console.log("File not found, attempting creation...");
-            if(force) {
-                 await pushToGithub(true);
-                 document.getElementById("cloudSetupCard").classList.add("hidden");
-                 document.getElementById("loginCard").classList.remove("hidden");
-                 document.getElementById("cloudMsg").innerText = "";
-            }
-            return;
-        }
-
-        if (!response.ok) throw new Error("API Error");
-        const data = await response.json();
-        
-        if ((data.sha !== ghConfig.sha && !isSyncing && !syncPending) || force) {
-            ghConfig.sha = data.sha;
-            const db = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-            
-            if(db.users) localStorage.users = JSON.stringify(db.users);
-            if(db.wallets) localStorage.wallets = JSON.stringify(db.wallets);
-            if(db.purchases) localStorage.purchases = JSON.stringify(db.purchases);
-            if(db.invest) localStorage.invest = JSON.stringify(db.invest);
-            if(db.settings) localStorage.settings = JSON.stringify(db.settings);
-            if(db.generalNotes) localStorage.generalNotes = JSON.stringify(db.generalNotes);
-            if(db.todoList) localStorage.todoList = JSON.stringify(db.todoList);
-            if(db.activityLog) localStorage.activityLog = JSON.stringify(db.activityLog);
-            if(db.stock) localStorage.stock = JSON.stringify(db.stock);
-            if(db.services) localStorage.services = JSON.stringify(db.services);
-            
-            if(currentUser) refreshAll(); 
-            if(force) {
-                updateSyncStatus("متزامن", "success");
-                document.getElementById("cloudSetupCard").classList.add("hidden");
-                document.getElementById("loginCard").classList.remove("hidden");
-            }
-        }
-    } catch (error) {
-        console.error(error);
-        if(force) {
-            updateSyncStatus("خطأ في الاتصال", "error");
-            document.getElementById("cloudMsg").innerText = "فشل الاتصال بـ GitHub. تأكد من البيانات.";
-            throw error;
-        }
+        localStorage.setItem("isDemoMode", "false");
+        location.reload();
     }
 }
 
@@ -1455,7 +1474,7 @@ async function attemptLogin() {
     const btn = document.getElementById("btnLogin");
     const u = document.getElementById("loginUser").value.trim();
     const p = document.getElementById("loginPass").value.trim();
-    let users = safeJSON(localStorage.users, []);
+    let users = safeJSON(store.users, []);
     
     btn.classList.add('loading'); 
 
@@ -1466,7 +1485,7 @@ async function attemptLogin() {
     if (userObj) {
         if(userObj.username === "Mohamed Ahmed") {
             userObj.role = "admin"; userObj.status = "active";
-            localStorage.users = JSON.stringify(users);
+            store.users = JSON.stringify(users); fbSave("users", users);
         }
 
         if(userObj.status === "banned") { 
@@ -1477,18 +1496,15 @@ async function attemptLogin() {
         currentUser = userObj;
         userObj.lastLogin = new Date().toLocaleString("ar-EG");
         userObj.deviceInfo = getOS();
-        localStorage.users = JSON.stringify(users);
+        store.users = JSON.stringify(users); fbSave("users", users);
         
         logAction("تسجيل دخول للنظام");
 
-        if(!isDemoMode) {
-            updateSyncStatus("تحديث الصلاحيات سحابياً...", "loading");
-            await pushToGithub(); 
-        }
+        // Firebase handles sync automatically
         
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadGithubInputs(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         checkExpiringOnLogin();
     } else { 
@@ -1496,6 +1512,13 @@ async function attemptLogin() {
     }
     
     btn.classList.remove('loading'); 
+}
+
+function checkExpiringOnLogin() {
+    let p = safeJSON(store.purchases, []);
+    let now = new Date().getTime(), days3 = 3 * 86400000;
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
+    if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً`, "warning");
 }
 
 function getOS() {
@@ -1540,7 +1563,7 @@ function applyRBAC() {
     document.getElementById("btnClearLogs").classList.add("hidden");
     document.getElementById("btnVisLogs").classList.add("hidden");
 
-    let settings = safeJSON(localStorage.settings, {});
+    let settings = safeJSON(store.settings, {});
     let logsVis = settings.logsVis || 'all';
 
     if (role === 'admin') {
@@ -1627,7 +1650,7 @@ function applyRBAC() {
 
 function renderUsersTable() {
     if(!currentUser || currentUser.role !== 'admin') return;
-    const users = safeJSON(localStorage.users, []);
+    const users = safeJSON(store.users, []);
     const tbody = document.getElementById("usersTableBody"); 
     if(!tbody) return;
     let rows = "";
@@ -1674,7 +1697,7 @@ function switchLogsTab(tab, btn) {
 }
 
 function refreshLogs() {
-    let logs = safeJSON(localStorage.activityLog, []);
+    let logs = safeJSON(store.activityLog, []);
     let search = document.getElementById("logsSearch").value.toLowerCase();
     const tbody = document.getElementById("logsTableBody");
     let isViewer = currentUser && currentUser.role === 'viewer';
@@ -1711,7 +1734,7 @@ async function clearLogs() {
     let res = await showConfirm(`مسح ${tabName}`, `سيتم حذف سجلات ${tabName} نهائياً.`, "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
-    let allLogs = safeJSON(localStorage.activityLog, []);
+    let allLogs = safeJSON(store.activityLog, []);
     let targetLogs = allLogs.filter(log => (currentLogsTab === 'financial' ? log.details != null : log.details == null));
     
     let logsToSave = [];
@@ -1722,137 +1745,62 @@ async function clearLogs() {
         logsToSave = allLogs.filter(log => (currentLogsTab === 'financial' ? log.details == null : log.details != null));
     }
     
-    localStorage.activityLog = JSON.stringify(logsToSave);
+    store.activityLog = JSON.stringify(logsToSave); fbSave("activityLog", logsToSave);
     
     logAction(`قام الأدمن بمسح ${res === 'third' ? 'أقدم 50 سجل من' : 'كافة'} ${tabName}`);
     
     currentPage.logs = 1;
     refreshLogs();
-    pushToGithub();
+    
     notify("تم المسح بنجاح");
 }
 
 function addNewUser() {
     const u = document.getElementById("newUserName").value.trim(), p = document.getElementById("newUserPass").value.trim(), r = document.getElementById("newUserRole").value;
     if(!u || !p) return notify("يرجى ملء البيانات", "error");
-    let users = safeJSON(localStorage.users, []);
+    let users = safeJSON(store.users, []);
     if(users.some(x => x.username.toLowerCase() === u.toLowerCase())) return notify("اسم المستخدم موجود", "error");
     users.push({ username: u, password: p, role: r, status: "active", lastLogin: "-", deviceInfo: "-" });
-    localStorage.users = JSON.stringify(users);
+    store.users = JSON.stringify(users); fbSave("users", users);
     logAction(`إضافة مستخدم جديد: ${u} بصلاحية ${r}`);
     document.getElementById("newUserName").value = ""; document.getElementById("newUserPass").value = "";
-    renderUsersTable(); pushToGithub(); notify("تم إضافة المستخدم");
+    renderUsersTable();  notify("تم إضافة المستخدم");
 }
 
 function toggleBan(index) {
-    let users = safeJSON(localStorage.users, []);
+    let users = safeJSON(store.users, []);
     let newState = users[index].status === 'active' ? 'banned' : 'active';
     users[index].status = newState;
-    localStorage.users = JSON.stringify(users);
+    store.users = JSON.stringify(users); fbSave("users", users);
     logAction(`تغيير حالة المستخدم ${users[index].username} إلى ${newState}`);
-    renderUsersTable(); pushToGithub();
+    renderUsersTable(); 
 }
 
 async function deleteUser(index) {
     let ok = await showConfirm("حذف المستخدم", "هل تريد حذف هذا المستخدم نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-user-times"></i>');
     if(!ok) return;
-    let users = safeJSON(localStorage.users, []);
+    let users = safeJSON(store.users, []);
     logAction(`حذف المستخدم: ${users[index].username}`);
     users.splice(index, 1);
-    localStorage.users = JSON.stringify(users);
-    renderUsersTable(); pushToGithub();
+    store.users = JSON.stringify(users); fbSave("users", users);
+    renderUsersTable(); 
 }
 
 function changeMyPassword() {
     let newP = document.getElementById("changePassInput").value.trim();
     if(!newP) return notify("أدخل كلمة المرور الجديدة", "error");
-    let users = safeJSON(localStorage.users, []);
+    let users = safeJSON(store.users, []);
     let myIndex = users.findIndex(u => u.username === currentUser.username);
     if(myIndex !== -1) {
         users[myIndex].password = newP;
         currentUser.password = newP; 
-        localStorage.users = JSON.stringify(users);
+        store.users = JSON.stringify(users); fbSave("users", users);
         document.getElementById("changePassInput").value = "";
         logAction("قام بتغيير كلمة المرور الخاصة به");
-        pushToGithub(); notify("تم التغيير بنجاح");
+         notify("تم التغيير بنجاح");
     }
 }
 
-async function pushToGithub(force = false) {
-    if(!ghConfig.user || !ghConfig.repo || !ghConfig.token) return;
-
-    if(isDemoMode) return;
-
-    if (isSyncing) {
-        syncPending = true;
-        updateSyncStatus("تم وضع التعديل في الطابور...", "loading");
-        return;
-    }
-
-    isSyncing = true;
-    updateSyncStatus(retryAttempt > 0 ? `جاري المحاولة (${retryAttempt})...` : "جاري الحفظ...", "loading");
-
-    const db = {
-        users: safeJSON(localStorage.users, []),
-        wallets: safeJSON(localStorage.wallets, {}),
-        purchases: safeJSON(localStorage.purchases, []),
-        invest: safeJSON(localStorage.invest, {}),
-        settings: safeJSON(localStorage.settings, {}),
-        generalNotes: safeJSON(localStorage.generalNotes, []),
-        todoList: safeJSON(localStorage.todoList, []),
-        activityLog: safeJSON(localStorage.activityLog, []),
-        stock: safeJSON(localStorage.stock, []),
-        services: safeJSON(localStorage.services, []),
-        lastUpdate: new Date().toISOString()
-    };
-
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
-    const url = `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${ghConfig.file}`;
-
-    const body = { message: "Update via MegaStore Audit", content: content };
-    if (ghConfig.sha) body.sha = ghConfig.sha;
-
-    try {
-        const response = await fetch(url, { method: 'PUT', headers: { 'Authorization': `token ${ghConfig.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        
-        if (response.status === 409) {
-            const getResp = await fetch(url, { headers: { 'Authorization': `token ${ghConfig.token}` } });
-            if(getResp.ok) {
-                const getJson = await getResp.json();
-                ghConfig.sha = getJson.sha; 
-                throw new Error("Conflict Resolved - Retrying");
-            }
-        } else if (!response.ok) {
-            throw new Error("Network/API Error");
-        } else {
-            const data = await response.json();
-            ghConfig.sha = data.content.sha;
-            retryAttempt = 0; 
-            isSyncing = false;
-            updateStorageUI();
-            if (syncPending) {
-                syncPending = false;
-                pushToGithub(); 
-            } else {
-                updateSyncStatus("تم الحفظ سحابياً", "success");
-            }
-        }
-    } catch (error) { 
-        console.error(error);
-        retryAttempt++;
-        if(retryAttempt > MAX_RETRIES) {
-            updateSyncStatus("فشل نهائي. تأكد من النت", "error");
-            isSyncing = false;
-            retryAttempt = 0;
-        } else {
-            updateSyncStatus(`فشل.. إعادة المحاولة (${retryAttempt})...`, "error");
-            setTimeout(() => {
-                isSyncing = false; 
-                pushToGithub(); 
-            }, 2000); 
-        }
-    }
-}
 
 function showPage(id, btn){
     if(currentUser) {
@@ -1914,8 +1862,8 @@ function _processNotifyQueue() {
 }
 
 function loadWallets(){
-    let wallets=safeJSON(localStorage.wallets, {});
-    const selects = [wallet, modWallet, fromWallet, renameWalletSelect, tfFromWallet, tfToWallet, wWalletAhmad, wWalletMohamed, wWalletStore];
+    let wallets=safeJSON(store.wallets, {});
+    const selects = [window.wallet, window.modWallet, window.fromWallet, window.renameWalletSelect, window.tfFromWallet, window.tfToWallet, window.wWalletAhmad, window.wWalletMohamed, window.wWalletStore];
     selects.forEach(s => { 
         if(s) { 
             s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' : ""; 
@@ -1928,7 +1876,7 @@ function loadWallets(){
     });
 }
 function loadServices() {
-    let services = safeJSON(localStorage.services, []);
+    let services = safeJSON(store.services, []);
     let selStock = document.getElementById("stService");
     
     let html = '<option value="">اختر الخدمة...</option>';
@@ -1936,7 +1884,7 @@ function loadServices() {
     if(selStock) selStock.innerHTML = html;
 }
 function loadPurchaseStock() {
-    let stock = safeJSON(localStorage.stock, []);
+    let stock = safeJSON(store.stock, []);
     let selPurchase = document.getElementById("sub");
     if(selPurchase) {
         let html = '<option value="">اختر من المخزون المتاح...</option>';
@@ -1949,30 +1897,18 @@ function loadPurchaseStock() {
     }
 }
 function loadProfitSettings(){
-    let s = safeJSON(localStorage.settings, {});
+    let s = safeJSON(store.settings, {});
     setAhmadProp.value = s.ahmad; setMohamedProp.value = s.mohamed; setStoreProp.value = s.store;
     setDeductCost.checked = s.deductCost; setExchangeRate.value = s.exchangeRate || 0;
-}
-function loadGithubInputs(){
-    document.getElementById("ghUser").value = ghConfig.user; document.getElementById("ghRepo").value = ghConfig.repo;
-    document.getElementById("ghToken").value = ghConfig.token; document.getElementById("ghFile").value = ghConfig.file;
 }
 function saveProfitSettings(){
     let a = +setAhmadProp.value, m = +setMohamedProp.value, s = +setStoreProp.value;
     if(a + m + s !== 100){ notify("مجموع النسب يجب أن يساوي 100%","error"); return; }
-    let sObj = safeJSON(localStorage.settings, {});
+    let sObj = safeJSON(store.settings, {});
     sObj.ahmad = a; sObj.mohamed = m; sObj.store = s; sObj.deductCost = setDeductCost.checked; sObj.exchangeRate = +setExchangeRate.value;
-    localStorage.settings = JSON.stringify(sObj);
+    store.settings = JSON.stringify(sObj); fbSave("settings", sObj);
     logAction("تعديل إعدادات توزيع الأرباح");
-    pushToGithub(); notify("تم الحفظ");
-}
-function saveGithubSettings() {
-    const u = document.getElementById("ghUser").value.trim(), r = document.getElementById("ghRepo").value.trim(), t = document.getElementById("ghToken").value.trim(), f = document.getElementById("ghFile").value.trim() || "db.json";
-    if(!u || !r || !t) return notify("يرجى تعبئة جميع الحقول", "error");
-    localStorage.setItem("gh_user", u); localStorage.setItem("gh_repo", r); localStorage.setItem("gh_token", t); localStorage.setItem("gh_file", f);
-    ghConfig = {user: u, repo: r, token: t, file: f, sha: ""};
-    logAction("تعديل إعدادات الربط السحابي");
-    notify("تم الحفظ، جاري الاتصال...", "success"); fetchFromGithub();
+     notify("تم الحفظ");
 }
 function validatePhoneInput(el) {
     let v = el.value.trim();
@@ -1993,14 +1929,14 @@ function addPurchase(){
     
     let stockId = sub.value;
     if(!stockId) { notify("يرجى اختيار الاشتراك من المخزون","error"); return; }
-    let stockList = safeJSON(localStorage.stock, []);
+    let stockList = safeJSON(store.stock, []);
     let stItem = stockList.find(x => x.id === stockId);
     if(!stItem || stItem.status !== 'active') { notify("هذا الاشتراك لم يعد متاحاً","error"); return; }
     
     let paidCur=paidCurrency.value, costCur=costCurrency.value;
     let from=fromWallet.value, duration = +subDuration.value;
-    let settings=safeJSON(localStorage.settings, {});
-    let walletsTmp=safeJSON(localStorage.wallets, {});
+    let settings=safeJSON(store.settings, {});
+    let walletsTmp=safeJSON(store.wallets, {});
     
     if(walletsTmp[from].bal < cost && walletsTmp[from].cur == costCur){ notify("رصيد غير كافي","error"); return; }
     
@@ -2038,7 +1974,7 @@ function addPurchase(){
 }
 
 function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, settings, stItem, cleanName) {
-    let wallets=safeJSON(localStorage.wallets, {}), invest=safeJSON(localStorage.invest, {}), purchases=safeJSON(localStorage.purchases, []);
+    let wallets=safeJSON(store.wallets, {}), invest=safeJSON(store.invest, {}), purchases=safeJSON(store.purchases, []);
     
     let wBefore = wallets[from].bal;
     let tBefore = wallets[wallet.value].bal;
@@ -2087,10 +2023,10 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
         stItem.status = 'sold';
         stItem.soldDate = new Date().toLocaleDateString('ar-EG');
     }
-    let stockList = safeJSON(localStorage.stock, []);
+    let stockList = safeJSON(store.stock, []);
     let stIdx = stockList.findIndex(x => x.id === stItem.id);
     if(stIdx !== -1) stockList[stIdx] = stItem;
-    localStorage.stock = JSON.stringify(stockList);
+    store.stock = JSON.stringify(stockList); fbSave("stock", stockList);
 
     purchases.push({
         id: Date.now() + '_' + Math.random().toString(36).substr(2,5),
@@ -2108,9 +2044,9 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
         investSnapshot: invest_before_profit
     });
     
-    localStorage.wallets=JSON.stringify(wallets);
-    localStorage.invest=JSON.stringify(invest);
-    localStorage.purchases=JSON.stringify(purchases);
+    store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
+    store.invest = JSON.stringify(invest); fbSave("invest", invest);
+    store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
     
     logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customer.value}`, {
         type: 'purchase',
@@ -2123,12 +2059,12 @@ function _executePurchase(paid, cost, paidCur, costCur, from, duration, rate, se
     
     currentPage.history = 1;
     loadPurchaseStock();
-    refreshAll(); pushToGithub(); notify("تمت العملية بنجاح");
+    refreshAll();  notify("تمت العملية بنجاح");
     paidAmount.value=""; costAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; subDuration.value="1";
 }
 function refreshAll(){
     refreshWallets();
-    let p = safeJSON(localStorage.purchases, []);
+    let p = safeJSON(store.purchases, []);
     let now = new Date();
     let todayStr = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
@@ -2167,7 +2103,7 @@ function refreshAll(){
     if(!document.getElementById("stock").classList.contains("hidden")) refreshStock();
 }
 function refreshExpiring() {
-    let p = safeJSON(localStorage.purchases, []);
+    let p = safeJSON(store.purchases, []);
     let body = document.getElementById("expiringBody"); 
     if(!body) return;
     let now = new Date().getTime(), days3 = 3 * 86400000;
@@ -2198,17 +2134,17 @@ function refreshExpiring() {
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = filtered.length; badge.style.display = filtered.length > 0 ? "inline-flex" : "none"; }
 }
-function markAsReminded(i) { let p = safeJSON(localStorage.purchases, []); p[i].reminded = true; localStorage.purchases = JSON.stringify(p); refreshExpiring(); pushToGithub(); }
+function markAsReminded(i) { let p = safeJSON(store.purchases, []); p[i].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); refreshExpiring();  }
 async function deleteExpired() { 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
     let ok = await showConfirm("إخفاء الاشتراكات المنتهية", "سيتم إخفاء جميع الاشتراكات المنتهية من القائمة.", "إخفاء", "إلغاء", '<i class="fas fa-eye-slash"></i>');
     if(!ok) return;
-    let p = safeJSON(localStorage.purchases, []), now = new Date().getTime(); 
+    let p = safeJSON(store.purchases, []), now = new Date().getTime(); 
     p.forEach(x => { if(x.expiry && x.expiry < now) x.expiryDismissed = true; }); 
-    localStorage.purchases = JSON.stringify(p); logAction("إخفاء الاشتراكات المنتهية"); currentPage.expiring = 1; refreshAll(); pushToGithub(); 
+    store.purchases = JSON.stringify(p); fbSave("purchases", p); logAction("إخفاء الاشتراكات المنتهية"); currentPage.expiring = 1; refreshAll();  
 }
 function refreshWallets(){
-    let w=safeJSON(localStorage.wallets, {}), td=0, ts=0;
+    let w=safeJSON(store.wallets, {}), td=0, ts=0;
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let rows="";
     for(let k in w){
@@ -2223,7 +2159,7 @@ function refreshWallets(){
     }
 }
 function refreshHistory(){
-    let p = safeJSON(localStorage.purchases, []);
+    let p = safeJSON(store.purchases, []);
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let v = document.getElementById("historySearch").value.toLowerCase();
     
@@ -2248,7 +2184,7 @@ function refreshHistory(){
 function filterHistory() { refreshHistory(); }
 
 function refreshInvestment(){
-    let i=safeJSON(localStorage.invest, {});
+    let i=safeJSON(store.invest, {});
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let aD = isRestricted ? "****" : `${fix(i.ahmad.d)}$ | ${fix(i.ahmad.s)}₪`;
     let mD = isRestricted ? "****" : `${fix(i.mohamed.d)}$ | ${fix(i.mohamed.s)}₪`;
@@ -2269,7 +2205,7 @@ function refreshInvestment(){
     </div>`;
 }
 function refreshAnalytics() {
-    let invest = safeJSON(localStorage.invest, {}), purchases = safeJSON(localStorage.purchases, []);
+    let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     if (myProfitChart) myProfitChart.destroy();
     
     if(currentUser && currentUser.role === 'viewer') {
@@ -2285,9 +2221,9 @@ function refreshAnalytics() {
     if (mySalesChart) mySalesChart.destroy();
     mySalesChart = new Chart(document.getElementById('salesChart').getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'مبيعات', data: data, backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
 }
-function addGeneralNote(){ let t=gnText.value.trim(); if(!t)return; let n=safeJSON(localStorage.generalNotes, []); n.push({text:t, date:new Date().toLocaleString("ar-EG")}); localStorage.generalNotes=JSON.stringify(n); gnText.value=""; logAction("إضافة ملاحظة جديدة"); refreshGeneralNotes(); pushToGithub(); }
+function addGeneralNote(){ let t=gnText.value.trim(); if(!t)return; let n=safeJSON(store.generalNotes, []); n.push({text:t, date:new Date().toLocaleString("ar-EG")}); store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); gnText.value=""; logAction("إضافة ملاحظة جديدة"); refreshGeneralNotes();  }
 function refreshGeneralNotes(){ 
-    let n = safeJSON(localStorage.generalNotes, []); 
+    let n = safeJSON(store.generalNotes, []); 
     let box = document.getElementById("generalNotesBox");
     if(!box) return; 
     if(currentUser && currentUser.role === 'viewer') { box.innerHTML = ""; return; }
@@ -2299,13 +2235,13 @@ function refreshGeneralNotes(){
     }); 
     box.innerHTML = rows;
 }
-function deleteNote(i){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let n=safeJSON(localStorage.generalNotes, []); n.splice(i,1); localStorage.generalNotes=JSON.stringify(n); logAction("حذف ملاحظة"); refreshGeneralNotes(); pushToGithub(); }
+function deleteNote(i){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let n=safeJSON(store.generalNotes, []); n.splice(i,1); store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); logAction("حذف ملاحظة"); refreshGeneralNotes();  }
 function addTodo(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
-    let t=todoInput.value.trim(); if(!t)return; let l=safeJSON(localStorage.todoList, []); l.push({text:t, date:new Date().toLocaleString("ar-EG")}); localStorage.todoList=JSON.stringify(l); todoInput.value=""; logAction("إضافة مهمة جديدة"); refreshTodoList(); pushToGithub(); 
+    let t=todoInput.value.trim(); if(!t)return; let l=safeJSON(store.todoList, []); l.push({text:t, date:new Date().toLocaleString("ar-EG")}); store.todoList = JSON.stringify(l); fbSave("todoList", l); todoInput.value=""; logAction("إضافة مهمة جديدة"); refreshTodoList();  
 }
 function refreshTodoList(){ 
-    let l=safeJSON(localStorage.todoList, []); 
+    let l=safeJSON(store.todoList, []); 
     let rows=""; 
     let canEdit = currentUser ? (currentUser.role === 'admin' || currentUser.role === 'employee') : false;
     l.forEach((x,i)=>{ 
@@ -2316,7 +2252,7 @@ function refreshTodoList(){
 }
 function completeTodo(i){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
-    let l=safeJSON(localStorage.todoList, []); logAction(`إكمال مهمة: ${esc(l[i].text)}`); l.splice(i,1); localStorage.todoList=JSON.stringify(l); refreshTodoList(); pushToGithub(); 
+    let l=safeJSON(store.todoList, []); logAction(`إكمال مهمة: ${esc(l[i].text)}`); l.splice(i,1); store.todoList = JSON.stringify(l); fbSave("todoList", l); refreshTodoList();  
 }
 
 async function withdrawPartial(p){ 
@@ -2334,8 +2270,8 @@ async function withdrawPartial(p){
     let reason = await showPrompt("سبب السحب", "هذا الحقل إجباري", "أدخل سبب السحب...", '<i class="fas fa-money-bill-wave"></i>');
     if(!reason) return notify("تم الإلغاء: السبب مطلوب","error");
 
-    let i = safeJSON(localStorage.invest, {});
-    let w = safeJSON(localStorage.wallets, {});
+    let i = safeJSON(store.invest, {});
+    let w = safeJSON(store.wallets, {});
     
     let wallet = w[walletName];
     let currency = wallet.cur;
@@ -2350,8 +2286,8 @@ async function withdrawPartial(p){
     i[p][shareType] -= amount; 
     w[walletName].bal -= amount; 
 
-    localStorage.invest = JSON.stringify(i); 
-    localStorage.wallets = JSON.stringify(w);
+    store.invest = JSON.stringify(i); fbSave("invest", i); 
+    store.wallets = JSON.stringify(w); fbSave("wallets", w);
 
     logAction(`سحب أرباح من حصة ${p} عبر ${walletName}`, {
         type: 'withdraw',
@@ -2368,11 +2304,11 @@ async function withdrawPartial(p){
     });
 
     refreshInvestment(); refreshWallets(); input.value=""; 
-    pushToGithub(); notify("تم السحب بنجاح");
+     notify("تم السحب بنجاح");
 }
 
-function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=safeJSON(localStorage.wallets, {}); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; localStorage.wallets=JSON.stringify(w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`); pushToGithub(); notify("تمت"); }
-function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=safeJSON(localStorage.wallets, {}); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; localStorage.wallets=JSON.stringify(w); let p=safeJSON(localStorage.purchases, []); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); localStorage.purchases=JSON.stringify(p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`); pushToGithub(); notify("تم"); }
+function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=safeJSON(store.wallets, {}); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; store.wallets = JSON.stringify(w); fbSave("wallets", w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`);  notify("تمت"); }
+function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=safeJSON(store.wallets, {}); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; store.wallets = JSON.stringify(w); fbSave("wallets", w); let p=safeJSON(store.purchases, []); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); store.purchases = JSON.stringify(p); fbSave("purchases", p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`);  notify("تم"); }
 
 function calculateTransfer() {
     let amount = parseFloat(document.getElementById("tfAmount").value) || 0;
@@ -2382,7 +2318,7 @@ function calculateTransfer() {
     
     let from = document.getElementById("tfFromWallet").value;
     let to = document.getElementById("tfToWallet").value;
-    let w = safeJSON(localStorage.wallets, {});
+    let w = safeJSON(store.wallets, {});
     
     let result = 0;
     if(from && to && w[from] && w[to]) {
@@ -2413,7 +2349,7 @@ function executeTransfer() {
     if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
-    let w = safeJSON(localStorage.wallets, {});
+    let w = safeJSON(store.wallets, {});
     if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
 
     let fromCur = w[from].cur;
@@ -2422,14 +2358,14 @@ function executeTransfer() {
     w[from].bal -= amount;
     w[to].bal += result;
 
-    let invest = safeJSON(localStorage.invest, {});
+    let invest = safeJSON(store.invest, {});
     if(fee > 0) {
         if(fromCur === '$') invest.store.d -= fee;
         else invest.store.s -= fee;
     }
 
-    localStorage.wallets = JSON.stringify(w);
-    localStorage.invest = JSON.stringify(invest);
+    store.wallets = JSON.stringify(w); fbSave("wallets", w);
+    store.invest = JSON.stringify(invest); fbSave("invest", invest);
     
     logAction(`تحويل من ${from} إلى ${to}`, {
         type: 'transfer',
@@ -2445,7 +2381,7 @@ function executeTransfer() {
         toCur: toCur
     });
 
-    refreshWallets(); refreshInvestment(); pushToGithub(); notify("تم التحويل");
+    refreshWallets(); refreshInvestment();  notify("تم التحويل");
     document.getElementById("tfAmount").value = "";
     document.getElementById("tfFee").value = "0";
     document.getElementById("tfResult").value = "";
@@ -2455,12 +2391,12 @@ async function setWallet(){
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     let reason = await showPrompt("سبب التعيين المباشر", "هذا الحقل إجباري", "أدخل سبب التعيين...", '<i class="fas fa-edit"></i>');
     if(!reason) return;
-    let w=safeJSON(localStorage.wallets, {}); 
+    let w=safeJSON(store.wallets, {}); 
     let before = w[modWallet.value].bal;
     w[modWallet.value].bal = +modAmount.value; 
-    localStorage.wallets=JSON.stringify(w); 
+    store.wallets = JSON.stringify(w); fbSave("wallets", w); 
     logAction(`تعيين رصيد محفظة ${modWallet.value}`, { type: 'manual', wallet: modWallet.value, reason: reason, before: before, after: w[modWallet.value].bal, diff: (+modAmount.value - before) });
-    refreshWallets(); pushToGithub(); notify("تم"); 
+    refreshWallets();  notify("تم"); 
 }
 
 async function setProfitShare() {
@@ -2473,46 +2409,46 @@ async function setProfitShare() {
     let reason = await showPrompt("سبب تعديل الحصة", "هذا الحقل إجباري", "أدخل السبب...", '<i class="fas fa-edit"></i>');
     if(!reason) return;
 
-    let invest = safeJSON(localStorage.invest, {});
+    let invest = safeJSON(store.invest, {});
     let before = invest[person][currency];
     invest[person][currency] = amount;
-    localStorage.invest = JSON.stringify(invest);
+    store.invest = JSON.stringify(invest); fbSave("invest", invest);
 
     logAction(`تعديل مباشر لحصة ${person}`, { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount });
-    refreshInvestment(); pushToGithub(); notify("تم تحديث الحصة");
+    refreshInvestment();  notify("تم تحديث الحصة");
 }
 
 async function deleteWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); 
     let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${modWallet.value}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
-    let w=safeJSON(localStorage.wallets, {}); delete w[modWallet.value]; localStorage.wallets=JSON.stringify(w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets(); pushToGithub(); notify("تم الحذف"); 
+    let w=safeJSON(store.wallets, {}); delete w[modWallet.value]; store.wallets = JSON.stringify(w); fbSave("wallets", w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets();  notify("تم الحذف"); 
 }
-function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(localStorage)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
+function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     let f=importFile.files[0], r=new FileReader(); 
-    r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); Object.keys(d).forEach(k=>localStorage.setItem(k,d[k])); notify("تم الاستعادة، جاري التحديث..."); logAction("استيراد بيانات من نسخة احتياطية"); await pushToGithub(true); location.reload(); }catch(err){notify("ملف تالف","error");} }; 
+    r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
     if(f) r.readAsText(f); else notify("اختر ملف","error"); 
 }
 
 async function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
-    let purchases = safeJSON(localStorage.purchases, []);
+    let purchases = safeJSON(store.purchases, []);
     if(purchases.length === 0) return notify("لا توجد عمليات للتراجع عنها", "error");
     let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة والحصص. هل تريد المتابعة؟", "نعم، تراجع", "لا، إلغاء", '<i class="fas fa-undo"></i>');
     if(!ok) return;
     let lastP = purchases.pop();
-    let wallets = safeJSON(localStorage.wallets, {});
+    let wallets = safeJSON(store.wallets, {});
     if(lastP.fromWallet && wallets[lastP.fromWallet]) { wallets[lastP.fromWallet].bal += parseFloat(lastP.cost); }
     if(lastP.wallet && wallets[lastP.wallet]) { wallets[lastP.wallet].bal -= parseFloat(lastP.paid); }
-    localStorage.wallets = JSON.stringify(wallets);
-    localStorage.purchases = JSON.stringify(purchases);
-    if(lastP.investSnapshot) { localStorage.invest = JSON.stringify(lastP.investSnapshot); }
+    store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
+    store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
+    if(lastP.investSnapshot) { store.invest = JSON.stringify(lastP.investSnapshot); fbSave("invest", lastP.investSnapshot); }
     
     // Reverse Stock if attached
     if(lastP.stockId) {
-        let stockList = safeJSON(localStorage.stock, []);
+        let stockList = safeJSON(store.stock, []);
         let sItem = stockList.find(x => x.id === lastP.stockId);
         if(sItem) {
             sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1);
@@ -2521,7 +2457,7 @@ async function undoLastPurchase(){
                 sItem.status = 'active';
                 delete sItem.soldDate;
             }
-            localStorage.stock = JSON.stringify(stockList);
+            store.stock = JSON.stringify(stockList); fbSave("stock", stockList);
         }
     }
     
@@ -2529,7 +2465,7 @@ async function undoLastPurchase(){
     
     currentPage.history = 1;
     loadPurchaseStock();
-    refreshAll(); pushToGithub(); notify("تم التراجع"); 
+    refreshAll();  notify("تم التراجع"); 
 }
 
 async function clearHistory(){ 
@@ -2537,27 +2473,27 @@ async function clearHistory(){
     let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
-    let purchases = safeJSON(localStorage.purchases, []);
+    let purchases = safeJSON(store.purchases, []);
     if(res === 'third') {
         if(purchases.length > ITEMS_PER_PAGE) purchases.splice(0, ITEMS_PER_PAGE); 
         else purchases = [];
-        localStorage.purchases = JSON.stringify(purchases);
+        store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
         logAction("قام الأدمن بمسح أقدم 50 عملية مالية لتوفير المساحة");
     } else {
-        localStorage.purchases="[]"; 
+        store.purchases = "[]"; fbSave("purchases", []); 
         logAction("مسح سجل العمليات بالكامل"); 
     }
     
     currentPage.history = 1;
     refreshHistory(); 
-    pushToGithub(); 
+     
     notify("تم المسح بنجاح");
 }
 
 function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserModal') document.getElementById("editUserModal").classList.add("hidden"); }
 
 function openEditUserModal(index) {
-    let users = safeJSON(localStorage.users, []), u = users[index];
+    let users = safeJSON(store.users, []), u = users[index];
     document.getElementById("editUserIndex").value = index;
     document.getElementById("editUserName").value = u.username;
     document.getElementById("editUserPassInput").value = "";
@@ -2569,17 +2505,17 @@ async function saveUserEdit() {
     let index = +document.getElementById("editUserIndex").value;
     let newPass = document.getElementById("editUserPassInput").value.trim();
     let newRole = document.getElementById("editUserRoleSelect").value;
-    let users = safeJSON(localStorage.users, []);
+    let users = safeJSON(store.users, []);
     if(newPass) users[index].password = newPass;
     if(users[index].username === currentUser.username && newRole !== 'admin') {
         let ok = await showConfirm("تغيير صلاحيتك", "ستقلل صلاحيتك من أدمن. هل أنت متأكد؟", "نعم", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
         if(!ok) return;
     }
     users[index].role = newRole;
-    localStorage.users = JSON.stringify(users);
+    store.users = JSON.stringify(users); fbSave("users", users);
     logAction(`تعديل بيانات المستخدم: ${users[index].username}`);
     document.getElementById("editUserModal").classList.add("hidden");
-    renderUsersTable(); pushToGithub(); notify("تم تحديث بيانات المستخدم");
+    renderUsersTable();  notify("تم تحديث بيانات المستخدم");
 }
 
 function closeStockModal(e) { if(e === 'force' || e.target.id === 'stockModal') document.getElementById("stockModal").classList.add("hidden"); }
@@ -2611,7 +2547,7 @@ function saveStock() {
     if(!stService) return notify("يرجى اختيار الخدمة", "error");
     
     let baseName = stService + (stProfiles > 1 ? " Shared" : "");
-    let stock = safeJSON(localStorage.stock, []);
+    let stock = safeJSON(store.stock, []);
     
     let activeStock = stock.filter(x => x.status === 'active' && x.id !== (index === -1 ? null : stock[index].id));
     let finalName = baseName;
@@ -2646,11 +2582,11 @@ function saveStock() {
     if(index === -1) { stock.unshift(s); logAction(`إضافة اشتراك للمخزون: ${s.displayName}`); }
     else { stock[index] = s; logAction(`تعديل اشتراك في المخزون: ${s.displayName}`); }
     
-    localStorage.stock = JSON.stringify(stock);
+    store.stock = JSON.stringify(stock); fbSave("stock", stock);
     document.getElementById("stockModal").classList.add("hidden");
     currentPage.stock = 1;
     loadPurchaseStock();
-    refreshStock(); pushToGithub(); notify("تم الحفظ بنجاح");
+    refreshStock();  notify("تم الحفظ بنجاح");
 }
 
 function switchStockTab(tab, btn) {
@@ -2672,7 +2608,7 @@ async function deleteAllSoldStock() {
     let res = await showConfirm("حذف المباع", "سيتم حذف كافة الاشتراكات المباعة نهائياً من الأرشيف.", "حذف الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة مباعة");
     if(!res) return;
     
-    let stock = safeJSON(localStorage.stock, []);
+    let stock = safeJSON(store.stock, []);
     if(res === 'third') {
         let soldItems = stock.filter(s => s.status === 'sold');
         soldItems.sort((a, b) => a.timestamp - b.timestamp); 
@@ -2684,13 +2620,13 @@ async function deleteAllSoldStock() {
         logAction("قام الأدمن بحذف كافة الاشتراكات المباعة");
     }
     
-    localStorage.stock = JSON.stringify(stock);
+    store.stock = JSON.stringify(stock); fbSave("stock", stock);
     currentPage.stock = 1;
-    refreshStock(); pushToGithub(); notify("تم المسح بنجاح");
+    refreshStock();  notify("تم المسح بنجاح");
 }
 
 function refreshStock() {
-    let stock = safeJSON(localStorage.stock, []);
+    let stock = safeJSON(store.stock, []);
     let tbody = document.getElementById("stockBody"); 
     let thead = document.getElementById("stockHead");
     if(!tbody || !thead) return;
@@ -2784,7 +2720,7 @@ function filterStock() {
 }
 
 function editStock(i) {
-    let stock = safeJSON(localStorage.stock, []), item = stock[i];
+    let stock = safeJSON(store.stock, []), item = stock[i];
     let isAdmin = currentUser.role === 'admin';
 
     loadServices();
@@ -2820,7 +2756,7 @@ function editStock(i) {
 }
 
 function viewSoldDetails(i) {
-    let stock = safeJSON(localStorage.stock, []), item = stock[i];
+    let stock = safeJSON(store.stock, []), item = stock[i];
     
     let body = document.getElementById("modalBody");
     body.innerHTML = "";
@@ -2854,15 +2790,15 @@ async function deleteSoldStock(i) {
     let ok = await showConfirm("حذف نهائي", "هل أنت متأكد من حذف هذا السجل من الأرشيف؟ لا يمكن التراجع.", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
     
-    let stock = safeJSON(localStorage.stock, []);
+    let stock = safeJSON(store.stock, []);
     stock.splice(i, 1);
-    localStorage.stock = JSON.stringify(stock);
+    store.stock = JSON.stringify(stock); fbSave("stock", stock);
     logAction("حذف سجل مباع من المخزون");
-    refreshStock(); pushToGithub(); notify("تم الحذف");
+    refreshStock();  notify("تم الحذف");
 }
 
 async function sellStock(i) {
-    let stock = safeJSON(localStorage.stock, []);
+    let stock = safeJSON(store.stock, []);
     let item = stock[i];
     
     let customerNum = await showPrompt("إتمام البيع يدوياً", `تسجيل بيع لاشتراك: ${esc(item.displayName || item.service)}`, "أدخل اسم/رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
@@ -2877,14 +2813,14 @@ async function sellStock(i) {
     item.soldDate = new Date().toLocaleDateString('ar-EG');
     
     stock[i] = item;
-    localStorage.stock = JSON.stringify(stock);
+    store.stock = JSON.stringify(stock); fbSave("stock", stock);
     
     logAction(`تم بيع اشتراك من المخزون يدوياً: ${item.displayName || item.service}`);
-    refreshStock(); loadPurchaseStock(); pushToGithub(); notify("تم نقل الاشتراك إلى المباع");
+    refreshStock(); loadPurchaseStock();  notify("تم نقل الاشتراك إلى المباع");
 }
 
 function renderServicesSettings() {
-    let list = safeJSON(localStorage.services, []);
+    let list = safeJSON(store.services, []);
     let div = document.getElementById("servicesList");
     let isAdmin = currentUser.role === 'admin';
     div.innerHTML = "";
@@ -2901,25 +2837,25 @@ function addService() {
     let inp = document.getElementById("newServiceName");
     let val = inp.value.trim();
     if(!val) return;
-    let list = safeJSON(localStorage.services, []);
+    let list = safeJSON(store.services, []);
     if(!list.includes(val)) {
         list.push(val);
-        localStorage.services = JSON.stringify(list);
+        store.services = JSON.stringify(list); fbSave("services", list);
         logAction(`إضافة خدمة جديدة: ${val}`);
         renderServicesSettings();
-        pushToGithub();
+        
     }
     inp.value = "";
 }
 function deleteService(idx) {
-    let list = safeJSON(localStorage.services, []);
+    let list = safeJSON(store.services, []);
     list.splice(idx, 1);
-    localStorage.services = JSON.stringify(list);
+    store.services = JSON.stringify(list); fbSave("services", list);
     renderServicesSettings();
-    pushToGithub();
 }
 
-window.onload=init;
+window.onload = init;
 </script>
 </body>
 </html>
+
