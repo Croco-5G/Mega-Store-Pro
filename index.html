@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Advanced Stock System</title>
+    <title>Mega Store | System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -1165,6 +1165,18 @@ function fbSave(key, val) {
 function initFirebase() {
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
+    
+    // --- بداية التعديل: تفعيل الحفظ عند انقطاع النت ---
+    db.enablePersistence({ synchronizeTabs: true })
+        .catch((err) => {
+            if (err.code == 'failed-precondition') {
+                console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
+            } else if (err.code == 'unimplemented') {
+                console.warn("The current browser does not support all of the features required to enable persistence");
+            }
+        });
+    // --- نهاية التعديل ---
+
     fbDocRef = db.collection("megastore").doc("data");
 
     updateSyncStatus("جاري الاتصال...", "loading");
@@ -1173,17 +1185,13 @@ function initFirebase() {
     fbDocRef.onSnapshot(
         { includeMetadataChanges: true },
         (doc) => {
+            // هنا نفحص إذا كانت البيانات من الكاش (الجهاز) أم من السيرفر
             const fromCache = doc.metadata.fromCache;
             const hasPendingWrites = doc.metadata.hasPendingWrites;
             
-            if (fromCache || !doc.exists) {
-                fbConnected = false;
-                updateSyncStatus("غير متصل", "error");
-                updateStorageUI();
-                return;
-            }
-            
-            fbConnected = true;
+            // إذا كانت البيانات قادمة من الكاش، فهذا يعني أننا قد نكون بلا انترنت
+            // لكن البيانات محفوظة ومحمية
+            fbConnected = !fromCache; 
             
             if (doc.exists) {
                 const data = doc.data();
@@ -1194,16 +1202,18 @@ function initFirebase() {
                 });
                 if (currentUser) refreshAll();
             } else {
-                // First time - create document with defaults
                 fbDocRef.set(getDefaultData()).catch(e => console.error(e));
             }
             
-            if (!hasPendingWrites) {
-                updateSyncStatus("متزامن", "success");
+            // تحديث حالة الأيقونة
+            if (hasPendingWrites) {
+                updateSyncStatus("تم الحفظ (بانتظار المزامنة)", "warning"); // لون برتقالي
+            } else {
+                updateSyncStatus("متزامن", "success"); // لون أخضر
             }
+            
             updateStorageUI();
             
-            // Show login if not shown yet
             if (document.getElementById("loginCard").style.display === "none" || 
                 document.getElementById("loginLayer").style.display !== "none") {
                 if (document.getElementById("loginLayer").style.display !== "none") {
@@ -1212,20 +1222,20 @@ function initFirebase() {
             }
         },
         (error) => {
-            fbConnected = false;
+            // حتى لو حدث خطأ، سنعتمد على الكاش
             console.error("Firestore error:", error);
-            updateSyncStatus("غير متصل", "error");
+            updateSyncStatus("وضع غير متصل (محمي)", "warning");
             updateStorageUI();
         }
     );
 
     // Network status detection
     window.addEventListener('online', () => {
-        if (fbConnected) updateSyncStatus("متزامن", "success");
+        fbDocRef.get(); // محاولة إعادة الاتصال
+        updateSyncStatus("جاري المزامنة...", "loading");
     });
     window.addEventListener('offline', () => {
-        fbConnected = false;
-        updateSyncStatus("غير متصل", "error");
+        updateSyncStatus("غير متصل (البيانات محفوظة)", "warning");
         updateStorageUI();
     });
 }
@@ -2093,7 +2103,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: isFirstProfile ? calculatedCost+paidCur : "0"+paidCur, // Record cost in paid currency for history
+        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")), // Show original cost currency
         wallet: wallet.value,
         expiry: exp.getTime(),
         investSnapshot: invest_before_profit
@@ -2108,7 +2118,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         customer: customer.value||"عميل",
         sub: cleanName,
         paid: paid+paidCur,
-        costVal: isFirstProfile ? fix(calculatedCost)+paidCur : "0",
+        costVal: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : "0",
         isFirstProfile: isFirstProfile,
         toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
     });
