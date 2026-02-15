@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store Pro | Advanced Stock System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -909,11 +909,18 @@
         </div>
 
         <div id="sec-rename-wallet">
-            <h3><i class="fas fa-pen" style="color:var(--primary)"></i> تعديل اسم محفظة</h3>
-            <div class="inner-box" style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:40px">
-                <select id="renameWalletSelect" style="flex:1"></select>
-                <input id="renameWalletInput" placeholder="الاسم الجديد" style="flex:1">
-                <button class="btn btn-warning" onclick="renameWallet()">تعديل</button>
+            <h3><i class="fas fa-edit" style="color:var(--primary)"></i> إدارة المحفظة (تعديل)</h3>
+            <div class="inner-box" style="margin-bottom:40px">
+                <div class="input-group"><label>اختر المحفظة</label><select id="renameWalletSelect" onchange="fillWalletEditData()"></select></div>
+                <div class="grid-2">
+                    <div class="input-group"><label>الاسم الجديد</label><input id="renameWalletInput" placeholder="الاسم"></div>
+                    <div class="input-group"><label>العملة</label><select id="renameWalletCur"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select></div>
+                </div>
+                <div class="input-group">
+                    <label>الحالة</label>
+                    <select id="renameWalletStatus"><option value="true">نشط (Active)</option><option value="false">غير نشط (Inactive)</option></select>
+                </div>
+                <button class="btn btn-warning" style="width:100%" onclick="updateWalletData()">حفظ التعديلات</button>
             </div>
         </div>
 
@@ -2375,7 +2382,54 @@ async function withdrawPartial(p){
 }
 
 function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=safeJSON(store.wallets, {}); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; store.wallets = JSON.stringify(w); fbSave("wallets", w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`);  notify("تمت"); }
-function renameWallet(){ let o=renameWalletSelect.value, n=renameWalletInput.value.trim(), w=safeJSON(store.wallets, {}); if(!n||w[n]) return notify("خطأ","error"); w[n]=w[o]; delete w[o]; store.wallets = JSON.stringify(w); fbSave("wallets", w); let p=safeJSON(store.purchases, []); p.forEach(x=>{if(x.wallet===o)x.wallet=n}); store.purchases = JSON.stringify(p); fbSave("purchases", p); loadWallets(); refreshAll(); renameWalletInput.value=""; logAction(`تغيير اسم محفظة من ${o} إلى ${n}`);  notify("تم"); }
+
+function fillWalletEditData() {
+    let name = document.getElementById("renameWalletSelect").value;
+    let w = safeJSON(store.wallets, {});
+    let wallet = w[name];
+    if(wallet) {
+        document.getElementById("renameWalletInput").value = name;
+        document.getElementById("renameWalletCur").value = wallet.cur;
+        document.getElementById("renameWalletStatus").value = (wallet.active !== false).toString();
+    }
+}
+
+function updateWalletData(){ 
+    let oldName = document.getElementById("renameWalletSelect").value;
+    let newName = document.getElementById("renameWalletInput").value.trim();
+    let newCur = document.getElementById("renameWalletCur").value;
+    let newStatus = document.getElementById("renameWalletStatus").value === "true";
+    
+    let w = safeJSON(store.wallets, {}); 
+    
+    if(!newName) return notify("خطأ في الاسم","error");
+    if(!w[oldName]) return notify("المحفظة غير موجودة", "error");
+
+    // If renaming
+    if(newName !== oldName) {
+        if(w[newName]) return notify("يوجد محفظة بهذا الاسم مسبقاً", "error");
+        w[newName] = w[oldName];
+        delete w[oldName];
+        
+        // Update references in purchase history
+        let p = safeJSON(store.purchases, []); 
+        p.forEach(x => { if(x.wallet === oldName) x.wallet = newName; }); 
+        store.purchases = JSON.stringify(p); fbSave("purchases", p);
+        
+        logAction(`تعديل محفظة: تم تغيير الاسم من ${oldName} إلى ${newName}`);
+    }
+
+    // Update properties
+    w[newName].cur = newCur;
+    w[newName].active = newStatus;
+    
+    store.wallets = JSON.stringify(w); fbSave("wallets", w); 
+    
+    loadWallets(); 
+    refreshAll(); 
+    document.getElementById("renameWalletInput").value = ""; 
+    notify("تم تحديث بيانات المحفظة"); 
+}
 
 function calculateTransfer() {
     let amount = parseFloat(document.getElementById("tfAmount").value) || 0;
@@ -2827,6 +2881,7 @@ function refreshStock() {
             <th>الإيميل</th>
             <th>البروفايلات</th>
             <th>تاريخ البيع</th>
+            <th>المتبقي</th>
             <th>التفاصيل</th>
             ${delTh}
         </tr>`;
@@ -2843,6 +2898,7 @@ function refreshStock() {
         let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
         
         let profStr = `${item.soldProfiles || 0}/${item.totalProfiles || 1}`;
+        let timeBadge = `<span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span>`;
 
         if(currentStockTab === 'active') {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
@@ -2852,7 +2908,7 @@ function refreshStock() {
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
                 <td>${esc(item.vendor) || '-'}</td>
                 <td class="eng-num" style="font-weight:bold;">${profStr}</td>
-                <td class="eng-num"><span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span></td>
+                <td class="eng-num">${timeBadge}</td>
                 <td>${detailsBtn}</td>
                 ${sellBtn}
             </tr>`;
@@ -2865,12 +2921,13 @@ function refreshStock() {
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
                 <td class="eng-num" style="font-weight:bold;">${profStr}</td>
                 <td class="eng-num">${item.soldDate || '-'}</td>
+                <td class="eng-num">${timeBadge}</td>
                 <td>${viewBtn}</td>
                 ${delCell}
             </tr>`;
         }
     });
-    let colSpan = currentStockTab === 'active' ? (canSell ? 7 : 6) : (isAdmin ? 6 : 5);
+    let colSpan = currentStockTab === 'active' ? (canSell ? 7 : 6) : (isAdmin ? 7 : 6);
     tbody.innerHTML = rows || `<tr><td colspan='${colSpan}' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
