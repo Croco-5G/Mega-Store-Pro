@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store Pro | Advanced Stock System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -1173,7 +1173,7 @@ function initFirebase() {
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
     
-    // --- بداية التعديل: تفعيل الحفظ عند انقطاع النت ---
+    // --- ENABLE OFFLINE PERSISTENCE ---
     db.enablePersistence({ synchronizeTabs: true })
         .catch((err) => {
             if (err.code == 'failed-precondition') {
@@ -1182,7 +1182,6 @@ function initFirebase() {
                 console.warn("The current browser does not support all of the features required to enable persistence");
             }
         });
-    // --- نهاية التعديل ---
 
     fbDocRef = db.collection("megastore").doc("data");
 
@@ -1192,12 +1191,9 @@ function initFirebase() {
     fbDocRef.onSnapshot(
         { includeMetadataChanges: true },
         (doc) => {
-            // هنا نفحص إذا كانت البيانات من الكاش (الجهاز) أم من السيرفر
             const fromCache = doc.metadata.fromCache;
             const hasPendingWrites = doc.metadata.hasPendingWrites;
             
-            // إذا كانت البيانات قادمة من الكاش، فهذا يعني أننا قد نكون بلا انترنت
-            // لكن البيانات محفوظة ومحمية
             fbConnected = !fromCache; 
             
             if (doc.exists) {
@@ -1212,11 +1208,10 @@ function initFirebase() {
                 fbDocRef.set(getDefaultData()).catch(e => console.error(e));
             }
             
-            // تحديث حالة الأيقونة
             if (hasPendingWrites) {
-                updateSyncStatus("تم الحفظ (بانتظار المزامنة)", "warning"); // لون برتقالي
+                updateSyncStatus("تم الحفظ (بانتظار المزامنة)", "warning"); 
             } else {
-                updateSyncStatus("متزامن", "success"); // لون أخضر
+                updateSyncStatus("متزامن", "success"); 
             }
             
             updateStorageUI();
@@ -1229,16 +1224,14 @@ function initFirebase() {
             }
         },
         (error) => {
-            // حتى لو حدث خطأ، سنعتمد على الكاش
             console.error("Firestore error:", error);
             updateSyncStatus("وضع غير متصل (محمي)", "warning");
             updateStorageUI();
         }
     );
 
-    // Network status detection
     window.addEventListener('online', () => {
-        fbDocRef.get(); // محاولة إعادة الاتصال
+        fbDocRef.get(); 
         updateSyncStatus("جاري المزامنة...", "loading");
     });
     window.addEventListener('offline', () => {
@@ -1291,7 +1284,11 @@ function showModalDetails(details) {
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("المبلغ الكلي", details.amount + " (" + details.fromCur + ")");
         body.innerHTML += row("العمولة", details.fee + " (" + details.fromCur + ")", true, false);
-        body.innerHTML += row("خصم العمولة من", "حصة المتجر (Capital)");
+        if(details.fromCur !== details.toCur) {
+             body.innerHTML += `<div style="padding:10px; background:var(--yellow-bg); border-radius:8px; margin:5px 0; font-size:13px; color:var(--yellow-text)"><i class="fas fa-exchange-alt"></i> تم الخصم والإضافة من حصة المتجر (تغيير عملة)</div>`;
+        } else {
+             body.innerHTML += row("خصم العمولة من", "حصة المتجر (Capital)");
+        }
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("الصافي للتحويل", details.netAmount);
         body.innerHTML += row("سعر الدولار", details.rate);
@@ -1564,8 +1561,9 @@ async function attemptLogin() {
 function checkExpiringOnLogin() {
     let p = safeJSON(store.purchases, []);
     let now = new Date().getTime(), days3 = 3 * 86400000;
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
-    if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً`, "warning");
+    // Updated: Only count non-reminded items
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
+    if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً (غير منبه)`, "warning");
 }
 
 function getOS() {
@@ -2149,7 +2147,8 @@ function refreshAll(){
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
+    // Updated: Only count non-reminded items for the badge
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
@@ -2198,6 +2197,7 @@ function refreshExpiring() {
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
         if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
         let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
+        // Fix: Hide button for viewers
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         let phoneDisplay = isRestricted ? '----' : esc(item.phone);
         let serviceDisplay = isRestricted ? '----' : `<b>${esc(item.sub)}</b>`;
@@ -2205,8 +2205,10 @@ function refreshExpiring() {
     });
     body.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:30px; color:var(--text-muted)'>لا توجد تنبيهات</td></tr>";
     
+    // Badge Update Logic (Only non-reminded)
+    let nonRemindedCount = filtered.filter(x => !x.d.reminded).length;
     let badge = document.getElementById("expiryBadge");
-    if(badge) { badge.textContent = filtered.length; badge.style.display = filtered.length > 0 ? "inline-flex" : "none"; }
+    if(badge) { badge.textContent = nonRemindedCount; badge.style.display = nonRemindedCount > 0 ? "inline-flex" : "none"; }
 }
 function markAsReminded(i) { let p = safeJSON(store.purchases, []); p[i].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); refreshExpiring();  }
 async function deleteExpired() { 
@@ -2351,8 +2353,12 @@ async function withdrawPartial(p){
     let currency = wallet.cur;
     let shareType = (currency === '$') ? 'd' : 's';
 
-    if(i[p][shareType] < amount) { notify(`رصيد الحصة (${currency}) غير كافي للسحب`,"error"); return; }
-    if(wallet.bal < amount) { notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error"); return; }
+    // FIX FOR FLOAT COMPARISON
+    let currentShare = Number(i[p][shareType].toFixed(2));
+    let currentWallet = Number(wallet.bal.toFixed(2));
+
+    if(currentShare < amount) { notify(`رصيد الحصة (${currency}) غير كافي للسحب`,"error"); return; }
+    if(currentWallet < amount) { notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error"); return; }
 
     let shareBefore = i[p][shareType];
     let walletBefore = wallet.bal;
@@ -2480,9 +2486,22 @@ function executeTransfer() {
     w[to].bal += result;
 
     let invest = safeJSON(store.invest, {});
-    if(fee > 0) {
-        if(fromCur === '$') invest.store.d -= fee;
-        else invest.store.s -= fee;
+    
+    if(fromCur !== toCur) {
+        // CROSS CURRENCY TRANSFER LOGIC
+        // Store absorbs the exchange: Pay full amount from Store Source -> Get full result to Store Dest
+        let fromType = (fromCur === '$') ? 'd' : 's';
+        let toType = (toCur === '$') ? 'd' : 's';
+        
+        invest.store[fromType] -= amount; 
+        invest.store[toType] += result;
+        
+    } else {
+        // SAME CURRENCY TRANSFER
+        if(fee > 0) {
+            if(fromCur === '$') invest.store.d -= fee;
+            else invest.store.s -= fee;
+        }
     }
 
     store.wallets = JSON.stringify(w); fbSave("wallets", w);
@@ -3074,4 +3093,3 @@ window.onload = init;
 </script>
 </body>
 </html>
-
