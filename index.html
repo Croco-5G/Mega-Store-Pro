@@ -587,7 +587,8 @@
             <div class="input-group"><label>رقم جوال العميل (اختياري)</label><input id="customerPhone" placeholder="059xxxxxxx أو رقم هوية..." oninput="validatePhoneInput(this)"></div>
             <div class="input-group"><label>مدة الاشتراك (للتذكير)</label>
                 <select id="subDuration">
-                    <option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="4">4 شهور</option><option value="5">5 شهور</option><option value="6">6 شهور</option><option value="7">7 شهور</option><option value="8">8 شهور</option><option value="9">9 شهور</option><option value="10">10 شهور</option><option value="11">11 شهر</option><option value="12">12 شهر (سنة)</option>
+                    <option value="0">بدون مدة</option>
+                    <option value="1" selected>1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="4">4 شهور</option><option value="5">5 شهور</option><option value="6">6 شهور</option><option value="7">7 شهور</option><option value="8">8 شهور</option><option value="9">9 شهور</option><option value="10">10 شهور</option><option value="11">11 شهر</option><option value="12">12 شهر (سنة)</option>
                 </select>
             </div>
         </div>
@@ -1029,7 +1030,7 @@
         </div>
         <div class="input-group"><label>اسم البائع</label><input id="stVendor" placeholder="اسم البائع"></div>
         <div class="input-group"><label>المدة</label>
-            <select id="stDuration"><option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="6">6 شهور</option><option value="12">12 شهر</option></select>
+            <select id="stDuration"><option value="0">بدون مدة</option><option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="6">6 شهور</option><option value="12">12 شهر</option></select>
         </div>
         <div class="input-group"><label>البريد الإلكتروني</label><input id="stEmail" placeholder="email@example.com"></div>
         <div class="input-group"><label>كلمة المرور</label><input id="stPass" placeholder="Password"></div>
@@ -2028,7 +2029,7 @@ function addPurchase(){
         <div style="display:grid; gap:8px;">
             <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(cleanName)}</div>
             <div><i class="fas fa-user"></i> <b>العميل:</b> ${esc(customer.value)||'—'} ${customerPhone.value?'('+esc(customerPhone.value)+')':''}</div>
-            <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration} شهر</div>
+            <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration === 0 ? 'بدون مدة' : duration + ' شهر'}</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
                 <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span>
             </div>
@@ -2085,9 +2086,12 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     }
     
     // Update Stock Info
-    let d = new Date(), exp = new Date(d);
-    exp.setMonth(exp.getMonth() + duration);
-    if(exp.getDate() !== d.getDate()) exp.setDate(0);
+    let d = new Date(), exp = null;
+    if (duration > 0) {
+        exp = new Date(d);
+        exp.setMonth(exp.getMonth() + duration);
+        if(exp.getDate() !== d.getDate()) exp.setDate(0);
+    }
     
     let buyerInfo = (customer.value ? customer.value : "عميل") + (customerPhone.value ? ` - ${customerPhone.value}` : "");
     if(!stItem.buyers) stItem.buyers = [];
@@ -2114,7 +2118,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         paid: paid+paidCur,
         cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")), // Show original cost currency
         wallet: wallet.value,
-        expiry: exp.getTime(),
+        expiry: exp ? exp.getTime() : null,
         investSnapshot: invest_before_profit
     });
     
@@ -2257,7 +2261,8 @@ function refreshHistory(){
         let paidD = isRestricted ? '----' : esc(item.paid);
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
-        rows+=`<tr><td>${item.date}</td><td><b>${esc(item.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td>${item.duration||'-'} شهر</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
+        let durStr = (item.duration == 0) ? "بدون مدة" : (item.duration || '-') + " شهر";
+        rows+=`<tr><td>${item.date}</td><td><b>${esc(item.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td>${durStr}</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
     });
     document.getElementById("historyBody").innerHTML = rows || `<tr><td colspan='8' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
@@ -2915,13 +2920,19 @@ function refreshStock() {
     paginated.forEach((item) => {
         let realIndex = stock.findIndex(x => x.id === item.id);
         
-        let purchaseDate = new Date(item.timestamp);
-        let expiryDate = new Date(purchaseDate);
-        expiryDate.setMonth(expiryDate.getMonth() + parseInt(item.duration));
-        let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
-        
         let profStr = `${item.soldProfiles || 0}/${item.totalProfiles || 1}`;
-        let timeBadge = `<span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span>`;
+        let timeBadge = "";
+        
+        let parsedDuration = parseInt(item.duration);
+        if (parsedDuration === 0) {
+            timeBadge = `<span class="badge badge-success">بدون مدة</span>`;
+        } else {
+            let purchaseDate = new Date(item.timestamp);
+            let expiryDate = new Date(purchaseDate);
+            expiryDate.setMonth(expiryDate.getMonth() + parsedDuration);
+            let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
+            timeBadge = `<span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span>`;
+        }
 
         if(currentStockTab === 'active') {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
