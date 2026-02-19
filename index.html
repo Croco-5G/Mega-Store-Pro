@@ -2261,8 +2261,11 @@ function refreshHistory(){
         let paidD = isRestricted ? '----' : esc(item.paid);
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
+        
+        // --- التعديل هنا: فحص المدة بدقة وطباعتها بشكل صحيح ---
         let durStr = (item.duration == 0) ? "بدون مدة" : (item.duration || '-') + " شهر";
-        rows+=`<tr><td>${item.date}</td><td><b>${esc(item.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td>${durStr}</td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
+        
+        rows+=`<tr><td>${item.date}</td><td><b>${esc(item.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td><span class="badge ${item.duration == 0 ? 'badge-success' : 'badge-warning'}">${durStr}</span></td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
     });
     document.getElementById("historyBody").innerHTML = rows || `<tr><td colspan='8' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
