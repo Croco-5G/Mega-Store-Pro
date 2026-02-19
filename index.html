@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store Pro | Advanced Stock System</title>
+    <title>Mega Store | System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -642,13 +642,13 @@
         </div>
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
-                <input id="discountSearch" onkeyup="currentPage.discounts=1; refreshDiscounts()" placeholder="بحث بكود الخصم، اسم العميل، أو الخدمة..." style="padding-right: 40px;">
+                <input id="discountSearch" onkeyup="currentPage.discounts=1; refreshDiscounts()" placeholder="بحث بكود الخصم أو اسم العميل..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
         <div class="table-container">
             <table>
-                <thead><tr><th>كود الخصم</th><th>العميل</th><th>الخدمة</th><th>المتبقي</th><th>حذف</th></tr></thead>
+                <thead><tr><th style="text-align:center;">كود الخصم</th><th style="text-align:center;">العميل</th><th style="text-align:center;">نسبة الخصم</th><th style="text-align:center;">المتبقي</th><th style="text-align:center;">حذف</th></tr></thead>
                 <tbody id="discountsBody"></tbody>
             </table>
         </div>
@@ -1662,8 +1662,8 @@ async function attemptLogin() {
 function checkExpiringOnLogin() {
     let p = safeJSON(store.purchases, []);
     let now = new Date().getTime(), days3 = 3 * 86400000;
-    // Updated: Only count non-reminded items
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
+    // Updated: Only count non-reminded, non-compensation items
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
     if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً (غير منبه)`, "warning");
 }
 
@@ -2169,6 +2169,16 @@ function addPurchase(){
         calculatedCost = 0;
     }
     
+    // Profit Calculation Logic
+    let netProfit = paid; // Default
+    let storeRecoup = 0;
+
+    if (settings.deductCost && isFirstProfile && !isComp) {
+        storeRecoup = calculatedCost;
+        netProfit = paid - calculatedCost;
+        // Note: If netProfit is negative, Store Capital bears it (logic in execute)
+    }
+
     let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
 
     document.getElementById("purchaseConfirmBody").innerHTML = `
@@ -2218,6 +2228,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
 
     // 2. Distribute Profit (or Loss)
     if (distributableProfit >= 0) {
+        // Normal Profit Distribution
         let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
         let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
         let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
@@ -2226,7 +2237,10 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         invest.mohamed[shareType] += mP;
         invest.store[shareType] += sP;
     } else {
+        // Negative Profit (Loss) - Store bears it all
+        // distributableProfit is negative here, so we just ADD it to store (effectively subtracting)
         invest.store[shareType] += distributableProfit; 
+        // Ahmad and Mohamed get 0 change
     }
     
     // Update Stock Info
@@ -2260,10 +2274,11 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")),
+        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")), // Show original cost currency
         wallet: wallet.value,
         expiry: exp ? exp.getTime() : null,
-        investSnapshot: invest_before_profit
+        investSnapshot: invest_before_profit,
+        isComp: isComp
     });
     
     store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
@@ -2345,7 +2360,7 @@ function showCouponModal(coupon, phone) {
     document.getElementById("couponModalDays").textContent = `صالح لمدة ${coupon.days} يوم`;
     document.getElementById("couponModalQuestion").textContent = `حصل العميل "${coupon.customer}" على كود خصم، هل تود إخباره؟`;
 
-    let msg = `مرحباً ${coupon.customer} 🎉\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا 🎁\nصلاحية كود الخصم: ${coupon.days} يوم ⏳\nكود الخصم: ${coupon.code} 🏷️`;
+    let msg = `مرحباً ${coupon.customer} \nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا \nصلاحية كود الخصم: ${coupon.days} يوم \nكود الخصم: ${coupon.code} `;
     
     let cleanPhone = (phone || '').replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
@@ -2376,7 +2391,8 @@ function refreshAll(){
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
+    // Updated: Only count non-reminded, non-compensation items for the badge
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
@@ -2411,7 +2427,7 @@ function refreshDiscounts() {
     let search = document.getElementById("discountSearch").value.toLowerCase();
     
     let filtered = list.filter(item => {
-        return !search || item.customer.toLowerCase().includes(search) || item.service.toLowerCase().includes(search) || item.code.includes(search);
+        return !search || item.customer.toLowerCase().includes(search) || item.code.includes(search);
     });
 
     renderPagination(filtered.length, 'discounts', refreshDiscounts, 'discountsPagination');
@@ -2421,6 +2437,7 @@ function refreshDiscounts() {
     let rows = "";
     let now = new Date().getTime();
     let isAdmin = currentUser && currentUser.role === 'admin';
+    let isViewer = currentUser && currentUser.role === 'viewer'; // Check for regular viewer
 
     paginated.forEach(item => {
         let daysLeft = Math.ceil((item.expiry - now) / 86400000);
@@ -2428,12 +2445,15 @@ function refreshDiscounts() {
         
         let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSingleDiscount('${item.code}')"><i class="fas fa-trash-alt"></i></button>` : '-';
         
+        // Hide actual code from "viewer"
+        let displayCode = isViewer ? '*********' : item.code;
+        
         rows += `<tr>
-            <td style="font-weight:bold; color:var(--primary); letter-spacing:1px">${item.code}</td>
-            <td>${esc(item.customer)}</td>
-            <td>${esc(item.service)}</td>
-            <td>${timeBadge}</td>
-            <td>${delBtn}</td>
+            <td style="font-weight:bold; color:var(--primary); letter-spacing:1px; text-align:center;">${displayCode}</td>
+            <td style="text-align:center;">${esc(item.customer)}</td>
+            <td style="text-align:center; font-weight:bold;">${item.percentage}%</td>
+            <td style="text-align:center;">${timeBadge}</td>
+            <td style="text-align:center;">${delBtn}</td>
         </tr>`;
     });
     tbody.innerHTML = rows || `<tr><td colspan='5' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد أكواد خصم</td></tr>`;
@@ -2472,7 +2492,8 @@ function refreshExpiring() {
     if(!body) return;
     let now = new Date().getTime(), days3 = 3 * 86400000;
     
-    let filtered = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
+    // Updated: Exclude compensation items from expiring lists entirely
+    let filtered = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && !x.d.isComp && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
     filtered.sort((a, b) => a.d.expiry - b.d.expiry);
     
     renderPagination(filtered.length, 'expiring', refreshExpiring, 'expiringPagination');
@@ -2488,7 +2509,7 @@ function refreshExpiring() {
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
         if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
         let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
-        // Fix: Hide button for viewers
+        
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         let phoneDisplay = isRestricted ? '----' : esc(item.phone);
         let serviceDisplay = isRestricted ? '----' : `<b>${esc(item.sub)}</b>`;
@@ -2496,7 +2517,7 @@ function refreshExpiring() {
     });
     body.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:30px; color:var(--text-muted)'>لا توجد تنبيهات</td></tr>";
     
-    // Badge Update Logic (Only non-reminded)
+    // Badge Update Logic (Only non-reminded, non-compensation)
     let nonRemindedCount = filtered.filter(x => !x.d.reminded).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = nonRemindedCount; badge.style.display = nonRemindedCount > 0 ? "inline-flex" : "none"; }
@@ -2545,7 +2566,6 @@ function refreshHistory(){
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
         
-        // --- التعديل هنا: فحص المدة بدقة وطباعتها بشكل صحيح ---
         let parsedDur = parseInt(item.duration);
         let durStr = (parsedDur === 0) ? "بدون مدة" : (isNaN(parsedDur) ? "-" : parsedDur + " شهر");
         let durBadge = (parsedDur === 0) ? "badge-success" : "badge-warning";
@@ -2857,7 +2877,7 @@ async function setProfitShare() {
 
 async function deleteWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); 
-    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف المحفظة "${modWallet.value}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${modWallet.value}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
     let w=safeJSON(store.wallets, {}); delete w[modWallet.value]; store.wallets = JSON.stringify(w); fbSave("wallets", w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets();  notify("تم الحذف"); 
 }
