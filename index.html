@@ -1156,16 +1156,20 @@ document.addEventListener("keydown", e => {
     }
 });
 
-// Save a single key to Firebase (Fixed: Using set with merge)
+// Save a single key to Firebase
 function fbSave(key, val) {
     if (isDemoMode) return;
     if (!fbDocRef) return;
     updateSyncStatus("جاري الحفظ...", "loading");
     
-    fbDocRef.set({ [key]: val }, { merge: true })
+    // استخدام update لضمان استبدال البيانات بالكامل ومسح أي شيء تم حذفه
+    fbDocRef.update({ [key]: val })
         .catch(err => {
-            console.error("fbSave error:", err);
-            updateSyncStatus("غير متصل", "error");
+            // كخيار احتياطي في حال كان المستند جديداً
+            fbDocRef.set({ [key]: val }, { merge: true }).catch(e => {
+                console.error("fbSave error:", e);
+                updateSyncStatus("غير متصل", "error");
+            });
         });
 }
 
@@ -3093,4 +3097,3 @@ window.onload = init;
 </script>
 </body>
 </html>
-
