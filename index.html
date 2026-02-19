@@ -2508,7 +2508,7 @@ function refreshExpiring() {
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
         if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
-        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
+        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`مرحبا ${item.customer}، حابين نذكرك أن اشتراكك في ${item.sub} بينتهي بعد ${status}. هل عجبتك الخدمة و حابب تجدد مرة تانية؟.`)}`;
         
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         let phoneDisplay = isRestricted ? '----' : esc(item.phone);
@@ -3416,3 +3416,4 @@ window.onload = init;
 </script>
 </body>
 </html>
+
