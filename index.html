@@ -529,6 +529,27 @@
     </div>
 </div>
 
+<div id="couponModal" class="dialog-modal" style="display:none;">
+    <div class="dialog-box" style="text-align:center; max-width:400px">
+        <div style="font-size:50px; color:var(--accent); margin-bottom:15px"><i class="fas fa-gift"></i></div>
+        <h3 style="margin-top:0;">مبارك! كود خصم جديد</h3>
+        <p id="couponModalMsg" style="color:var(--text-muted); font-size:14px; margin-bottom:20px"></p>
+        
+        <div style="background:var(--yellow-bg); border:2px dashed var(--yellow-border); padding:15px; border-radius:12px; margin-bottom:20px;">
+            <h2 id="couponModalCode" style="margin:0; color:var(--yellow-text); letter-spacing:3px;"></h2>
+            <div style="color:var(--yellow-text); font-weight:bold; margin-top:5px;" id="couponModalPct"></div>
+            <div style="color:var(--text-muted); font-size:12px; margin-top:5px;" id="couponModalDays"></div>
+        </div>
+
+        <p style="font-size:14px; font-weight:bold; margin-bottom:15px;" id="couponModalQuestion"></p>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <a id="couponWhatsAppBtn" target="_blank" class="btn btn-success" style="background:#25D366; color:white; width:100%"><i class="fab fa-whatsapp"></i> إرسال الكود للعميل</a>
+            <button class="btn btn-danger" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="document.getElementById('couponModal').style.display='none'">إغلاق</button>
+        </div>
+    </div>
+</div>
+
 <div class="sidebar" id="mySidebar">
     <div class="brand"><i class="fas fa-rocket"></i> MEGA STORE</div>
     
@@ -543,6 +564,7 @@
         <button onclick="showPage('purchase', this)" class="active" id="btnPurchase"><i class="fas fa-cart-plus"></i> عملية شراء</button>
         <button onclick="showPage('stock', this)" id="btnStock" class="hidden"><i class="fas fa-cubes"></i> المخزون</button>
         <button onclick="showPage('expiring', this)" id="btnExpiring"><i class="fas fa-hourglass-half"></i> التنبيهات <span id="expiryBadge" class="notif-badge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none"></span></button>
+        <button onclick="showPage('discounts', this)" id="btnDiscounts"><i class="fas fa-ticket-alt"></i> الخصومات</button>
         <button onclick="showPage('wallets', this)" id="btnWallets"><i class="fas fa-wallet"></i> المحافظ</button>
         <button onclick="showPage('history', this)" id="btnHistory"><i class="fas fa-history"></i> السجل المالي</button>
         <button onclick="showPage('analytics', this)" id="btnAnalytics"><i class="fas fa-chart-pie"></i> الإحصائيات</button>
@@ -596,7 +618,41 @@
             <div class="input-group"><label>المبلغ المدفوع من العميل</label><div style="display:flex; gap:10px"><input type="number" id="paidAmount" placeholder="0.00"><select id="paidCurrency" style="width:100px"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select></div></div>
             <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
         </div>
+        
+        <div class="grid-2" style="margin-top:10px; padding-top:20px; border-top:1px dashed var(--border-color)">
+            <div class="input-group">
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 32px;">
+                    <input type="checkbox" id="isCompensation" style="width:20px; height:20px; margin:0; accent-color:var(--danger)">
+                    <label for="isCompensation" style="margin:0; color:var(--danger); font-weight:800; cursor:pointer">تسجيل كتعويض</label>
+                </div>
+            </div>
+            <div class="input-group">
+                <label>كود الخصم (إن وجد)</label>
+                <input id="discountCodeInput" placeholder="أدخل الكود المكون من 9 أرقام" style="border-color:var(--accent)">
+            </div>
+        </div>
+
         <button class="btn btn-primary" id="btnSubmitPurchase" style="width:100%; margin-top:25px; padding: 16px; font-size:16px;" onclick="addPurchase()"><i class="fas fa-check-circle"></i> إتمام وحفظ</button>
+    </div>
+
+    <div id="discounts" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px">
+            <h3 style="margin-bottom:0"><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> الخصومات الفعالة</h3>
+            <button id="btnDeleteAllDiscounts" class="btn btn-danger hidden" onclick="deleteAllDiscounts()"><i class="fas fa-trash-alt"></i> حذف جميع الأكواد</button>
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="discountSearch" onkeyup="currentPage.discounts=1; refreshDiscounts()" placeholder="بحث بكود الخصم، اسم العميل، أو الخدمة..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>كود الخصم</th><th>العميل</th><th>الخدمة</th><th>المتبقي</th><th>حذف</th></tr></thead>
+                <tbody id="discountsBody"></tbody>
+            </table>
+        </div>
+        <div id="discountsPagination" class="pagination"></div>
     </div>
 
     <div id="security" class="card hidden">
@@ -824,6 +880,41 @@
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="flex:1">
                 <button class="btn btn-primary" onclick="changeMyPassword()">تحديث</button>
+            </div>
+        </div>
+
+        <div id="sec-discount-settings">
+            <h3><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> إعدادات أكواد الخصم</h3>
+            <div class="inner-box" style="margin-bottom:40px;">
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="setDiscountEnabled" style="width: 20px; height: 20px; margin:0;">
+                    <label for="setDiscountEnabled" style="margin-bottom: 0;">تفعيل نظام إنتاج أكواد الخصم التلقائي؟</label>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>نسبة الحصول على كود (%)</label>
+                        <input type="number" id="setDiscountChance" placeholder="مثال: 25">
+                    </div>
+                    <div class="input-group">
+                        <label>نسبة الخصم الناتجة (%)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="setDiscountMin" placeholder="الحد الأدنى (10)">
+                            <input type="number" id="setDiscountMax" placeholder="الحد الأقصى (20)">
+                        </div>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>مدة الصلاحية (بالأيام)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="setValidityMin" placeholder="الحد الأدنى (15)">
+                            <input type="number" id="setValidityMax" placeholder="الحد الأقصى (45)">
+                        </div>
+                    </div>
+                    <div class="input-group" style="display:flex; align-items:flex-end;">
+                        <button class="btn btn-primary" style="width:100%; height:48px;" onclick="saveDiscountSettings()">حفظ إعدادات الخصم</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1087,9 +1178,9 @@ let currentUser = null;
 let isDemoMode = false;
 let currentStockTab = 'active';
 let currentLogsTab = 'financial';
-let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1 };
+let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1 };
 const ITEMS_PER_PAGE = 50;
-const STORE_KEYS = ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services"];
+const STORE_KEYS = ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"];
 
 // --- UPDATED DIALOG SYSTEM ---
 let _confirmResolve = null;
@@ -1251,12 +1342,13 @@ function getDefaultData() {
         wallets: safeJSON(store.wallets, {"جوال باي — سعاد":{bal:0,cur:"₪",active:true},"جوال باي — محمد":{bal:0,cur:"₪",active:true},"بال باي — أحمد":{bal:0,cur:"₪",active:true},"بايننس — احمد":{bal:0,cur:"$",active:true}}),
         purchases: safeJSON(store.purchases, []),
         invest: safeJSON(store.invest, {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}),
-        settings: safeJSON(store.settings, {ahmad:35,mohamed:35,store:30,deductCost:true,exchangeRate:0,logsVis:"all"}),
+        settings: safeJSON(store.settings, {ahmad:35,mohamed:35,store:30,deductCost:true,exchangeRate:0,logsVis:"all", discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}),
         generalNotes: safeJSON(store.generalNotes, []),
         todoList: safeJSON(store.todoList, []),
         activityLog: safeJSON(store.activityLog, []),
         stock: safeJSON(store.stock, []),
-        services: safeJSON(store.services, [])
+        services: safeJSON(store.services, []),
+        discounts: safeJSON(store.discounts, [])
     };
 }
 
@@ -1302,6 +1394,8 @@ function showModalDetails(details) {
         body.innerHTML += row("العملية", "تسجيل شراء");
         body.innerHTML += row("العميل", esc(details.customer));
         body.innerHTML += row("الخدمة", esc(details.sub));
+        if(details.isComp) body.innerHTML += `<div style="color:var(--danger); font-weight:bold; text-align:center; padding:5px; border:1px solid var(--danger); border-radius:5px; margin:5px 0;">عملية تعويضية</div>`;
+        if(details.appliedDiscountPct > 0) body.innerHTML += `<div style="color:var(--success); font-weight:bold; text-align:center; padding:5px; border:1px solid var(--success); border-radius:5px; margin:5px 0;">تم استخدام كود خصم: ${details.appliedDiscountPct}%</div>`;
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("المقبوض", "+"+details.paid, true, true);
         body.innerHTML += row("في محفظة", esc(details.toName));
@@ -1416,10 +1510,11 @@ function init(){
     if(!store.invest) store.invest = JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}); fbSave("invest", {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}});
     if(!store.generalNotes) store.generalNotes = "[]"; fbSave("generalNotes", []);
     if(!store.todoList) store.todoList = "[]"; fbSave("todoList", []);
-    if(!store.settings) store.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'}); fbSave("settings", {ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all'});
+    if(!store.settings) store.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}); fbSave("settings", {ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45});
     if(!store.activityLog) store.activityLog = "[]"; fbSave("activityLog", []);
     if(!store.stock) store.stock = "[]"; fbSave("stock", []);
     if(!store.services) store.services = "[]"; fbSave("services", []);
+    if(!store.discounts) store.discounts = "[]"; fbSave("discounts", []);
 
     if(localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
@@ -1443,7 +1538,7 @@ function init(){
 function updateStorageUI() {
     // 1. حساب عدد السجلات (Records Count)
     let totalRecords = 0;
-    ["purchases","activityLog","stock","users","todoList","generalNotes"].forEach(k => {
+    ["purchases","activityLog","stock","users","todoList","generalNotes","discounts"].forEach(k => {
         let arr = safeJSON(store[k], []);
         if(Array.isArray(arr)) totalRecords += arr.length;
         else totalRecords += Object.keys(arr).length;
@@ -1470,7 +1565,8 @@ function updateStorageUI() {
         todoList: store.todoList,
         activityLog: store.activityLog,
         stock: store.stock,
-        services: store.services
+        services: store.services,
+        discounts: store.discounts
     });
 
     let sizeInBytes = new Blob([dataString]).size; 
@@ -1604,6 +1700,7 @@ function applyRBAC() {
     document.getElementById("sec-manage-wallets").classList.add("hidden");
     document.getElementById("sec-rename-wallet").classList.add("hidden");
     document.getElementById("sec-profit-settings").classList.add("hidden");
+    document.getElementById("sec-discount-settings").classList.add("hidden");
     document.getElementById("todoSection").classList.add("hidden");
     document.getElementById("todoInputArea").classList.add("hidden");
     document.getElementById("btnAddStock").classList.add("hidden");
@@ -1612,6 +1709,8 @@ function applyRBAC() {
     document.getElementById("btnSettings").classList.remove("hidden");
     document.getElementById("btnClearLogs").classList.add("hidden");
     document.getElementById("btnVisLogs").classList.add("hidden");
+    
+    document.getElementById("btnDeleteAllDiscounts").classList.add("hidden");
 
     let settings = safeJSON(store.settings, {});
     let logsVis = settings.logsVis || 'all';
@@ -1631,6 +1730,7 @@ function applyRBAC() {
         document.getElementById("sec-manage-wallets").classList.remove("hidden");
         document.getElementById("sec-rename-wallet").classList.remove("hidden");
         document.getElementById("sec-profit-settings").classList.remove("hidden");
+        document.getElementById("sec-discount-settings").classList.remove("hidden");
         document.getElementById("sec-manage-services").classList.remove("hidden");
         
         document.getElementById("todoSection").classList.remove("hidden");
@@ -1641,6 +1741,8 @@ function applyRBAC() {
         document.getElementById("btnUndo").classList.remove("hidden");
         document.getElementById("btnClearHistory").classList.remove("hidden");
         document.getElementById("btnHideExpired").classList.remove("hidden");
+        
+        document.getElementById("btnDeleteAllDiscounts").classList.remove("hidden");
     } 
     else if (role === 'employee') {
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
@@ -1872,11 +1974,12 @@ function showPage(id, btn){
     if(id === 'history') refreshHistory();
     if(id === 'wallets') refreshWallets();
     if(id === 'expiring') refreshExpiring();
+    if(id === 'discounts') refreshDiscounts();
     if(id === 'analytics') refreshAnalytics();
     if(id === 'security') renderUsersTable();
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
-    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); }
+    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
 }
 
 function toggleSidebar() {
@@ -1966,6 +2069,13 @@ function loadProfitSettings(){
     let s = safeJSON(store.settings, {});
     setAhmadProp.value = s.ahmad; setMohamedProp.value = s.mohamed; setStoreProp.value = s.store;
     setDeductCost.checked = s.deductCost; setExchangeRate.value = s.exchangeRate || 0;
+    
+    document.getElementById("setDiscountEnabled").checked = s.discountEnabled !== false;
+    document.getElementById("setDiscountChance").value = s.discountChance ?? 25;
+    document.getElementById("setDiscountMin").value = s.discountMin ?? 10;
+    document.getElementById("setDiscountMax").value = s.discountMax ?? 20;
+    document.getElementById("setValidityMin").value = s.validityMin ?? 15;
+    document.getElementById("setValidityMax").value = s.validityMax ?? 45;
 }
 function saveProfitSettings(){
     let a = +setAhmadProp.value, m = +setMohamedProp.value, s = +setStoreProp.value;
@@ -1976,6 +2086,22 @@ function saveProfitSettings(){
     logAction("تعديل إعدادات توزيع الأرباح");
      notify("تم الحفظ");
 }
+
+function saveDiscountSettings(){
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
+    let sObj = safeJSON(store.settings, {});
+    sObj.discountEnabled = document.getElementById("setDiscountEnabled").checked;
+    sObj.discountChance = +document.getElementById("setDiscountChance").value || 0;
+    sObj.discountMin = +document.getElementById("setDiscountMin").value || 0;
+    sObj.discountMax = +document.getElementById("setDiscountMax").value || 0;
+    sObj.validityMin = +document.getElementById("setValidityMin").value || 0;
+    sObj.validityMax = +document.getElementById("setValidityMax").value || 0;
+    
+    store.settings = JSON.stringify(sObj); fbSave("settings", sObj);
+    logAction("تعديل إعدادات أكواد الخصم");
+    notify("تم حفظ إعدادات الخصم");
+}
+
 function validatePhoneInput(el) {
     let v = el.value.trim();
     if(!v) { el.style.borderColor = ""; return; }
@@ -2005,6 +2131,22 @@ function addPurchase(){
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 1;
     
+    let discountCodeInput = document.getElementById("discountCodeInput").value.trim();
+    let appliedDiscountPct = 0;
+    let isComp = document.getElementById("isCompensation").checked;
+
+    if (discountCodeInput) {
+        if(isComp) {
+            return notify("لا يمكن استخدام كود خصم في عملية تعويض", "error");
+        }
+        let discountsList = safeJSON(store.discounts, []);
+        let dObj = discountsList.find(x => x.code === discountCodeInput);
+        if (!dObj || new Date().getTime() > dObj.expiry) {
+            return notify("عذراً، كود الخصم غير متوفر أو منتهي الصلاحية", "error");
+        }
+        appliedDiscountPct = dObj.percentage;
+    }
+
     // Determine Cost Logic
     let isFirstProfile = (stItem.soldProfiles || 0) === 0;
     let originalCost = stItem.cost || 0;
@@ -2012,8 +2154,7 @@ function addPurchase(){
     
     let calculatedCost = 0;
     
-    if (isFirstProfile) {
-        // First profile bears the cost
+    if (isFirstProfile && !isComp) {
         if (paidCur === originalCostCur) {
             calculatedCost = originalCost;
         } else {
@@ -2025,20 +2166,9 @@ function addPurchase(){
             }
         }
     } else {
-        // Subsequent profiles have 0 cost deduction
         calculatedCost = 0;
     }
     
-    // Profit Calculation Logic
-    let netProfit = paid; // Default
-    let storeRecoup = 0;
-
-    if (settings.deductCost && isFirstProfile) {
-        storeRecoup = calculatedCost;
-        netProfit = paid - calculatedCost;
-        // Note: If netProfit is negative, Store Capital bears it (logic in execute)
-    }
-
     let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
 
     document.getElementById("purchaseConfirmBody").innerHTML = `
@@ -2049,6 +2179,8 @@ function addPurchase(){
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
                 <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span>
             </div>
+            ${isComp ? `<div style="color:var(--danger); font-weight:bold; padding:5px; background:var(--yellow-bg); border-radius:5px;"><i class="fas fa-exclamation-circle"></i> هذه العملية مسجلة كـ "تعويض"</div>` : ''}
+            ${appliedDiscountPct > 0 ? `<div style="color:var(--success); font-weight:bold; padding:5px; background:#dcfce7; border-radius:5px;"><i class="fas fa-ticket-alt"></i> تم تطبيق كود خصم: ${appliedDiscountPct}%</div>` : ''}
             <div><i class="fas fa-info-circle"></i> <b>حالة التكلفة:</b> ${isFirstProfile ? `<span style="color:var(--danger)">أول بروفايل (سيتم خصم ${fix(calculatedCost)} ${paidCur})</span>` : '<span style="color:var(--success)">مدفوعة سابقاً (التكلفة 0)</span>'}</div>
             <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-right"></i> إيداع في: ${esc(wallet.value)}</div>
         </div>`;
@@ -2056,11 +2188,11 @@ function addPurchase(){
     document.getElementById("purchaseConfirmModal").style.display = "flex";
     document.getElementById("purchaseConfirmOkBtn").onclick = () => {
         document.getElementById("purchaseConfirmModal").style.display = "none";
-        _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate);
+        _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, discountCodeInput, appliedDiscountPct, isComp);
     };
 }
 
-function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate) {
+function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, discountCodeInput, appliedDiscountPct, isComp) {
     let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     
     let tBefore = wallets[wallet.value].bal;
@@ -2073,7 +2205,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     let distributableProfit = paid;
     let recoupAmount = 0;
 
-    if (settings.deductCost && isFirstProfile) {
+    if (settings.deductCost && isFirstProfile && !isComp) {
         recoupAmount = calculatedCost; // This amount goes back to Store Capital
         distributableProfit = paid - calculatedCost;
     }
@@ -2086,7 +2218,6 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
 
     // 2. Distribute Profit (or Loss)
     if (distributableProfit >= 0) {
-        // Normal Profit Distribution
         let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
         let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
         let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
@@ -2095,10 +2226,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         invest.mohamed[shareType] += mP;
         invest.store[shareType] += sP;
     } else {
-        // Negative Profit (Loss) - Store bears it all
-        // distributableProfit is negative here, so we just ADD it to store (effectively subtracting)
         invest.store[shareType] += distributableProfit; 
-        // Ahmad and Mohamed get 0 change
     }
     
     // Update Stock Info
@@ -2132,7 +2260,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")), // Show original cost currency
+        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")),
         wallet: wallet.value,
         expiry: exp ? exp.getTime() : null,
         investSnapshot: invest_before_profit
@@ -2149,13 +2277,90 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         paid: paid+paidCur,
         costVal: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : "0",
         isFirstProfile: isFirstProfile,
-        toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal
+        toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal,
+        appliedDiscountPct: appliedDiscountPct,
+        isComp: isComp
     });
+
+    // DISCOUNT SYSTEM LOGIC:
+    // 1. Remove used coupon
+    if (appliedDiscountPct > 0) {
+        let dList = safeJSON(store.discounts, []);
+        dList = dList.filter(x => x.code !== discountCodeInput);
+        store.discounts = JSON.stringify(dList);
+        fbSave("discounts", dList);
+    }
+
+    // 2. Generate new coupon randomly
+    let dEnabled = settings.discountEnabled !== false;
+    let dChance = settings.discountChance !== undefined ? settings.discountChance : 25;
+    
+    if (dEnabled && !isComp && paid > 0 && appliedDiscountPct === 0) {
+        let rand = Math.random() * 100;
+        if (rand <= dChance) {
+            let dMin = settings.discountMin !== undefined ? settings.discountMin : 10;
+            let dMax = settings.discountMax !== undefined ? settings.discountMax : 20;
+            let vMin = settings.validityMin !== undefined ? settings.validityMin : 15;
+            let vMax = settings.validityMax !== undefined ? settings.validityMax : 45;
+
+            let code = Math.floor(100000000 + Math.random() * 900000000).toString();
+            let pct = Math.floor(Math.random() * (dMax - dMin + 1)) + dMin;
+            let days = Math.floor(Math.random() * (vMax - vMin + 1)) + vMin;
+            let expTime = new Date().getTime() + (days * 86400000);
+
+            let generatedCoupon = {
+                id: Date.now().toString(),
+                code: code,
+                customer: customer.value || "عميل",
+                service: cleanName,
+                percentage: pct,
+                expiry: expTime,
+                days: days
+            };
+
+            let dList = safeJSON(store.discounts, []);
+            dList.unshift(generatedCoupon);
+            store.discounts = JSON.stringify(dList);
+            fbSave("discounts", dList);
+
+            showCouponModal(generatedCoupon, customerPhone.value);
+        }
+    }
     
     currentPage.history = 1;
     loadPurchaseStock();
     refreshAll();  notify("تمت العملية بنجاح");
-    paidAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; document.getElementById("subDuration").value="1";
+    
+    // Reset Form
+    paidAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; 
+    document.getElementById("subDuration").value="1";
+    document.getElementById("discountCodeInput").value="";
+    document.getElementById("isCompensation").checked = false;
+}
+
+function showCouponModal(coupon, phone) {
+    document.getElementById("couponModalMsg").textContent = `تم توليد كود خصم للعميل ${coupon.customer} بنجاح.`;
+    document.getElementById("couponModalCode").textContent = coupon.code;
+    document.getElementById("couponModalPct").textContent = `خصم بقيمة ${coupon.percentage}%`;
+    document.getElementById("couponModalDays").textContent = `صالح لمدة ${coupon.days} يوم`;
+    document.getElementById("couponModalQuestion").textContent = `حصل العميل "${coupon.customer}" على كود خصم، هل تود إخباره؟`;
+
+    let msg = `مرحباً ${coupon.customer} 🎉\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا 🎁\nصلاحية كود الخصم: ${coupon.days} يوم ⏳\nكود الخصم: ${coupon.code} 🏷️`;
+    
+    let cleanPhone = (phone || '').replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
+    
+    let waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    let waBtn = document.getElementById("couponWhatsAppBtn");
+    waBtn.href = waLink;
+    if (!cleanPhone) {
+        waBtn.style.display = "none";
+    } else {
+        waBtn.style.display = "flex";
+        waBtn.onclick = () => { document.getElementById('couponModal').style.display='none'; };
+    }
+
+    document.getElementById("couponModal").style.display = "flex";
 }
 
 function refreshAll(){
@@ -2171,7 +2376,6 @@ function refreshAll(){
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    // Updated: Only count non-reminded items for the badge
     let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
@@ -2184,7 +2388,8 @@ function refreshAll(){
         'analytics': refreshAnalytics,
         'logs': refreshLogs,
         'stock': refreshStock,
-        'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); }
+        'discounts': refreshDiscounts,
+        'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
     };
     
     refreshInvestment();
@@ -2198,7 +2403,69 @@ function refreshAll(){
     if(!document.getElementById("history").classList.contains("hidden")) refreshHistory();
     if(!document.getElementById("generalNotes").classList.contains("hidden")) refreshGeneralNotes();
     if(!document.getElementById("stock").classList.contains("hidden")) refreshStock();
+    if(!document.getElementById("discounts").classList.contains("hidden")) refreshDiscounts();
 }
+
+function refreshDiscounts() {
+    let list = safeJSON(store.discounts, []);
+    let search = document.getElementById("discountSearch").value.toLowerCase();
+    
+    let filtered = list.filter(item => {
+        return !search || item.customer.toLowerCase().includes(search) || item.service.toLowerCase().includes(search) || item.code.includes(search);
+    });
+
+    renderPagination(filtered.length, 'discounts', refreshDiscounts, 'discountsPagination');
+    let paginated = filtered.slice((currentPage.discounts - 1) * ITEMS_PER_PAGE, currentPage.discounts * ITEMS_PER_PAGE);
+    
+    let tbody = document.getElementById("discountsBody");
+    let rows = "";
+    let now = new Date().getTime();
+    let isAdmin = currentUser && currentUser.role === 'admin';
+
+    paginated.forEach(item => {
+        let daysLeft = Math.ceil((item.expiry - now) / 86400000);
+        let timeBadge = daysLeft > 0 ? `<span class="badge badge-success">${daysLeft} يوم</span>` : `<span class="badge badge-danger">منتهي</span>`;
+        
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSingleDiscount('${item.code}')"><i class="fas fa-trash-alt"></i></button>` : '-';
+        
+        rows += `<tr>
+            <td style="font-weight:bold; color:var(--primary); letter-spacing:1px">${item.code}</td>
+            <td>${esc(item.customer)}</td>
+            <td>${esc(item.service)}</td>
+            <td>${timeBadge}</td>
+            <td>${delBtn}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = rows || `<tr><td colspan='5' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد أكواد خصم</td></tr>`;
+}
+
+async function deleteSingleDiscount(code) {
+    let ok = await showConfirm("حذف الكود", "هل تريد حذف كود الخصم هذا نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    if(!ok) return;
+    
+    let dList = safeJSON(store.discounts, []);
+    dList = dList.filter(x => x.code !== code);
+    store.discounts = JSON.stringify(dList);
+    fbSave("discounts", dList);
+    
+    logAction(`قام الأدمن بحذف كود خصم يدوياً`);
+    refreshDiscounts();
+    notify("تم حذف الكود");
+}
+
+async function deleteAllDiscounts() {
+    if(currentUser.role !== 'admin') return;
+    let ok = await showConfirm("حذف جميع الأكواد", "هل أنت متأكد من مسح كافة أكواد الخصم من النظام نهائياً؟", "مسح الكل", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
+    if(!ok) return;
+    
+    store.discounts = "[]";
+    fbSave("discounts", []);
+    logAction("قام الأدمن بمسح جميع أكواد الخصم");
+    currentPage.discounts = 1;
+    refreshDiscounts();
+    notify("تم مسح جميع الأكواد");
+}
+
 function refreshExpiring() {
     let p = safeJSON(store.purchases, []);
     let body = document.getElementById("expiringBody"); 
@@ -2278,6 +2545,7 @@ function refreshHistory(){
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
         
+        // --- التعديل هنا: فحص المدة بدقة وطباعتها بشكل صحيح ---
         let parsedDur = parseInt(item.duration);
         let durStr = (parsedDur === 0) ? "بدون مدة" : (isNaN(parsedDur) ? "-" : parsedDur + " شهر");
         let durBadge = (parsedDur === 0) ? "badge-success" : "badge-warning";
@@ -2589,15 +2857,15 @@ async function setProfitShare() {
 
 async function deleteWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); 
-    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${modWallet.value}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف المحفظة "${modWallet.value}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
     let w=safeJSON(store.wallets, {}); delete w[modWallet.value]; store.wallets = JSON.stringify(w); fbSave("wallets", w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets();  notify("تم الحذف"); 
 }
-function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
+function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     let f=importFile.files[0], r=new FileReader(); 
-    r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
+    r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
     if(f) r.readAsText(f); else notify("اختر ملف","error"); 
 }
 
@@ -2852,7 +3120,7 @@ function updateStockNote() {
 
 function switchStockTab(tab, btn) {
     currentStockTab = tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#stock .tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     
     if(tab === 'sold' && currentUser.role === 'admin') {
