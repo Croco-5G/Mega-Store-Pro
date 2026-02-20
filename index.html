@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store Pro | Advanced Stock System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -966,7 +966,6 @@
                 <div class="input-group" style="flex:2; min-width:200px"><label>المحفظة</label><select id="modWallet"></select></div>
                 <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد</label><input id="modAmount" type="number" placeholder="0.00"></div>
                 <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ</button>
-                <button class="btn btn-danger" style="height:48px; margin-bottom:18px" onclick="deleteWallet()"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>
 
@@ -1012,6 +1011,7 @@
                     <label>الحالة</label>
                     <select id="renameWalletStatus"><option value="true">نشط (Active)</option><option value="false">غير نشط (Inactive)</option></select>
                 </div>
+                <button class="btn btn-danger" style="width:100%; margin-bottom:10px" onclick="deleteWallet()"><i class="fas fa-trash-alt"></i> حذف المحفظة</button>
                 <button class="btn btn-warning" style="width:100%" onclick="updateWalletData()">حفظ التعديلات</button>
             </div>
         </div>
@@ -2020,7 +2020,8 @@ function loadWallets(){
     selects.forEach(s => { 
         if(s) { 
             s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' : ""; 
-            Object.keys(wallets).forEach(w=>{ 
+            // الترتيب الأبجدي للمحافظ
+            Object.keys(wallets).sort((a,b) => a.localeCompare(b, 'ar')).forEach(w=>{ 
                 let o=document.createElement("option"); 
                 o.value=w; o.text=w + ` (${wallets[w].cur})`; 
                 s.appendChild(o); 
@@ -2360,7 +2361,7 @@ function showCouponModal(coupon, phone) {
     document.getElementById("couponModalDays").textContent = `صالح لمدة ${coupon.days} يوم`;
     document.getElementById("couponModalQuestion").textContent = `حصل العميل "${coupon.customer}" على كود خصم، هل تود إخباره؟`;
 
-    let msg = `مرحباً ${coupon.customer} \nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا \nصلاحية كود الخصم: ${coupon.days} يوم \nكود الخصم: ${coupon.code} `;
+    let msg = `مرحباً ${coupon.customer} 🎉\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا 🎁\nصلاحية كود الخصم: ${coupon.days} يوم ⏳\nكود الخصم: ${coupon.code} 🏷️`;
     
     let cleanPhone = (phone || '').replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
@@ -2508,7 +2509,7 @@ function refreshExpiring() {
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
         if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
-        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`مرحبا ${item.customer}، حابين نذكرك أن اشتراكك في ${item.sub} بينتهي بعد ${status}. هل عجبتك الخدمة و حابب تجدد مرة تانية؟.`)}`;
+        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
         
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         let phoneDisplay = isRestricted ? '----' : esc(item.phone);
@@ -2535,7 +2536,9 @@ function refreshWallets(){
     let w=safeJSON(store.wallets, {}), td=0, ts=0;
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let rows="";
-    for(let k in w){
+    // الترتيب الأبجدي للمحافظ في الجدول
+    let sortedKeys = Object.keys(w).sort((a,b) => a.localeCompare(b, 'ar'));
+    for(let k of sortedKeys){
         let act = w[k].active !== false;
         let balDisplay = isRestricted ? '****' : fix(w[k].bal);
         rows+=`<tr><td><b>${esc(k)}</b></td><td><span class="badge ${w[k].cur=='$'?'badge-success':'badge-info'}">${w[k].cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
@@ -2566,6 +2569,7 @@ function refreshHistory(){
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
         
+        // --- التعديل هنا: فحص المدة بدقة وطباعتها بشكل صحيح ---
         let parsedDur = parseInt(item.duration);
         let durStr = (parsedDur === 0) ? "بدون مدة" : (isNaN(parsedDur) ? "-" : parsedDur + " شهر");
         let durBadge = (parsedDur === 0) ? "badge-success" : "badge-warning";
@@ -2877,10 +2881,15 @@ async function setProfitShare() {
 
 async function deleteWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); 
-    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${modWallet.value}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    let targetWallet = document.getElementById("renameWalletSelect").value;
+    if(!targetWallet) return notify("يرجى اختيار المحفظة", "error");
+    
+    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${targetWallet}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
-    let w=safeJSON(store.wallets, {}); delete w[modWallet.value]; store.wallets = JSON.stringify(w); fbSave("wallets", w); logAction(`حذف محفظة ${modWallet.value}`); loadWallets(); refreshWallets();  notify("تم الحذف"); 
+    let w=safeJSON(store.wallets, {}); delete w[targetWallet]; store.wallets = JSON.stringify(w); fbSave("wallets", w); logAction(`حذف محفظة ${targetWallet}`); loadWallets(); refreshWallets();  notify("تم الحذف"); 
+    document.getElementById("renameWalletInput").value = "";
 }
+
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
@@ -3416,4 +3425,3 @@ window.onload = init;
 </script>
 </body>
 </html>
-
