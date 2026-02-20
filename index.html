@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store Pro | Advanced Stock System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -2361,7 +2361,8 @@ function showCouponModal(coupon, phone) {
     document.getElementById("couponModalDays").textContent = `صالح لمدة ${coupon.days} يوم`;
     document.getElementById("couponModalQuestion").textContent = `حصل العميل "${coupon.customer}" على كود خصم، هل تود إخباره؟`;
 
-    let msg = `مرحباً ${coupon.customer} 🎉\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا 🎁\nصلاحية كود الخصم: ${coupon.days} يوم ⏳\nكود الخصم: ${coupon.code} 🏷️`;
+    // تمت إزالة الإيموجي من هنا
+    let msg = `مرحباً ${coupon.customer}\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا\nصلاحية كود الخصم: ${coupon.days} يوم\nكود الخصم: ${coupon.code}`;
     
     let cleanPhone = (phone || '').replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
@@ -2504,12 +2505,22 @@ function refreshExpiring() {
     let isViewer = currentUser ? (currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') : true;
     
     let rows = "";
+    
+    // التعديل هنا: تحديد الوقت لجلب التحية المناسبة
+    let currentHour = new Date().getHours();
+    let greeting = currentHour < 12 ? 'صباح الخير' : 'مساء الخير';
+
     paginated.forEach(x => {
         let item = x.d, daysLeft = Math.ceil((item.expiry - now) / 86400000);
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
         if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
-        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`السلام عليكم ${item.customer}، نود تذكيركم بانتهاء اشتراك ${item.sub} بعد ${status}. للتجديد يرجى التواصل معنا.`)}`;
+        
+        // رسالة التنبيه الجديدة
+        let expiryPhrase = daysLeft <= 0 ? 'منتهي' : `باقي على إنتهائه ${status}`;
+        let waMsg = `${greeting} ${item.customer}\nحابين نذكرك ان اشتراكك في ${item.sub} ${expiryPhrase}\nهل عجبتك الخدمة و حابب تجدد اشتراكك مرة تانية؟`;
+        
+        let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
         
         let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         let phoneDisplay = isRestricted ? '----' : esc(item.phone);
@@ -2569,12 +2580,14 @@ function refreshHistory(){
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
         
-        // --- التعديل هنا: فحص المدة بدقة وطباعتها بشكل صحيح ---
+        // --- التعديل هنا: تلوين التعويض بالأحمر ---
+        let colorStyle = item.isComp ? "color:var(--danger);" : "";
+        
         let parsedDur = parseInt(item.duration);
         let durStr = (parsedDur === 0) ? "بدون مدة" : (isNaN(parsedDur) ? "-" : parsedDur + " شهر");
         let durBadge = (parsedDur === 0) ? "badge-success" : "badge-warning";
         
-        rows+=`<tr><td>${item.date}</td><td><b>${esc(item.customer)}</b></td><td>${phoneD}</td><td>${subD}</td><td><span class="badge ${durBadge}">${durStr}</span></td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
+        rows+=`<tr><td>${item.date}</td><td style="${colorStyle}"><b>${esc(item.customer)}</b></td><td style="${colorStyle}">${phoneD}</td><td>${subD}</td><td><span class="badge ${durBadge}">${durStr}</span></td><td style="color:var(--success)">${paidD}</td><td style="color:var(--danger)">${costD}</td><td>${walletD}</td></tr>`;
     });
     document.getElementById("historyBody").innerHTML = rows || `<tr><td colspan='8' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
@@ -3425,4 +3438,3 @@ window.onload = init;
 </script>
 </body>
 </html>
-
