@@ -601,7 +601,7 @@
         <h3><i class="fas fa-cart-plus" style="color:var(--primary)"></i> تسجيل اشتراك جديد</h3>
         <div class="grid-2">
             <div class="input-group"><label>نوع الاشتراك (المخزون)</label>
-                <select id="sub"><option value="">اختر من المخزون المتاح...</option></select>
+                <select id="sub" onchange="syncPurchaseDuration()"><option value="">اختر من المخزون المتاح...</option></select>
             </div>
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
@@ -625,7 +625,7 @@
                 <input id="discountCodeInput" placeholder="أدخل الكود المكون من 9 أرقام" style="border-color:var(--accent)">
             </div>
         </div>
-
+        <input type="hidden" id="subDuration" value="1">
         <button class="btn btn-primary" id="btnSubmitPurchase" style="width:100%; margin-top:25px; padding: 16px; font-size:16px;" onclick="addPurchase()"><i class="fas fa-check-circle"></i> إتمام وحفظ</button>
     </div>
 
@@ -1262,16 +1262,6 @@ function fbSave(key, val) {
 function initFirebase() {
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
-    
-    // --- ENABLE OFFLINE PERSISTENCE ---
-    db.enablePersistence({ synchronizeTabs: true })
-        .catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn("Multiple tabs open, persistence can only be enabled in one tab at a a time.");
-            } else if (err.code == 'unimplemented') {
-                console.warn("The current browser does not support all of the features required to enable persistence");
-            }
-        });
 
     fbDocRef = db.collection("megastore").doc("data");
 
@@ -2045,6 +2035,21 @@ function loadPurchaseStock() {
     }
 }
 
+// دالة جديدة لتزامن المدة تلقائياً عند اختيار خدمة من المخزون
+function syncPurchaseDuration() {
+    let stockId = document.getElementById("sub").value;
+    let durDropdown = document.getElementById("subDuration");
+    if (!stockId) {
+        durDropdown.value = "1"; // الافتراضي
+        return;
+    }
+    let stockList = safeJSON(store.stock, []);
+    let stItem = stockList.find(x => x.id === stockId);
+    if (stItem && stItem.duration !== undefined) {
+        durDropdown.value = stItem.duration; // تحديث القائمة المنسدلة بناءً على مدة المخزون الأصلية
+    }
+}
+
 function loadProfitSettings(){
     let s = safeJSON(store.settings, {});
     setAhmadProp.value = s.ahmad; setMohamedProp.value = s.mohamed; setStoreProp.value = s.store;
@@ -2330,6 +2335,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     
     // Reset Form
     paidAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; 
+    document.getElementById("subDuration").value="1";
     document.getElementById("discountCodeInput").value="";
     document.getElementById("isCompensation").checked = false;
 }
@@ -3418,6 +3424,3 @@ window.onload = init;
 </script>
 </body>
 </html>
-
-
-
