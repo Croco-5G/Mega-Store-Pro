@@ -13,6 +13,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+    <script>
+        // منع ومضة اللون الأبيض المزعجة فور فتح الموقع
+        if(localStorage.getItem("darkMode") === "true") { document.documentElement.classList.add("dark-mode"); }
+        if(localStorage.getItem("isDemoMode") === "true") { document.documentElement.classList.add("demo-mode"); }
+    </script>
+
     <style>
         /* --- CORE VARIABLES --- */
         :root {
@@ -45,7 +51,7 @@
             --yellow-btn-bg: #eab308; --yellow-btn-hover: #ca8a04;
         }
 
-        body.dark-mode {
+        html.dark-mode, body.dark-mode {
             --bg-body: #0f172a; 
             --bg-card: #1e293b; 
             --bg-input: #0f172a; 
@@ -81,7 +87,7 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-        body.dark-mode ::-webkit-scrollbar-thumb { background-color: #475569; }
+        html.dark-mode ::-webkit-scrollbar-thumb { background-color: #475569; }
         ::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
 
         /* --- LAYOUT STRUCTURE --- */
@@ -204,9 +210,9 @@
         .icon-bg-success { background: #dcfce7; color: var(--success); }
         .icon-bg-warning { background: #fef3c7; color: var(--accent); }
         
-        body.dark-mode .icon-bg-primary { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
-        body.dark-mode .icon-bg-success { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
-        body.dark-mode .icon-bg-warning { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+        html.dark-mode .icon-bg-primary { background: rgba(99, 102, 241, 0.15); color: #a5b4fc; }
+        html.dark-mode .icon-bg-success { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+        html.dark-mode .icon-bg-warning { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
 
         /* --- FORMS & INPUTS --- */
         .input-group { margin-bottom: 18px; }
@@ -227,6 +233,7 @@
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); 
             background: var(--bg-card);
         }
+        input[readonly] { opacity: 0.8; cursor: not-allowed; }
         
         /* --- BUTTONS --- */
         .btn { 
@@ -251,6 +258,9 @@
         
         .btn-warning { background: rgba(245, 158, 11, 0.1); color: #d97706; }
         .btn-warning:hover { background: #f59e0b; color: white; }
+
+        .btn-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .btn-success:hover { background: var(--success); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
         
         .btn-whatsapp { background: #25D366; color: white; font-size: 13px; padding: 8px 16px; }
         .btn-whatsapp:hover { background: #128C7E; transform: scale(1.05); }
@@ -285,7 +295,7 @@
         tr:hover td { background-color: rgba(99, 102, 241, 0.02); }
         tr.reminded td { background-color: rgba(16, 185, 129, 0.08); }
 
-        .wide-col { min-width: 250px; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; }
+        .wide-col { min-width: 250px; max-width: 400px; word-break: break-word; white-space: pre-wrap; direction: ltr; }
 
         /* --- BADGES --- */
         .badge { padding: 6px 12px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; }
@@ -312,6 +322,8 @@
         @keyframes slideUp { to { transform: translateY(0); } }
         .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed var(--border-color); }
         .detail-row:last-child { border-bottom: none; }
+        
+        #modalBody { word-break: break-word; white-space: pre-wrap; overflow-wrap: anywhere; }
 
         /* --- LOGIN & CLOUD --- */
         .login-overlay { 
@@ -328,10 +340,9 @@
             border: 1px solid rgba(255,255,255,0.4); 
             animation: slideUpFade 0.6s forwards;
         }
-        body.dark-mode .login-card { background: rgba(30, 41, 59, 0.9); border-color: rgba(255,255,255,0.1); }
+        html.dark-mode .login-card { background: rgba(30, 41, 59, 0.9); border-color: rgba(255,255,255,0.1); }
         @keyframes slideUpFade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* New Breathing Animation */
         @keyframes breathe {
             0% { transform: scale(1) rotate(-5deg); box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3); }
             50% { transform: scale(1.1) rotate(0deg); box-shadow: 0 20px 40px rgba(99, 102, 241, 0.6); }
@@ -345,7 +356,6 @@
             margin: 0 auto 25px auto; color: white; font-size: 32px; 
             box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3); 
             transform: rotate(-5deg);
-            /* Applied Animation */
             animation: breathe 3s ease-in-out infinite;
         }
         
@@ -399,12 +409,13 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         
         .todo-item { display: flex; align-items: center; justify-content: space-between; background: var(--yellow-item-bg); padding: 15px; border-radius: 12px; border-right: 4px solid var(--yellow-item-border); box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 10px; color: var(--yellow-item-text); }
+        .todo-item > div { word-break: break-word; white-space: pre-wrap; overflow-wrap: anywhere; }
         #generalNotesBox .todo-item { background: var(--bg-input); border-right: 4px solid var(--primary); color: var(--text-main); }
         
         /* Demo Mode Strip */
         #demoBanner { display:none; position:fixed; top:0; left:0; width:100%; height:4px; background:repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #b91c1c 10px, #b91c1c 20px); z-index:99999; }
-        body.demo-mode #demoBanner { display:block; }
-        body.demo-mode #syncStatus { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
+        html.demo-mode #demoBanner { display:block; }
+        html.demo-mode #syncStatus { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
         
         /* Blur Lock */
         body.locked .main-content, body.locked .sidebar, body.locked .mobile-menu-btn, body.locked #syncStatus { filter: blur(10px); pointer-events: none; user-select: none; }
@@ -424,11 +435,6 @@
 </head>
 
 <body class="locked">
-<script>
-    // Theme Check before rendering (Fix for White Flash)
-    if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); }
-    if(localStorage.getItem("isDemoMode") === "true") { document.body.classList.add("demo-mode"); }
-</script>
 
 <div id="demoBanner" title="وضع تجريبي"></div>
 
@@ -437,7 +443,6 @@
 </div>
 
 <div id="loginLayer" class="login-overlay">
-    
     <div style="position: absolute; top: 20px; right: 20px;">
         <label class="theme-switch">
             <input type="checkbox" id="loginThemeCheck" onchange="toggleDarkMode()">
@@ -553,6 +558,36 @@
     </div>
 </div>
 
+<div id="manualCouponModal" class="dialog-modal" style="display:none;">
+    <div class="dialog-box" style="text-align:right; max-width:400px">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;"><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> توليد كود خصم يدوياً</h3>
+        <div class="input-group">
+            <label>اسم العميل (اختياري)</label>
+            <input id="mcCustomer" placeholder="اسم العميل">
+        </div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>نسبة الخصم (%)</label>
+                <input type="number" id="mcPct" placeholder="مثال: 15">
+            </div>
+            <div class="input-group">
+                <label>الصلاحية (بالأيام)</label>
+                <input type="number" id="mcDays" placeholder="مثال: 30">
+            </div>
+        </div>
+        
+        <div id="mcPreview" style="display:none; background:var(--yellow-bg); border:2px dashed var(--yellow-border); padding:15px; border-radius:12px; margin-bottom:20px; text-align:center;">
+            <h2 id="mcCodePreview" style="margin:0; color:var(--yellow-text); letter-spacing:3px;"></h2>
+        </div>
+
+        <div class="dialog-actions">
+            <button class="btn btn-primary" id="btnGenerateMC" onclick="generateManualCoupon()"><i class="fas fa-magic"></i> إنتاج الكود</button>
+            <button class="btn btn-success" id="btnSaveMC" style="display:none; background:var(--success); color:#fff;" onclick="saveManualCoupon()"><i class="fas fa-check"></i> تأكيد وحفظ</button>
+            <button class="btn btn-danger" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="document.getElementById('manualCouponModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
+
 <div class="sidebar" id="mySidebar">
     <div class="brand"><i class="fas fa-rocket"></i> MEGA STORE</div>
     
@@ -635,7 +670,10 @@
     <div id="discounts" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px">
             <h3 style="margin-bottom:0"><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> الخصومات الفعالة</h3>
-            <button id="btnDeleteAllDiscounts" class="btn btn-danger hidden" onclick="deleteAllDiscounts()"><i class="fas fa-trash-alt"></i> حذف جميع الأكواد</button>
+            <div style="display:flex; gap:10px;">
+                <button id="btnGenerateCoupon" class="btn btn-success hidden" onclick="openManualCouponModal()"><i class="fas fa-plus"></i> توليد كوبون</button>
+                <button id="btnDeleteAllDiscounts" class="btn btn-danger hidden" onclick="deleteAllDiscounts()"><i class="fas fa-trash-alt"></i> مسح الكل</button>
+            </div>
         </div>
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
@@ -1051,7 +1089,7 @@
     <div id="generalNotes" class="card hidden">
         <h3><i class="fas fa-pen-fancy" style="color:var(--primary)"></i> المفكرة</h3>
         <div style="display:flex; gap:15px; flex-direction: column;">
-            <textarea id="gnText" placeholder="اكتب ملاحظة..." style="height: 100px;"></textarea>
+            <textarea id="gnText" placeholder="اكتب ملاحظة..." style="height: 100px; resize:vertical;"></textarea>
             <button class="btn btn-primary" onclick="addGeneralNote()" style="align-self: flex-start;">حفظ الملاحظة</button>
         </div>
         <div id="generalNotesBox" style="margin-top:30px;"></div>
@@ -1078,7 +1116,7 @@
 <div id="editUserModal" class="modal-overlay hidden" onclick="closeEditUserModal(event)">
     <div class="modal-content">
         <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;"><i class="fas fa-user-edit"></i> تعديل بيانات المستخدم</h3>
-        <input type="hidden" id="editUserId">
+        <input type="hidden" id="editUserIndex">
         <div class="input-group"><label>اسم المستخدم</label><input id="editUserName" readonly style="background:#f1f5f9; color:#94a3b8"></div>
         <div class="input-group"><label>كلمة المرور الجديدة</label><input id="editUserPassInput" type="password" placeholder="اتركه فارغاً لعدم التغيير"></div>
         <div class="input-group"><label>الصلاحية</label>
@@ -1122,7 +1160,7 @@
         </div>
         <div class="input-group"><label>البريد الإلكتروني</label><input id="stEmail" placeholder="email@example.com"></div>
         <div class="input-group"><label>كلمة المرور</label><input id="stPass" placeholder="Password"></div>
-        <div class="input-group"><label>ملاحظات (قابل للتعديل لاحقاً)</label><textarea id="stNotes" style="height:80px"></textarea></div>
+        <div class="input-group"><label>ملاحظات (قابل للتعديل لاحقاً)</label><textarea id="stNotes" style="height:80px; resize:vertical;"></textarea></div>
         
         <button id="btnSaveStock" class="btn btn-primary" style="width:100%; margin-top:10px" onclick="verifyStockAdd()"><i class="fas fa-save"></i> حفظ وشراء</button>
         <button id="btnUpdateNote" class="btn btn-warning hidden" style="width:100%; margin-top:10px" onclick="updateStockNote()"><i class="fas fa-edit"></i> تحديث الملاحظات فقط</button>
@@ -1683,6 +1721,7 @@ async function attemptLogin() {
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         checkExpiringOnLogin();
+        checkExpiredCouponsOnLogin();
     } else { 
         notify("بيانات الدخول غير صحيحة", "error");
     }
@@ -1695,6 +1734,32 @@ function checkExpiringOnLogin() {
     let now = new Date().getTime(), days3 = 3 * 86400000;
     let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
     if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً (غير منبه)`, "warning");
+}
+
+function checkExpiredCouponsOnLogin() {
+    if(currentUser && currentUser.role === 'admin') {
+        let dList = safeJSON(store.discounts, []);
+        let now = new Date().getTime();
+        let newlyExpired = 0;
+        let updated = false;
+        
+        dList.forEach(c => {
+            if(now > c.expiry && !c.notified) {
+                newlyExpired++;
+                c.notified = true;
+                updated = true;
+            }
+        });
+        
+        if(newlyExpired > 0) {
+            setTimeout(() => notify(`تنبيه للأدمن: يوجد ${newlyExpired} كود خصم انتهت صلاحيتها للتو!`, "warning"), 4000);
+        }
+        
+        if(updated) {
+            store.discounts = JSON.stringify(dList);
+            fbSave("discounts", dList);
+        }
+    }
 }
 
 function getOS() {
@@ -1741,6 +1806,10 @@ function applyRBAC() {
     document.getElementById("btnVisLogs").classList.add("hidden");
     
     document.getElementById("btnDeleteAllDiscounts").classList.add("hidden");
+    document.getElementById("btnGenerateCoupon").classList.add("hidden");
+
+    let tfRes = document.getElementById("tfResult");
+    if(tfRes) tfRes.readOnly = false;
 
     let settings = safeJSON(store.settings, {});
     let logsVis = settings.logsVis || 'all';
@@ -1773,8 +1842,11 @@ function applyRBAC() {
         document.getElementById("btnHideExpired").classList.remove("hidden");
         
         document.getElementById("btnDeleteAllDiscounts").classList.remove("hidden");
+        document.getElementById("btnGenerateCoupon").classList.remove("hidden");
     } 
     else if (role === 'employee') {
+        if(tfRes) tfRes.readOnly = true;
+
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
@@ -1792,6 +1864,7 @@ function applyRBAC() {
         document.getElementById("btnClearHistory").classList.add("hidden");
     }
     else if (role === 'viewer_plus') {
+        if(tfRes) tfRes.readOnly = true;
         if(logsVis !== 'no_viewer' && logsVis !== 'admin_only') {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
@@ -1812,6 +1885,7 @@ function applyRBAC() {
         showPage('history', document.getElementById('btnHistory'));
     }
     else if (role === 'viewer') {
+        if(tfRes) tfRes.readOnly = true;
         if(logsVis !== 'no_viewer' && logsVis !== 'admin_only') {
             document.getElementById("btnLogs").classList.remove("hidden");
         }
@@ -1909,6 +1983,8 @@ function refreshLogs() {
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
+
+
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     
@@ -1988,6 +2064,7 @@ function changeMyPassword() {
          notify("تم التغيير بنجاح");
     }
 }
+
 
 function showPage(id, btn){
     if(currentUser) {
@@ -2378,7 +2455,8 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
                 service: cleanName,
                 percentage: pct,
                 expiry: expTime,
-                days: days
+                days: days,
+                notified: false
             };
 
             let dList = safeJSON(store.discounts, []);
@@ -2427,6 +2505,57 @@ function showCouponModal(coupon, phone) {
     document.getElementById("couponModal").style.display = "flex";
 }
 
+let tempMC = null;
+function openManualCouponModal() {
+    document.getElementById("mcCustomer").value = "";
+    document.getElementById("mcPct").value = "";
+    document.getElementById("mcDays").value = "";
+    document.getElementById("mcPreview").style.display = "none";
+    document.getElementById("btnGenerateMC").style.display = "block";
+    document.getElementById("btnSaveMC").style.display = "none";
+    document.getElementById("manualCouponModal").style.display = "flex";
+    tempMC = null;
+}
+
+function generateManualCoupon() {
+    let cust = document.getElementById("mcCustomer").value.trim() || "عميل عام";
+    let pct = parseInt(document.getElementById("mcPct").value);
+    let days = parseInt(document.getElementById("mcDays").value);
+    
+    if(isNaN(pct) || pct <= 0 || pct > 100) return notify("أدخل نسبة الخصم بشكل صحيح", "error");
+    if(isNaN(days) || days <= 0) return notify("أدخل مدة الصلاحية بشكل صحيح", "error");
+    
+    let code = Math.floor(100000000 + Math.random() * 900000000).toString();
+    let expTime = new Date().getTime() + (days * 86400000);
+    
+    tempMC = {
+        id: 'id_' + Date.now().toString(),
+        code: code,
+        customer: cust,
+        service: "توليد يدوي",
+        percentage: pct,
+        expiry: expTime,
+        days: days,
+        notified: false
+    };
+    
+    document.getElementById("mcCodePreview").innerText = code;
+    document.getElementById("mcPreview").style.display = "block";
+    document.getElementById("btnGenerateMC").style.display = "none";
+    document.getElementById("btnSaveMC").style.display = "block";
+}
+
+function saveManualCoupon() {
+    if(!tempMC) return;
+    let dList = safeJSON(store.discounts, []);
+    dList.unshift(tempMC);
+    store.discounts = JSON.stringify(dList); fbSave("discounts", dList);
+    logAction(`إنشاء كود خصم يدوي بنسبة ${tempMC.percentage}% للعميل ${tempMC.customer}`);
+    document.getElementById("manualCouponModal").style.display = "none";
+    refreshDiscounts();
+    notify("تم حفظ الكود بنجاح");
+}
+
 function refreshAll(){
     refreshWallets();
     let p = safeJSON(store.purchases, []);
@@ -2442,7 +2571,7 @@ function refreshAll(){
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
