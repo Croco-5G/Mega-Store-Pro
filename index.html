@@ -48,12 +48,12 @@
         body.dark-mode {
             --bg-body: #0f172a; 
             --bg-card: #1e293b; 
-            --bg-input: #0f172a; /* تم التعديل: لون أغمق لبروز المربعات */
+            --bg-input: #0f172a; 
             --bg-sidebar: #020617;
             
             --text-main: #f1f5f9; 
             --text-muted: #94a3b8; 
-            --border-color: #475569; /* تم التعديل: لون إطار أفتح وأوضح */
+            --border-color: #475569; 
             
             --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
             --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
@@ -424,6 +424,11 @@
 </head>
 
 <body class="locked">
+<script>
+    // Theme Check before rendering (Fix for White Flash)
+    if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); }
+    if(localStorage.getItem("isDemoMode") === "true") { document.body.classList.add("demo-mode"); }
+</script>
 
 <div id="demoBanner" title="وضع تجريبي"></div>
 
@@ -495,9 +500,7 @@
         <div id="pdIcon" class="dialog-icon"></div>
         <h3 id="pdTitle" style="font-size:18px; margin-top:0;"></h3>
         <p id="pdMsg" style="color:var(--text-muted); margin-bottom:15px; font-size:14px;"></p>
-        <div id="pdInputContainer" style="width:100%;">
-            <input id="pdInput" class="dialog-input" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none;" placeholder="">
-        </div>
+        <div id="pdInputContainer" style="width:100%;"></div>
         <div class="dialog-actions">
             <button class="btn btn-primary" onclick="resolvePrompt(true)">تأكيد</button>
             <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted);" onclick="resolvePrompt(false)">إلغاء</button>
@@ -1035,8 +1038,6 @@
             </div>
         </div>
 
-
-
         <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
             <h3 style="color: var(--yellow-text); margin-top:0"><i class="fas fa-tasks"></i> المهام (To-Do)</h3>
             <div id="todoInputArea" style="display:flex; gap:10px; margin-bottom:20px">
@@ -1077,7 +1078,7 @@
 <div id="editUserModal" class="modal-overlay hidden" onclick="closeEditUserModal(event)">
     <div class="modal-content">
         <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;"><i class="fas fa-user-edit"></i> تعديل بيانات المستخدم</h3>
-        <input type="hidden" id="editUserIndex">
+        <input type="hidden" id="editUserId">
         <div class="input-group"><label>اسم المستخدم</label><input id="editUserName" readonly style="background:#f1f5f9; color:#94a3b8"></div>
         <div class="input-group"><label>كلمة المرور الجديدة</label><input id="editUserPassInput" type="password" placeholder="اتركه فارغاً لعدم التغيير"></div>
         <div class="input-group"><label>الصلاحية</label>
@@ -1096,7 +1097,7 @@
 <div id="stockModal" class="modal-overlay hidden" onclick="closeStockModal(event)">
     <div class="modal-content">
         <h3 id="stockModalTitle" style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">إضافة اشتراك للمخزون</h3>
-        <input type="hidden" id="stockIndex">
+        <input type="hidden" id="stockIndexId">
         <div class="input-group"><label>نوع الخدمة</label>
             <select id="stService"><option value="">اختر الخدمة...</option></select>
         </div>
@@ -1132,6 +1133,9 @@
 
 <script>
 // --- GLOBAL DEFINITIONS & UTILS ---
+let canUndo = false; 
+let migrationRun = false; 
+
 window.changeLogsVis = async function() {
     if(!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     let s = safeJSON(store.settings, {});
@@ -1164,6 +1168,7 @@ function esc(s) {
 }
 
 const DEFAULT_USER = {
+    id: "id_admin_0000",
     username: "Mohamed Ahmed",
     password: "0000",
     role: "admin", 
@@ -1188,7 +1193,6 @@ let store = {};
 let fbDocRef = null;
 let fbConnected = false;
 let isFbSaving = false;
-let fbSavePending = {};
 let myProfitChart = null;
 let mySalesChart = null;
 let currentUser = null; 
@@ -1278,15 +1282,59 @@ function fbSave(key, val) {
     if (!fbDocRef) return;
     updateSyncStatus("جاري الحفظ...", "loading");
     
-    // استخدام update لضمان استبدال البيانات بالكامل ومسح أي شيء تم حذفه
-    fbDocRef.update({ [key]: val })
-        .catch(err => {
-            // كخيار احتياطي في حال كان المستند جديداً
-            fbDocRef.set({ [key]: val }, { merge: true }).catch(e => {
-                console.error("fbSave error:", e);
-                updateSyncStatus("غير متصل", "error");
-            });
-        });
+    fbDocRef.set({ [key]: val }, { merge: true }).catch(e => {
+        console.error("fbSave error:", e);
+        updateSyncStatus("غير متصل", "error");
+    });
+}
+
+function runSilentMigration() {
+    let changed = false;
+    let p = safeJSON(store.purchases, []);
+    let s = safeJSON(store.stock, []);
+    let n = safeJSON(store.generalNotes, []);
+    let t = safeJSON(store.todoList, []);
+    let u = safeJSON(store.users, []);
+
+    const fixDate = (dStr) => {
+        if(!dStr) return dStr;
+        let parts = dStr.split('-');
+        if(parts.length === 3) {
+            let m = parts[1].length === 1 ? '0'+parts[1] : parts[1];
+            let d = parts[2].length === 1 ? '0'+parts[2] : parts[2];
+            return `${parts[0]}-${m}-${d}`;
+        }
+        return dStr;
+    };
+
+    const ensureId = (item) => {
+        if(!item.id) { item.id = 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,9); return true; }
+        return false;
+    };
+
+    p.forEach(x => { 
+        let fd = fixDate(x.date); 
+        if(fd !== x.date) { x.date = fd; changed = true; } 
+        if(ensureId(x)) changed = true; 
+    });
+    s.forEach(x => { 
+        let fd = fixDate(x.soldDate); 
+        if(x.soldDate && fd !== x.soldDate) { x.soldDate = fd; changed = true; } 
+        if(ensureId(x)) changed = true; 
+    });
+    n.forEach(x => { if(ensureId(x)) changed = true; });
+    t.forEach(x => { if(ensureId(x)) changed = true; });
+    u.forEach(x => { if(ensureId(x)) changed = true; });
+
+    if(changed) {
+        let updates = {};
+        updates.purchases = p; store.purchases = JSON.stringify(p);
+        updates.stock = s; store.stock = JSON.stringify(s);
+        updates.generalNotes = n; store.generalNotes = JSON.stringify(n);
+        updates.todoList = t; store.todoList = JSON.stringify(t);
+        updates.users = u; store.users = JSON.stringify(u);
+        fbDocRef.set(updates, {merge:true});
+    }
 }
 
 function initFirebase() {
@@ -1313,9 +1361,14 @@ function initFirebase() {
                         store[k] = JSON.stringify(data[k]);
                     }
                 });
+                
+                if(!fromCache && !migrationRun) {
+                    runSilentMigration();
+                    migrationRun = true;
+                }
+
                 if (currentUser) refreshAll();
             } else {
-                // الحماية المزدوجة: لا تنشئ بيانات افتراضية إذا كانت القراءة من الكاش المحلي الفارغ!
                 if (!fromCache) {
                     fbDocRef.set(getDefaultData(), {merge: true}).catch(e => console.error(e));
                 }
@@ -1381,6 +1434,7 @@ function showModalDetails(details) {
         body.innerHTML += row("الرصيد السابق", fix(details.before), false);
         body.innerHTML += row("التغيير", (details.diff >= 0 ? "+"+details.diff : details.diff), true, details.diff >= 0);
         body.innerHTML += row("الرصيد الجديد", fix(details.after), false);
+        if(details.syncedShare) body.innerHTML += `<div style="padding:5px; margin-top:5px; text-align:center; background:var(--yellow-bg); color:var(--yellow-text); font-size:12px; border-radius:5px;">هذا التعديل (مغلق) وتم تطبيقه أيضاً على حصة: ${details.syncedShare}</div>`;
     } 
     else if(details.type === 'manual_invest') {
         body.innerHTML += row("العملية", "تعديل حصة شريك");
@@ -1390,6 +1444,7 @@ function showModalDetails(details) {
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += row("قبل التعديل", fix(details.before));
         body.innerHTML += row("بعد التعديل", fix(details.after));
+        if(details.syncedWallet) body.innerHTML += `<div style="padding:5px; margin-top:5px; text-align:center; background:var(--yellow-bg); color:var(--yellow-text); font-size:12px; border-radius:5px;">هذا التعديل (مغلق) وتم تطبيقه أيضاً على محفظة: ${details.syncedWallet}</div>`;
     }
     else if (details.type === 'transfer') {
         body.innerHTML += row("العملية", "تحويل أرصدة");
@@ -1470,6 +1525,7 @@ function row(label, value, colored=false, positive=true) {
 function closeModal(e) {
     if(e === 'force' || e.target.id === 'detailsModal') {
         document.getElementById("detailsModal").classList.add("hidden");
+        document.getElementById("modalBody").innerHTML = ""; 
     }
 }
 
@@ -1509,7 +1565,6 @@ function logAction(actionDescription, details=null) {
 }
 
 function init(){
-    // تجهيز المتغيرات في الكاش المحلي فقط (بدون أي أوامر fbSave لضمان عدم مسح السيرفر)
     if(!store.users) store.users = JSON.stringify([DEFAULT_USER]);
     if(!store.wallets){
         store.wallets = JSON.stringify({
@@ -1529,27 +1584,11 @@ function init(){
     if(!store.services) store.services = "[]"; 
     if(!store.discounts) store.discounts = "[]"; 
 
-    if(localStorage.getItem("darkMode") === "true") {
-        document.body.classList.add("dark-mode");
-        document.getElementById("darkModeToggle").checked = true;
-        if(document.getElementById("loginThemeCheck")) document.getElementById("loginThemeCheck").checked = true;
-    }
-
-    if(localStorage.getItem("isDemoMode") === "true") {
-        isDemoMode = true;
-        document.body.classList.add("demo-mode");
-        document.getElementById("demoModeToggle").checked = true;
-        updateSyncStatus();
-    }
-    
-    // Initialize Firebase & listen for realtime changes
     initFirebase();
     updateStorageUI();
 }
 
-// --- NEW STORAGE UI FUNCTION ---
 function updateStorageUI() {
-    // 1. حساب عدد السجلات (Records Count)
     let totalRecords = 0;
     ["purchases","activityLog","stock","users","todoList","generalNotes","discounts"].forEach(k => {
         let arr = safeJSON(store[k], []);
@@ -1557,7 +1596,6 @@ function updateStorageUI() {
         else totalRecords += Object.keys(arr).length;
     });
 
-    // 2. تحديث نصوص الحالة (Connection Status)
     let statusEl = document.getElementById("storageFree");
     if(statusEl) {
         statusEl.innerText = fbConnected ? "متصل (Online)" : "غير متصل (Offline)";
@@ -1567,28 +1605,16 @@ function updateStorageUI() {
     let usedEl = document.getElementById("storageUsed");
     if(usedEl) usedEl.innerText = totalRecords;
 
-    // 3. حساب الحجم الفعلي بالبايت (Size Calculation)
     let dataString = JSON.stringify({
-        users: store.users,
-        wallets: store.wallets,
-        purchases: store.purchases,
-        invest: store.invest,
-        settings: store.settings,
-        generalNotes: store.generalNotes,
-        todoList: store.todoList,
-        activityLog: store.activityLog,
-        stock: store.stock,
-        services: store.services,
-        discounts: store.discounts
+        users: store.users, wallets: store.wallets, purchases: store.purchases, invest: store.invest, settings: store.settings, generalNotes: store.generalNotes, todoList: store.todoList, activityLog: store.activityLog, stock: store.stock, services: store.services, discounts: store.discounts
     });
 
     let sizeInBytes = new Blob([dataString]).size; 
-    let limitInBytes = 1048576; // 1 MB = 1024 * 1024 bytes
+    let limitInBytes = 1048576; 
     
     let sizeInKB = (sizeInBytes / 1024).toFixed(2);
     let percentage = ((sizeInBytes / limitInBytes) * 100).toFixed(1);
 
-    // 4. تحديث الشريط والنصوص (UI Update)
     let sizeText = document.getElementById("storageSizeText");
     let percentText = document.getElementById("storagePercentText");
     let bar = document.getElementById("storageBar");
@@ -1598,15 +1624,9 @@ function updateStorageUI() {
     
     if(bar) {
         bar.style.width = `${Math.min(percentage, 100)}%`;
-        
-        // تغيير لون الشريط حسب الخطورة
-        if(percentage < 50) {
-            bar.style.background = "var(--success)"; // أخضر (آمن)
-        } else if (percentage < 85) {
-            bar.style.background = "var(--accent)"; // برتقالي (تنبيه)
-        } else {
-            bar.style.background = "var(--danger)"; // أحمر (خطر)
-        }
+        if(percentage < 50) bar.style.background = "var(--success)"; 
+        else if (percentage < 85) bar.style.background = "var(--accent)"; 
+        else bar.style.background = "var(--danger)"; 
     }
 }
 
@@ -1658,8 +1678,6 @@ async function attemptLogin() {
         
         logAction("تسجيل دخول للنظام");
 
-        // Firebase handles sync automatically
-        
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
@@ -1675,7 +1693,6 @@ async function attemptLogin() {
 function checkExpiringOnLogin() {
     let p = safeJSON(store.purchases, []);
     let now = new Date().getTime(), days3 = 3 * 86400000;
-    // Updated: Only count non-reminded, non-compensation items
     let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
     if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً (غير منبه)`, "warning");
 }
@@ -1819,11 +1836,11 @@ function renderUsersTable() {
     const tbody = document.getElementById("usersTableBody"); 
     if(!tbody) return;
     let rows = "";
-    users.forEach((u, index) => {
+    users.forEach((u) => {
         let actions = "";
         if(u.username !== currentUser.username) {
-            let banBtn = u.status === 'active' ? `<button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="toggleBan(${index})">حظر</button>` : `<button class="btn btn-success" style="padding:5px 10px; font-size:12px; background:var(--success); color:white" onclick="toggleBan(${index})">فك حظر</button>`;
-            actions = `<div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap"><button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick="openEditUserModal(${index})"><i class="fas fa-edit"></i></button>${banBtn}<button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="deleteUser(${index})"><i class="fas fa-trash-alt"></i></button></div>`;
+            let banBtn = u.status === 'active' ? `<button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="toggleBan('${u.id}')">حظر</button>` : `<button class="btn btn-success" style="padding:5px 10px; font-size:12px; background:var(--success); color:white" onclick="toggleBan('${u.id}')">فك حظر</button>`;
+            actions = `<div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap"><button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick="openEditUserModal('${u.id}')"><i class="fas fa-edit"></i></button>${banBtn}<button class="btn btn-danger" style="padding:5px 10px; font-size:12px" onclick="deleteUser('${u.id}')"><i class="fas fa-trash-alt"></i></button></div>`;
         } else { actions = "<small>الحساب الحالي</small>"; }
         let statusClass = u.status === 'active' ? 'security-status-active' : 'security-status-banned';
         let statusText = u.status === 'active' ? 'نشط' : 'محظور';
@@ -1892,8 +1909,6 @@ function refreshLogs() {
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
-
-
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     
@@ -1927,30 +1942,36 @@ function addNewUser() {
     if(!u || !p) return notify("يرجى ملء البيانات", "error");
     let users = safeJSON(store.users, []);
     if(users.some(x => x.username.toLowerCase() === u.toLowerCase())) return notify("اسم المستخدم موجود", "error");
-    users.push({ username: u, password: p, role: r, status: "active", lastLogin: "-", deviceInfo: "-" });
+    users.push({ id: 'id_' + Date.now() + Math.random().toString(36).substr(2,5), username: u, password: p, role: r, status: "active", lastLogin: "-", deviceInfo: "-" });
     store.users = JSON.stringify(users); fbSave("users", users);
     logAction(`إضافة مستخدم جديد: ${u} بصلاحية ${r}`);
     document.getElementById("newUserName").value = ""; document.getElementById("newUserPass").value = "";
     renderUsersTable();  notify("تم إضافة المستخدم");
 }
 
-function toggleBan(index) {
+function toggleBan(id) {
     let users = safeJSON(store.users, []);
-    let newState = users[index].status === 'active' ? 'banned' : 'active';
-    users[index].status = newState;
-    store.users = JSON.stringify(users); fbSave("users", users);
-    logAction(`تغيير حالة المستخدم ${users[index].username} إلى ${newState}`);
-    renderUsersTable(); 
+    let index = users.findIndex(x => x.id === id);
+    if(index !== -1) {
+        let newState = users[index].status === 'active' ? 'banned' : 'active';
+        users[index].status = newState;
+        store.users = JSON.stringify(users); fbSave("users", users);
+        logAction(`تغيير حالة المستخدم ${users[index].username} إلى ${newState}`);
+        renderUsersTable(); 
+    }
 }
 
-async function deleteUser(index) {
+async function deleteUser(id) {
     let ok = await showConfirm("حذف المستخدم", "هل تريد حذف هذا المستخدم نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-user-times"></i>');
     if(!ok) return;
     let users = safeJSON(store.users, []);
-    logAction(`حذف المستخدم: ${users[index].username}`);
-    users.splice(index, 1);
-    store.users = JSON.stringify(users); fbSave("users", users);
-    renderUsersTable(); 
+    let index = users.findIndex(x => x.id === id);
+    if(index !== -1) {
+        logAction(`حذف المستخدم: ${users[index].username}`);
+        users.splice(index, 1);
+        store.users = JSON.stringify(users); fbSave("users", users);
+        renderUsersTable(); 
+    }
 }
 
 function changeMyPassword() {
@@ -1967,7 +1988,6 @@ function changeMyPassword() {
          notify("تم التغيير بنجاح");
     }
 }
-
 
 function showPage(id, btn){
     if(currentUser) {
@@ -2031,11 +2051,15 @@ function _processNotifyQueue() {
 
 function loadWallets(){
     let wallets=safeJSON(store.wallets, {});
-    const selects = [window.wallet, window.stWallet, window.modWallet, window.renameWalletSelect, window.tfFromWallet, window.tfToWallet, window.wWalletAhmad, window.wWalletMohamed, window.wWalletStore];
+    const selects = [
+        document.getElementById("wallet"), document.getElementById("stWallet"), 
+        document.getElementById("modWallet"), document.getElementById("renameWalletSelect"), 
+        document.getElementById("tfFromWallet"), document.getElementById("tfToWallet"), 
+        document.getElementById("wWalletAhmad"), document.getElementById("wWalletMohamed"), document.getElementById("wWalletStore")
+    ];
     selects.forEach(s => { 
         if(s) { 
             s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' : ""; 
-            // الترتيب الأبجدي للمحافظ
             Object.keys(wallets).sort((a,b) => a.localeCompare(b, 'ar')).forEach(w=>{ 
                 let o=document.createElement("option"); 
                 o.value=w; o.text=w + ` (${wallets[w].cur})`; 
@@ -2058,33 +2082,46 @@ function loadPurchaseStock() {
     if(selPurchase) {
         let html = '<option value="">اختر من المخزون المتاح...</option>';
         stock.filter(s => s.status === 'active').forEach(s => {
-            let sp = s.soldProfiles || 0;
-            let tp = s.totalProfiles || 1;
-            html += `<option value="${s.id}">${esc(s.displayName || s.service)} (${sp}/${tp})</option>`;
+            let pDur = parseInt(s.duration) || 0;
+            let isExpired = false;
+            if(pDur > 0) {
+                let expD = new Date(s.timestamp);
+                expD.setMonth(expD.getMonth() + pDur);
+                if(expD.getDate() !== new Date(s.timestamp).getDate()) expD.setDate(0);
+                if(expD.getTime() <= new Date().getTime()) isExpired = true;
+            }
+            
+            if(!isExpired) {
+                let sp = s.soldProfiles || 0;
+                let tp = s.totalProfiles || 1;
+                html += `<option value="${s.id}">${esc(s.displayName || s.service)} (${sp}/${tp})</option>`;
+            }
         });
         selPurchase.innerHTML = html;
     }
 }
 
-// دالة جديدة لتزامن المدة تلقائياً عند اختيار خدمة من المخزون
 function syncPurchaseDuration() {
     let stockId = document.getElementById("sub").value;
     let durDropdown = document.getElementById("subDuration");
     if (!stockId) {
-        durDropdown.value = "1"; // الافتراضي
+        durDropdown.value = "1"; 
         return;
     }
     let stockList = safeJSON(store.stock, []);
     let stItem = stockList.find(x => x.id === stockId);
     if (stItem && stItem.duration !== undefined) {
-        durDropdown.value = stItem.duration; // تحديث القائمة المنسدلة بناءً على مدة المخزون الأصلية
+        durDropdown.value = stItem.duration; 
     }
 }
 
 function loadProfitSettings(){
     let s = safeJSON(store.settings, {});
-    setAhmadProp.value = s.ahmad; setMohamedProp.value = s.mohamed; setStoreProp.value = s.store;
-    setDeductCost.checked = s.deductCost; setExchangeRate.value = s.exchangeRate || 0;
+    document.getElementById("setAhmadProp").value = s.ahmad; 
+    document.getElementById("setMohamedProp").value = s.mohamed; 
+    document.getElementById("setStoreProp").value = s.store;
+    document.getElementById("setDeductCost").checked = s.deductCost; 
+    document.getElementById("setExchangeRate").value = s.exchangeRate || 0;
     
     document.getElementById("setDiscountEnabled").checked = s.discountEnabled !== false;
     document.getElementById("setDiscountChance").value = s.discountChance ?? 25;
@@ -2094,10 +2131,12 @@ function loadProfitSettings(){
     document.getElementById("setValidityMax").value = s.validityMax ?? 45;
 }
 function saveProfitSettings(){
-    let a = +setAhmadProp.value, m = +setMohamedProp.value, s = +setStoreProp.value;
+    let a = +document.getElementById("setAhmadProp").value;
+    let m = +document.getElementById("setMohamedProp").value;
+    let s = +document.getElementById("setStoreProp").value;
     if(a + m + s !== 100){ notify("مجموع النسب يجب أن يساوي 100%","error"); return; }
     let sObj = safeJSON(store.settings, {});
-    sObj.ahmad = a; sObj.mohamed = m; sObj.store = s; sObj.deductCost = setDeductCost.checked; sObj.exchangeRate = +setExchangeRate.value;
+    sObj.ahmad = a; sObj.mohamed = m; sObj.store = s; sObj.deductCost = document.getElementById("setDeductCost").checked; sObj.exchangeRate = +document.getElementById("setExchangeRate").value;
     store.settings = JSON.stringify(sObj); fbSave("settings", sObj);
     logAction("تعديل إعدادات توزيع الأرباح");
      notify("تم الحفظ");
@@ -2121,34 +2160,48 @@ function saveDiscountSettings(){
 function validatePhoneInput(el) {
     let v = el.value.trim();
     if(!v) { el.style.borderColor = ""; return; }
-    el.style.borderColor = "var(--success)";
+    if(/^\+97\d{10}$/.test(v)) el.style.borderColor = "var(--success)";
+    else el.style.borderColor = "var(--danger)";
 }
 
 // --- NEW PURCHASE LOGIC ---
 function addPurchase(){
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
     
-    let paid = parseFloat(paidAmount.value);
+    let paidVal = document.getElementById("paidAmount").value;
+    let paid = parseFloat(paidVal);
     
-    if(isNaN(paid) || paid < 0) { 
+    if(isNaN(paid) || paid < 0 || paidVal === "") { 
         notify("يرجى إدخال المبلغ المقبوض", "error"); 
         return; 
     }
     
-    let stockId = sub.value;
+    let stockId = document.getElementById("sub").value;
     if(!stockId) { notify("يرجى اختيار الاشتراك من المخزون","error"); return; }
     
     let stockList = safeJSON(store.stock, []);
     let stItem = stockList.find(x => x.id === stockId);
     if(!stItem || stItem.status !== 'active') { notify("هذا الاشتراك لم يعد متاحاً","error"); return; }
     
-    let paidCur = paidCurrency.value;
-    let duration = parseInt(stItem.duration) || 0; // التعديل: قراءة المدة مباشرة من المخزون
+    let pDur = parseInt(stItem.duration) || 0;
+    if(pDur > 0) {
+        let expD = new Date(stItem.timestamp);
+        expD.setMonth(expD.getMonth() + pDur);
+        if(expD.getDate() !== new Date(stItem.timestamp).getDate()) expD.setDate(0);
+        if(expD.getTime() <= new Date().getTime()) return notify("هذا الاشتراك منتهي الصلاحية ولا يمكن بيعه", "error");
+    }
+
+    let customerPhoneVal = document.getElementById("customerPhone").value.trim();
+    if(customerPhoneVal && !/^\+97\d{10}$/.test(customerPhoneVal)) return notify("رقم الجوال يجب أن يبدأ بـ +97 ويليه 10 أرقام", "error");
+
+    let paidCur = document.getElementById("paidCurrency").value;
+    let duration = pDur;
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 1;
     
     let discountCodeInput = document.getElementById("discountCodeInput").value.trim();
     let appliedDiscountPct = 0;
+    let usedDiscountObj = null;
     let isComp = document.getElementById("isCompensation").checked;
 
     if (discountCodeInput) {
@@ -2161,46 +2214,34 @@ function addPurchase(){
             return notify("عذراً، كود الخصم غير متوفر أو منتهي الصلاحية", "error");
         }
         appliedDiscountPct = dObj.percentage;
+        usedDiscountObj = dObj;
     }
 
-    // Determine Cost Logic
     let isFirstProfile = (stItem.soldProfiles || 0) === 0;
     let originalCost = stItem.cost || 0;
     let originalCostCur = stItem.costCurrency || '₪';
     
     let calculatedCost = 0;
-    
     if (isFirstProfile && !isComp) {
         if (paidCur === originalCostCur) {
             calculatedCost = originalCost;
         } else {
-            // Convert Cost to Paid Currency
             if (paidCur === '$' && originalCostCur === '₪') {
                 calculatedCost = originalCost / rate;
             } else if (paidCur === '₪' && originalCostCur === '$') {
                 calculatedCost = originalCost * rate;
             }
         }
-    } else {
-        calculatedCost = 0;
     }
     
-    // Profit Calculation Logic
-    let netProfit = paid; // Default
-    let storeRecoup = 0;
-
-    if (settings.deductCost && isFirstProfile && !isComp) {
-        storeRecoup = calculatedCost;
-        netProfit = paid - calculatedCost;
-        // Note: If netProfit is negative, Store Capital bears it (logic in execute)
-    }
-
     let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
+    let customerVal = document.getElementById("customer").value;
+    let walletVal = document.getElementById("wallet").value;
 
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
             <div><i class="fas fa-tag"></i> <b>الخدمة:</b> ${esc(cleanName)}</div>
-            <div><i class="fas fa-user"></i> <b>العميل:</b> ${esc(customer.value)||'—'} ${customerPhone.value?'('+esc(customerPhone.value)+')':''}</div>
+            <div><i class="fas fa-user"></i> <b>العميل:</b> ${esc(customerVal)||'—'} ${customerPhoneVal?'('+esc(customerPhoneVal)+')':''}</div>
             <div><i class="fas fa-calendar"></i> <b>المدة:</b> ${duration === 0 ? 'بدون مدة' : duration + ' شهر'}</div>
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
                 <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span>
@@ -2208,123 +2249,112 @@ function addPurchase(){
             ${isComp ? `<div style="color:var(--danger); font-weight:bold; padding:5px; background:var(--yellow-bg); border-radius:5px;"><i class="fas fa-exclamation-circle"></i> هذه العملية مسجلة كـ "تعويض"</div>` : ''}
             ${appliedDiscountPct > 0 ? `<div style="color:var(--success); font-weight:bold; text-align:center; padding:5px; border:1px solid var(--success); border-radius:5px; margin:5px 0;"><i class="fas fa-ticket-alt"></i> تم تطبيق كود خصم: ${appliedDiscountPct}%</div>` : ''}
             <div><i class="fas fa-info-circle"></i> <b>حالة التكلفة:</b> ${isFirstProfile ? `<span style="color:var(--danger)">أول بروفايل (سيتم خصم ${fix(calculatedCost)} ${paidCur})</span>` : '<span style="color:var(--success)">مدفوعة سابقاً (التكلفة 0)</span>'}</div>
-            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-right"></i> إيداع في: ${esc(wallet.value)}</div>
+            <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-right"></i> إيداع في: ${esc(walletVal)}</div>
         </div>`;
     
     document.getElementById("purchaseConfirmModal").style.display = "flex";
     document.getElementById("purchaseConfirmOkBtn").onclick = () => {
         document.getElementById("purchaseConfirmModal").style.display = "none";
-        _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, discountCodeInput, appliedDiscountPct, isComp);
+        _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal);
     };
 }
 
-function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, discountCodeInput, appliedDiscountPct, isComp) {
+function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
     let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     
-    let tBefore = wallets[wallet.value].bal;
+    let tBefore = wallets[walletVal].bal;
     let invest_before_profit = JSON.parse(JSON.stringify(invest));
     
-    // Add Paid Amount to Wallet
-    wallets[wallet.value].bal += paid;
+    wallets[walletVal].bal += paid;
     
-    // --- Distribution Logic ---
     let distributableProfit = paid;
     let recoupAmount = 0;
 
     if (settings.deductCost && isFirstProfile && !isComp) {
-        recoupAmount = calculatedCost; // This amount goes back to Store Capital
+        recoupAmount = calculatedCost; 
         distributableProfit = paid - calculatedCost;
     }
 
-    // Determine share type based on Paid Currency
     let shareType = (paidCur === '$') ? 'd' : 's';
-
-    // 1. Return Cost to Store Capital (if applicable)
     invest.store[shareType] += recoupAmount;
 
-    // 2. Distribute Profit (or Loss)
     if (distributableProfit >= 0) {
-        // Normal Profit Distribution
         let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
         let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
         let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
-        
-        invest.ahmad[shareType] += aP;
-        invest.mohamed[shareType] += mP;
-        invest.store[shareType] += sP;
+        invest.ahmad[shareType] += aP; invest.mohamed[shareType] += mP; invest.store[shareType] += sP;
     } else {
-        // Negative Profit (Loss) - Store bears it all
-        // distributableProfit is negative here, so we just ADD it to store (effectively subtracting)
         invest.store[shareType] += distributableProfit; 
-        // Ahmad and Mohamed get 0 change
     }
     
-    // Update Stock Info
-    // التعديل: حساب تاريخ الانتهاء بناءً على تاريخ إضافة المخزون
     let d = new Date(stItem.timestamp || Date.now()), exp = null;
     if (duration > 0) {
         exp = new Date(d);
         exp.setMonth(exp.getMonth() + duration);
-        // ضبط التاريخ لتجنب مشاكل الأشهر القصيرة
         if(exp.getDate() !== d.getDate()) exp.setDate(0);
     }
     
-    let buyerInfo = (customer.value ? customer.value : "عميل") + (customerPhone.value ? ` - ${customerPhone.value}` : "");
+    let buyerInfo = (customerVal ? customerVal : "عميل") + (customerPhoneVal ? ` - ${customerPhoneVal}` : "");
     if(!stItem.buyers) stItem.buyers = [];
     stItem.buyers.push(buyerInfo);
     
     stItem.soldProfiles = (stItem.soldProfiles || 0) + 1;
     if(stItem.soldProfiles >= (stItem.totalProfiles || 1)) {
         stItem.status = 'sold';
-        stItem.soldDate = new Date().toLocaleDateString('ar-EG');
+        let nd = new Date();
+        let mm = (nd.getMonth()+1).toString().padStart(2,'0');
+        let dd = nd.getDate().toString().padStart(2,'0');
+        stItem.soldDate = `${nd.getFullYear()}-${mm}-${dd}`;
     }
     let stockList = safeJSON(store.stock, []);
     let stIdx = stockList.findIndex(x => x.id === stItem.id);
     if(stIdx !== -1) stockList[stIdx] = stItem;
     store.stock = JSON.stringify(stockList); fbSave("stock", stockList);
 
+    let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let ndd = nd.getDate().toString().padStart(2,'0');
+
     purchases.push({
-        id: Date.now() + '_' + Math.random().toString(36).substr(2,5),
-        date: new Date().getFullYear()+'-'+(new Date().getMonth()+1)+'-'+new Date().getDate(),
-        customer: customer.value||"عميل",
-        phone: customerPhone.value||"-",
+        id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+        date: `${nd.getFullYear()}-${nmm}-${ndd}`,
+        customer: customerVal||"عميل",
+        phone: customerPhoneVal||"-",
         sub: cleanName,
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")), // Show original cost currency
-        wallet: wallet.value,
+        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")),
+        wallet: walletVal,
         expiry: exp ? exp.getTime() : null,
         investSnapshot: invest_before_profit,
-        isComp: isComp
+        isComp: isComp,
+        usedDiscountObj: usedDiscountObj
     });
     
     store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
     store.invest = JSON.stringify(invest); fbSave("invest", invest);
     store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
     
-    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customer.value}`, {
+    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, {
         type: 'purchase',
-        customer: customer.value||"عميل",
+        customer: customerVal||"عميل",
         sub: cleanName,
         paid: paid+paidCur,
         costVal: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : "0",
         isFirstProfile: isFirstProfile,
-        toName: wallet.value, tBefore: tBefore, tAfter: wallets[wallet.value].bal,
+        toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal,
         appliedDiscountPct: appliedDiscountPct,
         isComp: isComp
     });
 
-    // DISCOUNT SYSTEM LOGIC:
-    // 1. Remove used coupon
-    if (appliedDiscountPct > 0) {
+    if (usedDiscountObj) {
         let dList = safeJSON(store.discounts, []);
-        dList = dList.filter(x => x.code !== discountCodeInput);
+        dList = dList.filter(x => x.code !== usedDiscountObj.code);
         store.discounts = JSON.stringify(dList);
         fbSave("discounts", dList);
     }
 
-    // 2. Generate new coupon randomly
     let dEnabled = settings.discountEnabled !== false;
     let dChance = settings.discountChance !== undefined ? settings.discountChance : 25;
     
@@ -2342,9 +2372,9 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
             let expTime = new Date().getTime() + (days * 86400000);
 
             let generatedCoupon = {
-                id: Date.now().toString(),
+                id: 'id_' + Date.now().toString(),
                 code: code,
-                customer: customer.value || "عميل",
+                customer: customerVal || "عميل",
                 service: cleanName,
                 percentage: pct,
                 expiry: expTime,
@@ -2356,19 +2386,22 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
             store.discounts = JSON.stringify(dList);
             fbSave("discounts", dList);
 
-            showCouponModal(generatedCoupon, customerPhone.value);
+            showCouponModal(generatedCoupon, customerPhoneVal);
         }
     }
     
+    canUndo = true; 
     currentPage.history = 1;
     loadPurchaseStock();
     refreshAll();  notify("تمت العملية بنجاح");
     
-    // Reset Form
-    paidAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; 
-    document.getElementById("subDuration").value="1";
+    document.getElementById("paidAmount").value=""; 
+    document.getElementById("customer").value=""; 
+    document.getElementById("sub").value=""; 
+    document.getElementById("customerPhone").value=""; 
     document.getElementById("discountCodeInput").value="";
     document.getElementById("isCompensation").checked = false;
+    document.getElementById("customerPhone").style.borderColor = "";
 }
 
 function showCouponModal(coupon, phone) {
@@ -2378,11 +2411,8 @@ function showCouponModal(coupon, phone) {
     document.getElementById("couponModalDays").textContent = `صالح لمدة ${coupon.days} يوم`;
     document.getElementById("couponModalQuestion").textContent = `حصل العميل "${coupon.customer}" على كود خصم، هل تود إخباره؟`;
 
-    // تمت إزالة الإيموجي من هنا
     let msg = `مرحباً ${coupon.customer}\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا\nصلاحية كود الخصم: ${coupon.days} يوم\nكود الخصم: ${coupon.code}`;
-    
     let cleanPhone = (phone || '').replace(/\D/g, '');
-    if (cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
     
     let waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
     let waBtn = document.getElementById("couponWhatsAppBtn");
@@ -2401,17 +2431,18 @@ function refreshAll(){
     refreshWallets();
     let p = safeJSON(store.purchases, []);
     let now = new Date();
-    let todayStr = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+    let nmm = (now.getMonth()+1).toString().padStart(2,'0');
+    let ndd = now.getDate().toString().padStart(2,'0');
+    let todayStr = `${now.getFullYear()}-${nmm}-${ndd}`;
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
-    document.getElementById("statSales").textContent = p.filter(x => x.date.includes(todayStr)).length;
+    document.getElementById("statSales").textContent = p.filter(x => x.date && x.date.includes(todayStr)).length;
     if(isRestricted) {
         document.getElementById("statDollar").textContent = "****";
         document.getElementById("statShekel").textContent = "****";
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    // Updated: Only count non-reminded, non-compensation items for the badge
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
@@ -2456,15 +2487,13 @@ function refreshDiscounts() {
     let rows = "";
     let now = new Date().getTime();
     let isAdmin = currentUser && currentUser.role === 'admin';
-    let isViewer = currentUser && currentUser.role === 'viewer'; // Check for regular viewer
+    let isViewer = currentUser && currentUser.role === 'viewer'; 
 
     paginated.forEach(item => {
         let daysLeft = Math.ceil((item.expiry - now) / 86400000);
         let timeBadge = daysLeft > 0 ? `<span class="badge badge-success">${daysLeft} يوم</span>` : `<span class="badge badge-danger">منتهي</span>`;
         
-        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSingleDiscount('${item.code}')"><i class="fas fa-trash-alt"></i></button>` : '-';
-        
-        // Hide actual code from "viewer"
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSingleDiscount('${item.id}')"><i class="fas fa-trash-alt"></i></button>` : '-';
         let displayCode = isViewer ? '*********' : item.code;
         
         rows += `<tr>
@@ -2478,12 +2507,12 @@ function refreshDiscounts() {
     tbody.innerHTML = rows || `<tr><td colspan='5' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد أكواد خصم</td></tr>`;
 }
 
-async function deleteSingleDiscount(code) {
+async function deleteSingleDiscount(id) {
     let ok = await showConfirm("حذف الكود", "هل تريد حذف كود الخصم هذا نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
     
     let dList = safeJSON(store.discounts, []);
-    dList = dList.filter(x => x.code !== code);
+    dList = dList.filter(x => x.id !== id);
     store.discounts = JSON.stringify(dList);
     fbSave("discounts", dList);
     
@@ -2511,7 +2540,6 @@ function refreshExpiring() {
     if(!body) return;
     let now = new Date().getTime(), days3 = 3 * 86400000;
     
-    // Updated: Exclude compensation items from expiring lists entirely
     let filtered = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && !x.d.isComp && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
     filtered.sort((a, b) => a.d.expiry - b.d.expiry);
     
@@ -2523,7 +2551,6 @@ function refreshExpiring() {
     
     let rows = "";
     
-    // التعديل هنا: تحديد الوقت لجلب التحية المناسبة
     let currentHour = new Date().getHours();
     let greeting = currentHour < 12 ? 'صباح الخير' : 'مساء الخير';
 
@@ -2531,27 +2558,30 @@ function refreshExpiring() {
         let item = x.d, daysLeft = Math.ceil((item.expiry - now) / 86400000);
         let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
-        if(cleanPhone.startsWith('0')) cleanPhone = '970' + cleanPhone.substring(1);
         
-        // رسالة التنبيه الجديدة
         let expiryPhrase = daysLeft <= 0 ? 'منتهي' : `باقي على إنتهائه ${status}`;
         let waMsg = `${greeting} ${item.customer}\nحابين نذكرك ان اشتراكك في ${item.sub} ${expiryPhrase}\nهل عجبتك الخدمة و حابب تجدد اشتراكك مرة تانية؟`;
         
         let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
         
-        let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded(${x.i})" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
+        let btnHTML = isViewer ? '' : `<a href="${wa}" target="_blank" onclick="markAsReminded('${item.id}')" class="btn btn-whatsapp"><i class="fab fa-whatsapp"></i> تذكير</a>`;
         let phoneDisplay = isRestricted ? '----' : esc(item.phone);
         let serviceDisplay = isRestricted ? '----' : `<b>${esc(item.sub)}</b>`;
         rows += `<tr class="${item.reminded?'reminded':''}"><td>${serviceDisplay}</td><td>${esc(item.customer)}</td><td>${phoneDisplay}</td><td>${new Date(item.expiry).toLocaleDateString('ar-EG')}</td><td><span class="badge ${daysLeft<=0?'badge-danger':'badge-warning'}">${status}</span></td><td>${btnHTML}</td></tr>`;
     });
     body.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:30px; color:var(--text-muted)'>لا توجد تنبيهات</td></tr>";
     
-    // Badge Update Logic (Only non-reminded, non-compensation)
     let nonRemindedCount = filtered.filter(x => !x.d.reminded).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = nonRemindedCount; badge.style.display = nonRemindedCount > 0 ? "inline-flex" : "none"; }
 }
-function markAsReminded(i) { let p = safeJSON(store.purchases, []); p[i].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); refreshExpiring();  }
+function markAsReminded(id) { 
+    let p = safeJSON(store.purchases, []); 
+    let idx = p.findIndex(x => x.id === id);
+    if(idx !== -1) {
+        p[idx].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); refreshExpiring();  
+    }
+}
 async function deleteExpired() { 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
     let ok = await showConfirm("إخفاء الاشتراكات المنتهية", "سيتم إخفاء جميع الاشتراكات المنتهية من القائمة.", "إخفاء", "إلغاء", '<i class="fas fa-eye-slash"></i>');
@@ -2564,7 +2594,6 @@ function refreshWallets(){
     let w=safeJSON(store.wallets, {}), td=0, ts=0;
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let rows="";
-    // الترتيب الأبجدي للمحافظ في الجدول
     let sortedKeys = Object.keys(w).sort((a,b) => a.localeCompare(b, 'ar'));
     for(let k of sortedKeys){
         let act = w[k].active !== false;
@@ -2572,9 +2601,9 @@ function refreshWallets(){
         rows+=`<tr><td><b>${esc(k)}</b></td><td><span class="badge ${w[k].cur=='$'?'badge-success':'badge-info'}">${w[k].cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
         if(w[k].cur=="$") td+=w[k].bal; else ts+=w[k].bal;
     }
-    walletList.innerHTML=rows;
+    document.getElementById("walletList").innerHTML=rows;
     if(!isRestricted) {
-        statDollar.textContent=fix(td)+" $"; statShekel.textContent=fix(ts)+" ₪";
+        document.getElementById("statDollar").textContent=fix(td)+" $"; document.getElementById("statShekel").textContent=fix(ts)+" ₪";
     }
 }
 function refreshHistory(){
@@ -2597,7 +2626,6 @@ function refreshHistory(){
         let costD = isRestricted ? '----' : esc(item.cost);
         let walletD = isRestricted ? '----' : esc(item.wallet);
         
-        // --- التعديل هنا: تلوين التعويض بالأحمر ---
         let colorStyle = item.isComp ? "color:var(--danger);" : "";
         
         let parsedDur = parseInt(item.duration);
@@ -2617,7 +2645,7 @@ function refreshInvestment(){
     let mD = isRestricted ? "****" : `${fix(i.mohamed.d)}$ | ${fix(i.mohamed.s)}₪`;
     let sD = isRestricted ? "****" : `${fix(i.store.d)}$ | ${fix(i.store.s)}₪`;
     
-    investBox.innerHTML=`
+    document.getElementById("investBox").innerHTML=`
     <div class="stat-card" style="border-right:5px solid #10b981; flex-direction:column; align-items:flex-start">
         <div style="font-size:14px; color:var(--text-muted)">حصة أحمد</div>
         <div style="font-size:20px; font-weight:800">${aD}</div>
@@ -2635,53 +2663,86 @@ function refreshAnalytics() {
     let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     if (myProfitChart) myProfitChart.destroy();
     
-    if(currentUser && currentUser.role === 'viewer') {
-    } else {
+    if(currentUser && currentUser.role !== 'viewer') {
         myProfitChart = new Chart(document.getElementById('profitChart').getContext('2d'), { type: 'doughnut', data: { labels: ['أحمد', 'محمد', 'المتجر'], datasets: [{ data: [invest.ahmad.d*3.5+invest.ahmad.s, invest.mohamed.d*3.5+invest.mohamed.s, invest.store.d*3.5+invest.store.s], backgroundColor: ['#10b981', '#f59e0b', '#6366f1'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
     
     let months = {}, labels = [], data = [];
-    for(let i=5; i>=0; i--){ let d = new Date(); d.setMonth(d.getMonth() - i); labels.push((d.getMonth()+1)+'/'+d.getFullYear()); months[labels[labels.length-1]] = 0; }
-    purchases.forEach(p => { let d = new Date(p.date), k = (d.getMonth()+1)+'/'+d.getFullYear(); if(months[k] !== undefined) months[k]++; });
+    for(let i=5; i>=0; i--){ let d = new Date(); d.setMonth(d.getMonth() - i); let mm = (d.getMonth()+1).toString().padStart(2,'0'); labels.push(mm+'/'+d.getFullYear()); months[labels[labels.length-1]] = 0; }
+    purchases.forEach(p => { 
+        if(p.date) {
+            let parts = p.date.split('-');
+            if(parts.length===3) {
+               let k = parts[1]+'/'+parts[0]; 
+               if(months[k] !== undefined) months[k]++; 
+            }
+        }
+    });
     labels.forEach(l => data.push(months[l]));
     
     if (mySalesChart) mySalesChart.destroy();
     mySalesChart = new Chart(document.getElementById('salesChart').getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'مبيعات', data: data, backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
 }
-function addGeneralNote(){ let t=gnText.value.trim(); if(!t)return; let n=safeJSON(store.generalNotes, []); n.push({text:t, date:new Date().toLocaleString("ar-EG")}); store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); gnText.value=""; logAction("إضافة ملاحظة جديدة"); refreshGeneralNotes();  }
+function addGeneralNote(){ 
+    let gnTextVal = document.getElementById("gnText").value.trim(); 
+    if(!gnTextVal)return; 
+    let n=safeJSON(store.generalNotes, []); 
+    n.push({id: 'id_'+Date.now(), text:gnTextVal, date:new Date().toLocaleString("ar-EG")}); 
+    store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); 
+    document.getElementById("gnText").value=""; 
+    logAction("إضافة ملاحظة جديدة"); refreshGeneralNotes();  
+}
 function refreshGeneralNotes(){ 
     let n = safeJSON(store.generalNotes, []); 
     let box = document.getElementById("generalNotesBox");
     if(!box) return; 
     if(currentUser && currentUser.role === 'viewer') { box.innerHTML = ""; return; }
     let rows = "";
-    // التغيير هنا: حلقة عكسية لعرض الأحدث أولاً مع الحفاظ على الفهرس الأصلي للحذف
     for (let i = n.length - 1; i >= 0; i--) {
         let x = n[i];
         let isViewerPlus = currentUser ? (currentUser.role === 'viewer_plus') : true;
-        let delBtn = isViewerPlus ? '' : `<i class="fas fa-trash-alt" onclick="deleteNote(${i})" style="color:var(--danger); cursor:pointer"></i>`;
+        let delBtn = isViewerPlus ? '' : `<i class="fas fa-trash-alt" onclick="deleteNote('${x.id}')" style="color:var(--danger); cursor:pointer"></i>`;
         rows += `<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${esc(x.text)}</div></div>${delBtn}</div>`; 
     }
     box.innerHTML = rows;
 }
-function deleteNote(i){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let n=safeJSON(store.generalNotes, []); n.splice(i,1); store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); logAction("حذف ملاحظة"); refreshGeneralNotes();  }
+function deleteNote(id){ 
+    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
+    let n=safeJSON(store.generalNotes, []); 
+    n = n.filter(x => x.id !== id); 
+    store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); 
+    logAction("حذف ملاحظة"); refreshGeneralNotes();  
+}
 function addTodo(){ 
-    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
-    let t=todoInput.value.trim(); if(!t)return; let l=safeJSON(store.todoList, []); l.push({text:t, date:new Date().toLocaleString("ar-EG")}); store.todoList = JSON.stringify(l); fbSave("todoList", l); todoInput.value=""; logAction("إضافة مهمة جديدة"); refreshTodoList();  
+    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
+    let todoInputVal = document.getElementById("todoInput").value.trim(); 
+    if(!todoInputVal)return; 
+    let l=safeJSON(store.todoList, []); 
+    l.push({id:'id_'+Date.now(), text:todoInputVal, date:new Date().toLocaleString("ar-EG")}); 
+    store.todoList = JSON.stringify(l); fbSave("todoList", l); 
+    document.getElementById("todoInput").value=""; 
+    logAction("إضافة مهمة جديدة"); refreshTodoList();  
 }
 function refreshTodoList(){ 
     let l=safeJSON(store.todoList, []); 
     let rows=""; 
     let canEdit = currentUser ? (currentUser.role === 'admin' || currentUser.role === 'employee') : false;
-    l.forEach((x,i)=>{ 
-        let btnHtml = canEdit ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="completeTodo(${i})">تمت</button>` : '';
+    l.forEach((x)=>{ 
+        let btnHtml = canEdit ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="completeTodo('${x.id}')">تمت</button>` : '';
         rows+=`<div class="todo-item"><div>${esc(x.text)}</div>${btnHtml}</div>`; 
     }); 
-    todoBox.innerHTML=rows;
+    document.getElementById("todoBox").innerHTML=rows;
 }
-function completeTodo(i){ 
-    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; // Strict Check
-    let l=safeJSON(store.todoList, []); logAction(`إكمال مهمة: ${esc(l[i].text)}`); l.splice(i,1); store.todoList = JSON.stringify(l); fbSave("todoList", l); refreshTodoList();  
+function completeTodo(id){ 
+    if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
+    let l=safeJSON(store.todoList, []); 
+    let idx = l.findIndex(x=>x.id===id);
+    if(idx!==-1) {
+        logAction(`إكمال مهمة: ${esc(l[idx].text)}`); 
+        l.splice(idx,1); 
+        store.todoList = JSON.stringify(l); fbSave("todoList", l); 
+        refreshTodoList();  
+    }
 }
 
 async function withdrawPartial(p){ 
@@ -2706,7 +2767,6 @@ async function withdrawPartial(p){
     let currency = wallet.cur;
     let shareType = (currency === '$') ? 'd' : 's';
 
-    // FIX FOR FLOAT COMPARISON
     let currentShare = Number(i[p][shareType].toFixed(2));
     let currentWallet = Number(wallet.bal.toFixed(2));
 
@@ -2740,7 +2800,17 @@ async function withdrawPartial(p){
      notify("تم السحب بنجاح");
 }
 
-function addNewWallet(){ let n=newWalletName.value.trim(), c=newWalletCurrency.value, w=safeJSON(store.wallets, {}); if(!n||w[n]) return notify("خطأ بالاسم","error"); w[n]={bal:0, cur:c, active:true}; store.wallets = JSON.stringify(w); fbSave("wallets", w); loadWallets(); refreshWallets(); newWalletName.value=""; logAction(`إنشاء محفظة جديدة: ${n}`);  notify("تمت"); }
+function addNewWallet(){ 
+    let n=document.getElementById("newWalletName").value.trim();
+    let c=document.getElementById("newWalletCurrency").value;
+    let w=safeJSON(store.wallets, {}); 
+    if(!n||w[n]) return notify("خطأ بالاسم","error"); 
+    w[n]={bal:0, cur:c, active:true}; 
+    store.wallets = JSON.stringify(w); fbSave("wallets", w); 
+    loadWallets(); refreshWallets(); 
+    document.getElementById("newWalletName").value=""; 
+    logAction(`إنشاء محفظة جديدة: ${n}`);  notify("تمت"); 
+}
 
 function fillWalletEditData() {
     let name = document.getElementById("renameWalletSelect").value;
@@ -2764,13 +2834,11 @@ function updateWalletData(){
     if(!newName) return notify("خطأ في الاسم","error");
     if(!w[oldName]) return notify("المحفظة غير موجودة", "error");
 
-    // If renaming
     if(newName !== oldName) {
         if(w[newName]) return notify("يوجد محفظة بهذا الاسم مسبقاً", "error");
         w[newName] = w[oldName];
         delete w[oldName];
         
-        // Update references in purchase history
         let p = safeJSON(store.purchases, []); 
         p.forEach(x => { if(x.wallet === oldName) x.wallet = newName; }); 
         store.purchases = JSON.stringify(p); fbSave("purchases", p);
@@ -2778,7 +2846,6 @@ function updateWalletData(){
         logAction(`تعديل محفظة: تم تغيير الاسم من ${oldName} إلى ${newName}`);
     }
 
-    // Update properties
     w[newName].cur = newCur;
     w[newName].active = newStatus;
     
@@ -2823,7 +2890,7 @@ function executeTransfer() {
     let amount = parseFloat(document.getElementById("tfAmount").value);
     let fee = parseFloat(document.getElementById("tfFee").value) || 0;
     let rate = parseFloat(document.getElementById("tfRate").value) || 1;
-    let result = parseFloat(document.getElementById("tfResult").value); // Taking manual input if modified
+    let result = parseFloat(document.getElementById("tfResult").value); 
 
     if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
     if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
@@ -2841,16 +2908,11 @@ function executeTransfer() {
     let invest = safeJSON(store.invest, {});
     
     if(fromCur !== toCur) {
-        // CROSS CURRENCY TRANSFER LOGIC
-        // Store absorbs the exchange: Pay full amount from Store Source -> Get full result to Store Dest
         let fromType = (fromCur === '$') ? 'd' : 's';
         let toType = (toCur === '$') ? 'd' : 's';
-        
         invest.store[fromType] -= amount; 
         invest.store[toType] += result;
-        
     } else {
-        // SAME CURRENCY TRANSFER
         if(fee > 0) {
             if(fromCur === '$') invest.store.d -= fee;
             else invest.store.s -= fee;
@@ -2861,17 +2923,7 @@ function executeTransfer() {
     store.invest = JSON.stringify(invest); fbSave("invest", invest);
     
     logAction(`تحويل من ${from} إلى ${to}`, {
-        type: 'transfer',
-        from: from,
-        to: to,
-        amount: amount,
-        fee: fee,
-        feeCur: fromCur,
-        rate: rate,
-        result: result,
-        netAmount: amount - fee,
-        fromCur: fromCur,
-        toCur: toCur
+        type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: toCur
     });
 
     refreshWallets(); refreshInvestment();  notify("تم التحويل");
@@ -2882,14 +2934,41 @@ function executeTransfer() {
 
 async function setWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    
+    let modWalletVal = document.getElementById("modWallet").value;
+    let modAmountVal = parseFloat(document.getElementById("modAmount").value);
+    
+    if(!modWalletVal) return notify("اختر المحفظة أولاً", "error");
+    if(isNaN(modAmountVal)) return notify("أدخل الرصيد الجديد", "error");
+    
+    let syncType = await showPrompt("نوع التعديل", "اختر طبيعة التعديل:", "", '<i class="fas fa-link"></i>', true, '<option value="open">مفتوح (تعديل المحفظة فقط)</option><option value="closed">مغلق (ربط التعديل بحصة شريك)</option>');
+    if(!syncType) return;
+    
+    let targetShare = null;
+    if(syncType === 'closed') {
+        targetShare = await showPrompt("اختيار الحصة للربط", "اختر الحصة التي سيتم تطبيق الفارق عليها:", "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
+        if(!targetShare) return;
+    }
+
     let reason = await showPrompt("سبب التعيين المباشر", "هذا الحقل إجباري", "أدخل سبب التعيين...", '<i class="fas fa-edit"></i>');
     if(!reason) return;
+    
     let w=safeJSON(store.wallets, {}); 
-    let before = w[modWallet.value].bal;
-    w[modWallet.value].bal = +modAmount.value; 
+    let before = w[modWalletVal].bal;
+    let diff = parseFloat((modAmountVal - before).toFixed(2));
+    
+    w[modWalletVal].bal = modAmountVal; 
+    
+    let invest = safeJSON(store.invest, {});
+    if(syncType === 'closed') {
+        let cur = w[modWalletVal].cur === '$' ? 'd' : 's';
+        invest[targetShare][cur] = parseFloat((invest[targetShare][cur] + diff).toFixed(2));
+        store.invest = JSON.stringify(invest); fbSave("invest", invest);
+    }
+    
     store.wallets = JSON.stringify(w); fbSave("wallets", w); 
-    logAction(`تعيين رصيد محفظة ${modWallet.value}`, { type: 'manual', wallet: modWallet.value, reason: reason, before: before, after: w[modWallet.value].bal, diff: (+modAmount.value - before) });
-    refreshWallets();  notify("تم"); 
+    logAction(`تعيين رصيد محفظة ${modWalletVal}`, { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff, syncedShare: targetShare });
+    refreshWallets(); refreshInvestment(); notify("تم تحديث الرصيد بنجاح"); 
 }
 
 async function setProfitShare() {
@@ -2899,16 +2978,40 @@ async function setProfitShare() {
     let amount = parseFloat(document.getElementById("setShareAmount").value);
 
     if(isNaN(amount)) return notify("أدخل الرصيد الجديد", "error");
+    
+    let syncType = await showPrompt("نوع التعديل", "اختر طبيعة التعديل:", "", '<i class="fas fa-link"></i>', true, '<option value="open">مفتوح (تعديل الحصة فقط)</option><option value="closed">مغلق (ربط التعديل بمحفظة)</option>');
+    if(!syncType) return;
+    
+    let targetWallet = null;
+    if(syncType === 'closed') {
+        let wallets=safeJSON(store.wallets, {});
+        let opts = "";
+        let expectedCurSymbol = currency === 'd' ? '$' : '₪';
+        Object.keys(wallets).forEach(w => { if(wallets[w].cur === expectedCurSymbol) opts += `<option value="${w}">${w}</option>`; });
+        if(!opts) return notify(`لا يوجد محافظ بعمله ${expectedCurSymbol}`, "error");
+        
+        targetWallet = await showPrompt("اختيار المحفظة للربط", `اختر المحفظة (يجب أن تكون بعملة ${expectedCurSymbol}):`, "", '<i class="fas fa-wallet"></i>', true, opts);
+        if(!targetWallet) return;
+    }
+
     let reason = await showPrompt("سبب تعديل الحصة", "هذا الحقل إجباري", "أدخل السبب...", '<i class="fas fa-edit"></i>');
     if(!reason) return;
 
     let invest = safeJSON(store.invest, {});
     let before = invest[person][currency];
+    let diff = parseFloat((amount - before).toFixed(2));
+    
     invest[person][currency] = amount;
+    
+    let w = safeJSON(store.wallets, {});
+    if(syncType === 'closed') {
+        w[targetWallet].bal = parseFloat((w[targetWallet].bal + diff).toFixed(2));
+        store.wallets = JSON.stringify(w); fbSave("wallets", w);
+    }
+    
     store.invest = JSON.stringify(invest); fbSave("invest", invest);
-
-    logAction(`تعديل مباشر لحصة ${person}`, { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount });
-    refreshInvestment();  notify("تم تحديث الحصة");
+    logAction(`تعديل مباشر لحصة ${person}`, { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount, diff: diff, syncedWallet: targetWallet });
+    refreshInvestment(); refreshWallets(); notify("تم تحديث الحصة بنجاح");
 }
 
 async function deleteWallet(){ 
@@ -2925,20 +3028,22 @@ async function deleteWallet(){
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
-    let f=importFile.files[0], r=new FileReader(); 
+    let f=document.getElementById("importFile").files[0], r=new FileReader(); 
     r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
     if(f) r.readAsText(f); else notify("اختر ملف","error"); 
 }
 
 async function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
+    if(!canUndo) return notify("لا يمكن التراجع سوى لمرة واحدة عن أحدث عملية بيع فقط", "error");
+    
     let purchases = safeJSON(store.purchases, []);
     if(purchases.length === 0) return notify("لا توجد عمليات للتراجع عنها", "error");
-    let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة والحصص. هل تريد المتابعة؟", "نعم، تراجع", "لا، إلغاء", '<i class="fas fa-undo"></i>');
+    
+    let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة والحصص وكود الخصم (إن وُجد). هل تريد المتابعة؟", "نعم، تراجع", "لا، إلغاء", '<i class="fas fa-undo"></i>');
     if(!ok) return;
     let lastP = purchases.pop();
     let wallets = safeJSON(store.wallets, {});
-    // Reverse Wallet addition
     if(lastP.wallet && wallets[lastP.wallet]) { 
         let paidVal = parseFloat(lastP.paid); 
         wallets[lastP.wallet].bal -= paidVal; 
@@ -2947,10 +3052,8 @@ async function undoLastPurchase(){
     store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
     store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
     
-    // Reverse Investment changes
     if(lastP.investSnapshot) { store.invest = JSON.stringify(lastP.investSnapshot); fbSave("invest", lastP.investSnapshot); }
     
-    // Reverse Stock if attached
     if(lastP.stockId) {
         let stockList = safeJSON(store.stock, []);
         let sItem = stockList.find(x => x.id === lastP.stockId);
@@ -2964,19 +3067,29 @@ async function undoLastPurchase(){
             store.stock = JSON.stringify(stockList); fbSave("stock", stockList);
         }
     }
+
+    if(lastP.usedDiscountObj) {
+        let dList = safeJSON(store.discounts, []);
+        if(!dList.find(x => x.code === lastP.usedDiscountObj.code)) {
+            dList.unshift(lastP.usedDiscountObj);
+            store.discounts = JSON.stringify(dList); fbSave("discounts", dList);
+        }
+    }
     
     logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, deducted: lastP.paid });
     
+    canUndo = false;
     currentPage.history = 1;
     loadPurchaseStock();
-    refreshAll();  notify("تم التراجع"); 
+    refreshAll();  notify("تم التراجع واستعادة البيانات بنجاح"); 
 }
 
 function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserModal') document.getElementById("editUserModal").classList.add("hidden"); }
 
-function openEditUserModal(index) {
-    let users = safeJSON(store.users, []), u = users[index];
-    document.getElementById("editUserIndex").value = index;
+function openEditUserModal(id) {
+    let users = safeJSON(store.users, []), u = users.find(x => x.id === id);
+    if(!u) return;
+    document.getElementById("editUserIndex").value = u.id;
     document.getElementById("editUserName").value = u.username;
     document.getElementById("editUserPassInput").value = "";
     document.getElementById("editUserRoleSelect").value = u.role;
@@ -2984,10 +3097,13 @@ function openEditUserModal(index) {
 }
 
 async function saveUserEdit() {
-    let index = +document.getElementById("editUserIndex").value;
+    let id = document.getElementById("editUserIndex").value;
     let newPass = document.getElementById("editUserPassInput").value.trim();
     let newRole = document.getElementById("editUserRoleSelect").value;
     let users = safeJSON(store.users, []);
+    let index = users.findIndex(x => x.id === id);
+    if(index === -1) return;
+    
     if(newPass) users[index].password = newPass;
     if(users[index].username === currentUser.username && newRole !== 'admin') {
         let ok = await showConfirm("تغيير صلاحيتك", "ستقلل صلاحيتك من أدمن. هل أنت متأكد؟", "نعم", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
@@ -3006,10 +3122,10 @@ function closeStockModal(e) { if(e === 'force' || e.target.id === 'stockModal') 
 
 function openAddStockModal() {
     loadServices();
-    loadWallets(); // Populate wallets in modal
+    loadWallets();
     
     document.getElementById("stockModalTitle").innerHTML = '<i class="fas fa-plus-circle"></i> إضافة اشتراك للمخزون';
-    document.getElementById("stockIndex").value = "-1";
+    document.getElementById("stockIndexId").value = "new";
     
     document.getElementById("stService").value = "";
     document.getElementById("stCost").value = "";
@@ -3018,12 +3134,10 @@ function openAddStockModal() {
     ["stEmail","stPass","stNotes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("stDuration").value = "1";
     
-    // Show Purchase Inputs and Save Button
     document.getElementById("stockPurchaseInputs").style.display = "block";
     document.getElementById("btnSaveStock").classList.remove("hidden");
     document.getElementById("btnUpdateNote").classList.add("hidden");
     
-    // Enable all inputs
     let inputs = document.querySelectorAll("#stockModal input, #stockModal select, #stockModal textarea");
     inputs.forEach(inp => inp.disabled = false);
 
@@ -3044,7 +3158,6 @@ function verifyStockAdd() {
     
     if(w.bal < stCost) return notify("رصيد المحفظة غير كافي", "error");
     
-    // Prepare Confirmation Modal
     let wAfter = w.bal - stCost;
     let cleanName = stService + ((document.getElementById("stProfiles").value > 1) ? " Shared" : "");
     
@@ -3080,15 +3193,12 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
     let w = wallets[stWallet];
     let wBefore = w.bal;
     
-    // Deduct from Wallet
     w.bal -= stCost;
     
-    // Deduct from Store Capital (Invest)
     let invest = safeJSON(store.invest, {});
     let shareType = (w.cur === '$') ? 'd' : 's';
     invest.store[shareType] -= stCost;
     
-    // Generate Name
     let baseName = stService + (stProfiles > 1 ? " Shared" : "");
     let stock = safeJSON(store.stock, []);
     let activeStock = stock.filter(x => x.status === 'active');
@@ -3099,8 +3209,12 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
         counter++;
     }
 
+    let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let ndd = nd.getDate().toString().padStart(2,'0');
+
     let s = {
-        id: Date.now() + '_' + Math.random().toString(36).substr(2,5),
+        id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
         service: stService,
         displayName: finalName,
         totalProfiles: stProfiles,
@@ -3112,11 +3226,11 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
         notes: document.getElementById("stNotes").value,
         buyers: [],
         status: 'active',
-        date: new Date().toLocaleDateString('ar-EG'),
-        timestamp: new Date().getTime(),
-        cost: stCost,           // Save Cost
-        costCurrency: w.cur,    // Save Cost Currency
-        sourceWallet: stWallet  // Save Source Wallet
+        date: `${nd.getFullYear()}-${nmm}-${ndd}`,
+        timestamp: nd.getTime(),
+        cost: stCost,           
+        costCurrency: w.cur,    
+        sourceWallet: stWallet  
     };
     
     stock.unshift(s);
@@ -3143,10 +3257,13 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
 }
 
 function updateStockNote() {
-    let index = +document.getElementById("stockIndex").value;
-    if (index === -1) return;
+    let id = document.getElementById("stockIndexId").value;
+    if (id === 'new') return;
     
     let stock = safeJSON(store.stock, []);
+    let index = stock.findIndex(x => x.id === id);
+    if(index === -1) return;
+
     stock[index].notes = document.getElementById("stNotes").value;
     
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
@@ -3193,6 +3310,17 @@ async function deleteAllSoldStock() {
     refreshStock();  notify("تم المسح بنجاح");
 }
 
+async function deleteActiveStock(id) {
+    let ok = await showConfirm("حذف اشتراك منتهي", "هل أنت متأكد من مسح هذا الاشتراك المنتهي نهائياً من النظام؟", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    if(!ok) return;
+    
+    let stock = safeJSON(store.stock, []);
+    stock = stock.filter(x => x.id !== id);
+    store.stock = JSON.stringify(stock); fbSave("stock", stock);
+    logAction("حذف اشتراك منتهي من المخزون المتاح");
+    refreshStock(); loadPurchaseStock(); notify("تم الحذف بنجاح");
+}
+
 function refreshStock() {
     let stock = safeJSON(store.stock, []);
     let tbody = document.getElementById("stockBody"); 
@@ -3227,7 +3355,7 @@ function refreshStock() {
             <th>البروفايلات</th>
             <th>المتبقي</th>
             <th>التفاصيل</th>
-            ${canSell ? '<th>بيع</th>' : ''}
+            ${canSell ? '<th>تحكم</th>' : ''}
         </tr>`;
     } else {
         let delTh = isAdmin ? '<th>حذف</th>' : '';
@@ -3245,10 +3373,9 @@ function refreshStock() {
 
     let rows = "";
     paginated.forEach((item) => {
-        let realIndex = stock.findIndex(x => x.id === item.id);
-        
         let profStr = `${item.soldProfiles || 0}/${item.totalProfiles || 1}`;
         let timeBadge = "";
+        let isExpired = false;
         
         let parsedDuration = parseInt(item.duration);
         if (parsedDuration === 0) {
@@ -3257,13 +3384,25 @@ function refreshStock() {
             let purchaseDate = new Date(item.timestamp);
             let expiryDate = new Date(purchaseDate);
             expiryDate.setMonth(expiryDate.getMonth() + parsedDuration);
-            let daysLeft = Math.max(0, Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)));
-            timeBadge = `<span class="badge ${daysLeft===0?'badge-danger':'badge-warning'}">${daysLeft} يوم</span>`;
+            if(expiryDate.getDate() !== purchaseDate.getDate()) expiryDate.setDate(0);
+            
+            let daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 0) {
+                isExpired = true;
+                timeBadge = `<span class="badge badge-danger">منتهي</span>`;
+            } else {
+                timeBadge = `<span class="badge badge-warning">${daysLeft} يوم</span>`;
+            }
         }
 
         if(currentStockTab === 'active') {
-            let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock(${realIndex})"><i class="fas fa-eye"></i></button>`;
-            let sellBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock(${realIndex})"><i class="fas fa-check"></i> بيع</button></td>` : '';
+            let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock('${item.id}')"><i class="fas fa-eye"></i></button>`;
+            let actionBtn = "";
+            if(isExpired) {
+                actionBtn = canSell ? `<td><button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteActiveStock('${item.id}')"><i class="fas fa-trash-alt"></i> حذف</button></td>` : '';
+            } else {
+                actionBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock('${item.id}')"><i class="fas fa-check"></i> بيع</button></td>` : '';
+            }
             rows += `<tr>
                 <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
                 <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
@@ -3271,11 +3410,11 @@ function refreshStock() {
                 <td class="eng-num" style="font-weight:bold;">${profStr}</td>
                 <td class="eng-num">${timeBadge}</td>
                 <td>${detailsBtn}</td>
-                ${sellBtn}
+                ${actionBtn}
             </tr>`;
         } else {
-            let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails(${realIndex})"><i class="fas fa-eye"></i></button>`;
-            let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock(${realIndex})"><i class="fas fa-trash-alt"></i></button></td>` : '';
+            let viewBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="viewSoldDetails('${item.id}')"><i class="fas fa-eye"></i></button>`;
+            let delCell = isAdmin ? `<td><button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSoldStock('${item.id}')"><i class="fas fa-trash-alt"></i></button></td>` : '';
             
             rows += `<tr>
                 <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
@@ -3296,20 +3435,21 @@ function filterStock() {
     refreshStock();
 }
 
-function editStock(i) {
-    let stock = safeJSON(store.stock, []), item = stock[i];
+function editStock(id) {
+    let stock = safeJSON(store.stock, []);
+    let item = stock.find(x => x.id === id);
+    if(!item) return;
+    
     let isAdmin = currentUser.role === 'admin';
 
     loadServices();
     document.getElementById("stockModalTitle").innerHTML = isAdmin ? '<i class="fas fa-edit"></i> تفاصيل المخزون' : '<i class="fas fa-eye"></i> تفاصيل المخزون';
-    document.getElementById("stockIndex").value = i;
+    document.getElementById("stockIndexId").value = item.id;
     
-    // Hide Purchase Inputs
     document.getElementById("stockPurchaseInputs").style.display = "none";
     document.getElementById("btnSaveStock").classList.add("hidden");
     document.getElementById("btnUpdateNote").classList.remove("hidden");
     
-    // Fill Data
     let sel = document.getElementById("stService");
     sel.value = item.service;
     if(sel.value !== item.service) { 
@@ -3323,7 +3463,6 @@ function editStock(i) {
     document.getElementById("stPass").value = item.pass;
     document.getElementById("stNotes").value = item.notes;
 
-    // Disable all except Notes
     let inputs = document.querySelectorAll("#stockModal input, #stockModal select");
     inputs.forEach(inp => inp.disabled = true);
     document.getElementById("stNotes").disabled = false;
@@ -3331,8 +3470,10 @@ function editStock(i) {
     document.getElementById("stockModal").classList.remove("hidden");
 }
 
-function viewSoldDetails(i) {
-    let stock = safeJSON(store.stock, []), item = stock[i];
+function viewSoldDetails(id) {
+    let stock = safeJSON(store.stock, []);
+    let item = stock.find(x => x.id === id);
+    if(!item) return;
     
     let body = document.getElementById("modalBody");
     body.innerHTML = "";
@@ -3363,20 +3504,22 @@ function viewSoldDetails(i) {
     document.getElementById("detailsModal").classList.remove("hidden");
 }
 
-async function deleteSoldStock(i) {
+async function deleteSoldStock(id) {
     let ok = await showConfirm("حذف نهائي", "هل أنت متأكد من حذف هذا السجل من الأرشيف؟ لا يمكن التراجع.", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
     if(!ok) return;
     
     let stock = safeJSON(store.stock, []);
-    stock.splice(i, 1);
+    stock = stock.filter(x => x.id !== id);
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
     logAction("حذف سجل مباع من المخزون");
     refreshStock();  notify("تم الحذف");
 }
 
-async function sellStock(i) {
+async function sellStock(id) {
     let stock = safeJSON(store.stock, []);
-    let item = stock[i];
+    let index = stock.findIndex(x => x.id === id);
+    if(index === -1) return;
+    let item = stock[index];
     
     let customerNum = await showPrompt("إتمام البيع يدوياً", `تسجيل بيع لاشتراك: ${esc(item.displayName || item.service)}`, "أدخل اسم/رقم العميل (اختياري)", '<i class="fas fa-shopping-cart"></i>');
     if (customerNum === null) return; 
@@ -3387,9 +3530,13 @@ async function sellStock(i) {
 
     item.soldProfiles = item.totalProfiles || 1;
     item.status = 'sold';
-    item.soldDate = new Date().toLocaleDateString('ar-EG');
     
-    stock[i] = item;
+    let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let ndd = nd.getDate().toString().padStart(2,'0');
+    item.soldDate = `${nd.getFullYear()}-${nmm}-${ndd}`;
+    
+    stock[index] = item;
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
     
     logAction(`تم بيع اشتراك من المخزون يدوياً: ${item.displayName || item.service}`);
