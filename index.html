@@ -601,7 +601,7 @@
         <h3><i class="fas fa-cart-plus" style="color:var(--primary)"></i> تسجيل اشتراك جديد</h3>
         <div class="grid-2">
             <div class="input-group"><label>نوع الاشتراك (المخزون)</label>
-                <select id="sub"><option value="">اختر من المخزون المتاح...</option></select>
+                <select id="sub" onchange="syncPurchaseDuration()"><option value="">اختر من المخزون المتاح...</option></select>
             </div>
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
@@ -2652,11 +2652,13 @@ function refreshGeneralNotes(){
     if(!box) return; 
     if(currentUser && currentUser.role === 'viewer') { box.innerHTML = ""; return; }
     let rows = "";
-    n.forEach((x,i)=>{ 
+    // التغيير هنا: حلقة عكسية لعرض الأحدث أولاً مع الحفاظ على الفهرس الأصلي للحذف
+    for (let i = n.length - 1; i >= 0; i--) {
+        let x = n[i];
         let isViewerPlus = currentUser ? (currentUser.role === 'viewer_plus') : true;
         let delBtn = isViewerPlus ? '' : `<i class="fas fa-trash-alt" onclick="deleteNote(${i})" style="color:var(--danger); cursor:pointer"></i>`;
         rows += `<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${esc(x.text)}</div></div>${delBtn}</div>`; 
-    }); 
+    }
     box.innerHTML = rows;
 }
 function deleteNote(i){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let n=safeJSON(store.generalNotes, []); n.splice(i,1); store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); logAction("حذف ملاحظة"); refreshGeneralNotes();  }
@@ -3430,5 +3432,3 @@ window.onload = init;
 </script>
 </body>
 </html>
-
-
