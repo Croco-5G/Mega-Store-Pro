@@ -956,10 +956,12 @@
 
         <div id="sec-set-wallet-balance">
             <h3><i class="fas fa-edit" style="color:var(--primary)"></i> تعيين رصيد يدوي</h3>
-            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:40px">
-                <div class="input-group" style="flex:2; min-width:200px"><label>المحفظة</label><select id="modWallet"></select></div>
-                <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد</label><input id="modAmount" type="number" placeholder="0.00"></div>
-                <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ</button>
+            <div class="inner-box" style="margin-bottom:40px; border-style:dashed!important;">
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div class="input-group" style="flex:2; min-width:200px"><label>المحفظة</label><select id="modWallet"></select></div>
+                    <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد</label><input id="modAmount" type="number" placeholder="0.00"></div>
+                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ</button>
+                </div>
             </div>
         </div>
 
@@ -2364,6 +2366,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     
     // Reset Form
     paidAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; 
+    document.getElementById("subDuration").value="1";
     document.getElementById("discountCodeInput").value="";
     document.getElementById("isCompensation").checked = false;
 }
