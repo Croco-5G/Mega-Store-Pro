@@ -9,7 +9,9 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -392,7 +394,8 @@
         }
 
         /* --- OTHER COMPONENTS --- */
-        #notification { position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 6000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        #notification { position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 6000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.3); align-items: center; gap: 10px; }
         #syncStatus { position: fixed; top: 25px; left: 30px; padding: 8px 16px; border-radius: 50px; font-size: 13px; font-weight: 700; z-index: 1001; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 8px; transition: all 0.3s; cursor: pointer; }
         .theme-switch-container { display: flex; justify-content: center; align-items: center; padding-bottom: 10px; gap: 10px; font-size: 14px; color: #94a3b8; }
         .theme-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -431,6 +434,56 @@
         .page-btn:hover:not(.disabled) { background: var(--bg-input); color: var(--primary); }
         .page-btn.disabled { opacity: 0.5; pointer-events: none; }
         .page-info { display: flex; align-items: center; font-size: 13px; font-weight: 700; color: var(--text-main); margin: 0 10px; }
+
+        /* ─── Flatpickr Custom Theme ─── */
+        .flatpickr-calendar {
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: var(--card-hover-shadow) !important;
+            font-family: 'Tajawal', sans-serif !important;
+            direction: rtl;
+        }
+        .flatpickr-calendar.arrowTop:before, .flatpickr-calendar.arrowTop:after { border-bottom-color: var(--border-color) !important; }
+        .flatpickr-months { background: var(--primary) !important; border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important; padding: 8px 0; }
+        .flatpickr-months .flatpickr-month { color: white !important; fill: white !important; }
+        .flatpickr-current-month { color: white !important; font-size: 15px !important; font-weight: 700 !important; }
+        .flatpickr-current-month input.cur-year { color: white !important; font-weight: 700 !important; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { 
+            background: var(--primary) !important; color: white !important; 
+            border: none !important; font-family: 'Tajawal', sans-serif !important; font-weight: 700;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months option { background: var(--bg-card) !important; color: var(--text-main) !important; }
+        .flatpickr-prev-month, .flatpickr-next-month { color: white !important; fill: white !important; padding: 8px !important; }
+        .flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: rgba(255,255,255,0.7) !important; }
+        .flatpickr-weekdays { background: var(--bg-input) !important; }
+        .flatpickr-weekday { 
+            background: var(--bg-input) !important; 
+            color: var(--text-muted) !important; 
+            font-family: 'Tajawal', sans-serif !important;
+            font-weight: 700 !important;
+        }
+        .flatpickr-day { 
+            color: var(--text-main) !important; 
+            border-radius: var(--radius-md) !important;
+            font-family: 'Tajawal', sans-serif !important;
+            font-weight: 600 !important;
+        }
+        .flatpickr-day:hover { background: var(--primary-light) !important; color: var(--primary) !important; border-color: transparent !important; }
+        .flatpickr-day.selected, .flatpickr-day.selected:hover { 
+            background: var(--primary) !important; 
+            border-color: var(--primary) !important; 
+            color: white !important; 
+        }
+        .flatpickr-day.today { border-color: var(--primary) !important; color: var(--primary) !important; font-weight: 800 !important; }
+        .flatpickr-day.today:hover { background: var(--primary) !important; color: white !important; }
+        .flatpickr-day.flatpickr-disabled { color: var(--border-color) !important; }
+        .flatpickr-innerContainer { background: var(--bg-card) !important; }
+        .flatpickr-rContainer { background: var(--bg-card) !important; }
+        .numInputWrapper:hover { background: var(--bg-input) !important; }
+        .numInputWrapper span { border-color: var(--border-color) !important; }
+        .numInputWrapper span svg { fill: var(--text-muted) !important; }
+        html.dark-mode .flatpickr-day:hover { background: rgba(99,102,241,0.2) !important; }
     </style>
 </head>
 
@@ -456,11 +509,11 @@
         <p style="color:var(--text-muted); font-size:14px; margin-bottom:30px">أهلاً بك مجدداً في نظام Mega Store</p>
         
         <div class="custom-input">
-            <input id="loginUser" placeholder="اسم المستخدم">
+            <input id="loginUser" placeholder="اسم المستخدم" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';">
             <i class="fas fa-user"></i>
         </div>
         <div class="custom-input">
-            <input id="loginPass" type="password" placeholder="كلمة المرور">
+            <input id="loginPass" type="password" placeholder="كلمة المرور" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';">
             <i class="fas fa-lock"></i>
         </div>
         
@@ -468,6 +521,8 @@
             <div class="loading-spinner"></div>
             <span><i class="fas fa-sign-in-alt"></i> دخول للنظام</span>
         </button>
+
+        <div id="loginError" style="display:none; margin-top:18px; padding:14px 18px; border-radius:12px; font-size:14px; font-weight:700; text-align:center;"></div>
     </div>
 </div>
 
@@ -611,7 +666,7 @@
         <button onclick="showPage('purchase', this)" class="active" id="btnPurchase"><i class="fas fa-cart-plus"></i> عملية شراء</button>
         <button onclick="showPage('stock', this)" id="btnStock" class="hidden"><i class="fas fa-cubes"></i> المخزون</button>
         <button onclick="showPage('expiring', this)" id="btnExpiring"><i class="fas fa-hourglass-half"></i> التنبيهات <span id="expiryBadge" class="notif-badge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none"></span></button>
-        <button onclick="showPage('discounts', this)" id="btnDiscounts"><i class="fas fa-ticket-alt"></i> الخصومات</button>
+        <button onclick="showPage('discounts', this)" id="btnDiscounts"><i class="fas fa-ticket-alt"></i> الخصومات <span id="discountBadge" style="background:var(--accent); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none; margin-right:4px;"></span></button>
         <button onclick="showPage('wallets', this)" id="btnWallets"><i class="fas fa-wallet"></i> المحافظ</button>
         <button onclick="showPage('history', this)" id="btnHistory"><i class="fas fa-history"></i> السجل المالي</button>
         <button onclick="showPage('analytics', this)" id="btnAnalytics"><i class="fas fa-chart-pie"></i> الإحصائيات</button>
@@ -639,6 +694,10 @@
         <div class="stat-card">
             <div class="stat-icon icon-bg-warning"><i class="fas fa-shopping-bag"></i></div>
             <div><label>عمليات اليوم</label><div id="statSales" style="font-size: 22px; font-weight: 800;">0</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(168,85,247,0.15); color:#a855f7;"><i class="fas fa-calendar-alt"></i></div>
+            <div><label>مبيعات هذا الشهر</label><div id="statMonthSales" style="font-size: 22px; font-weight: 800;">0</div></div>
         </div>
     </div>
 
@@ -821,6 +880,7 @@
             <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
             <div style="display:flex; gap:8px; flex-wrap:wrap">
                 <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
+                <button class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
                 <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
             </div>
         </div>
@@ -829,6 +889,23 @@
                 <input id="historySearch" onkeyup="currentPage.history=1; filterHistory()" placeholder="بحث باسم العميل أو الخدمة..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+            <div class="input-group" style="margin-bottom:0; flex:1; min-width:140px;">
+                <label>من تاريخ</label>
+                <div style="position:relative;">
+                    <input type="text" id="historyFromDate" placeholder="YYYY-MM-DD" readonly style="padding-right:42px; cursor:pointer;">
+                    <i class="fas fa-calendar-alt" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"></i>
+                </div>
+            </div>
+            <div class="input-group" style="margin-bottom:0; flex:1; min-width:140px;">
+                <label>إلى تاريخ</label>
+                <div style="position:relative;">
+                    <input type="text" id="historyToDate" placeholder="YYYY-MM-DD" readonly style="padding-right:42px; cursor:pointer;">
+                    <i class="fas fa-calendar-alt" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"></i>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="clearDateFilter()" style="height:48px; padding:0 18px; flex-shrink:0; margin-bottom:0;" title="مسح الفلتر"><i class="fas fa-undo"></i> مسح</button>
         </div>
         <div class="table-container">
             <table>
@@ -1167,8 +1244,8 @@
         <div class="input-group"><label>المدة</label>
             <select id="stDuration"><option value="0">بدون مدة</option><option value="1">1 شهر</option><option value="2">2 شهر</option><option value="3">3 شهور</option><option value="6">6 شهور</option><option value="12">12 شهر</option></select>
         </div>
-        <div class="input-group"><label>البريد الإلكتروني</label><input id="stEmail" placeholder="email@example.com"></div>
-        <div class="input-group"><label>كلمة المرور</label><input id="stPass" placeholder="Password"></div>
+        <div class="input-group"><label>البريد الإلكتروني</label><div style="display:flex; gap:8px;"><input id="stEmail" placeholder="email@example.com" style="flex:1"><button type="button" class="btn btn-primary" style="padding:10px 14px; flex-shrink:0;" onclick="copyField('stEmail', this)" title="نسخ الإيميل"><i class="fas fa-copy"></i></button></div></div>
+        <div class="input-group"><label>كلمة المرور</label><div style="display:flex; gap:8px;"><input id="stPass" placeholder="Password" style="flex:1"><button type="button" class="btn btn-primary" style="padding:10px 14px; flex-shrink:0;" onclick="copyField('stPass', this)" title="نسخ كلمة المرور"><i class="fas fa-copy"></i></button></div></div>
         <div class="input-group"><label>ملاحظات (قابل للتعديل لاحقاً)</label><textarea id="stNotes" style="height:80px; resize:vertical;"></textarea></div>
         
         <button id="btnSaveStock" class="btn btn-primary" style="width:100%; margin-top:10px" onclick="verifyStockAdd()"><i class="fas fa-save"></i> حفظ وشراء</button>
@@ -1725,6 +1802,10 @@ async function attemptLogin() {
     const p = document.getElementById("loginPass").value.trim();
     let users = safeJSON(store.users, []);
     
+    // إخفاء أي إشعار سابق
+    const errEl = document.getElementById("loginError");
+    errEl.style.display = "none";
+
     btn.classList.add('loading'); 
 
     await new Promise(r => setTimeout(r, 800));
@@ -1738,7 +1819,13 @@ async function attemptLogin() {
         }
 
         if(userObj.status === "banned") { 
-            notify("تم حظر هذا الحساب. راجع المسؤول.", "error"); 
+            errEl.innerHTML = '<i class="fas fa-ban"></i> تم حظر هذا الحساب. راجع المسؤول.';
+            errEl.style.background = 'rgba(239,68,68,0.12)';
+            errEl.style.color = '#ef4444';
+            errEl.style.border = '1.5px solid rgba(239,68,68,0.35)';
+            errEl.style.display = 'block';
+            document.getElementById("loginPass").value = "";
+            document.getElementById("loginPass").style.borderColor = "var(--danger)";
             btn.classList.remove('loading');
             return; 
         }
@@ -1753,10 +1840,23 @@ async function attemptLogin() {
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
+        resetSessionTimer();
         checkExpiringOnLogin();
         checkExpiredCouponsOnLogin();
     } else { 
-        notify("بيانات الدخول غير صحيحة", "error");
+        errEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> اسم المستخدم أو كلمة المرور غير صحيحة.';
+        errEl.style.background = 'rgba(239,68,68,0.12)';
+        errEl.style.color = '#ef4444';
+        errEl.style.border = '1.5px solid rgba(239,68,68,0.35)';
+        errEl.style.display = 'block';
+        document.getElementById("loginPass").value = "";
+        document.getElementById("loginUser").style.borderColor = "var(--danger)";
+        document.getElementById("loginPass").style.borderColor = "var(--danger)";
+        // إعادة الحدود للطبيعي بعد 3 ثوان
+        setTimeout(() => {
+            document.getElementById("loginUser").style.borderColor = "";
+            document.getElementById("loginPass").style.borderColor = "";
+        }, 3000);
     }
     
     btn.classList.remove('loading'); 
@@ -1817,7 +1917,7 @@ function getOS() {
     return os || "Unknown";
 }
 
-function logout() { location.reload(); }
+function logout() { clearTimeout(_sessionTimer); currentUser = null; location.reload(); }
 function getRoleName(role) { 
     if(role==='admin') return 'أدمن';
     if(role==='employee') return 'موظف';
@@ -2127,7 +2227,7 @@ function showPage(id, btn){
     if(id === 'purchase') { loadServices(); loadPurchaseStock(); }
     if(id === 'generalNotes') refreshGeneralNotes();
     if(id === 'investment') refreshInvestment();
-    if(id === 'history') refreshHistory();
+    if(id === 'history') { refreshHistory(); initDatePickers(); }
     if(id === 'wallets') refreshWallets();
     if(id === 'expiring') refreshExpiring();
     if(id === 'discounts') refreshDiscounts();
@@ -2165,7 +2265,7 @@ function _processNotifyQueue() {
     let {msg, type} = _notifyQueue.shift();
     let n = document.getElementById("notification");
     n.innerHTML = (type==='success' ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-exclamation-triangle"></i> ') + msg;
-    n.style.background = type === "success" ? "#10b981" : "#ef4444";
+    n.style.background = type === "success" ? "#10b981" : type === "warning" ? "#f59e0b" : "#ef4444";
     n.style.display = "flex";
     setTimeout(() => { n.style.display = "none"; setTimeout(_processNotifyQueue, 200); }, 2800);
 }
@@ -2656,7 +2756,7 @@ function refreshAll(){
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
@@ -2674,6 +2774,8 @@ function refreshAll(){
     
     refreshInvestment();
     refreshExpiring();
+    updateDiscountBadge();
+    updateMonthSalesStat();
     
     document.querySelectorAll(".main-content > .card:not(.hidden)").forEach(card => {
         let id = card.id;
@@ -2833,9 +2935,14 @@ function refreshHistory(){
     let p = safeJSON(store.purchases, []);
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
     let v = document.getElementById("historySearch").value.toLowerCase();
+    let fromDate = document.getElementById("historyFromDate") ? document.getElementById("historyFromDate").value : "";
+    let toDate = document.getElementById("historyToDate") ? document.getElementById("historyToDate").value : "";
     
     let filtered = p.slice().reverse().filter(item => {
-        return !v || (item.customer||'').toLowerCase().includes(v) || (item.sub||'').toLowerCase().includes(v) || (item.phone||'').includes(v);
+        let matchesSearch = !v || (item.customer||'').toLowerCase().includes(v) || (item.sub||'').toLowerCase().includes(v) || (item.phone||'').includes(v);
+        let matchesFrom = !fromDate || (item.date && item.date >= fromDate);
+        let matchesTo = !toDate || (item.date && item.date <= toDate);
+        return matchesSearch && matchesFrom && matchesTo;
     });
     
     renderPagination(filtered.length, 'history', refreshHistory, 'historyPagination');
@@ -3357,7 +3464,7 @@ function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserMo
 function openEditUserModal(id) {
     let users = safeJSON(store.users, []), u = users.find(x => x.id === id);
     if(!u) return;
-    document.getElementById("editUserId").value = u.id; // تم إصلاح الاسم هنا
+    document.getElementById("editUserId").value = u.id;
     document.getElementById("editUserName").value = u.username;
     document.getElementById("editUserPassInput").value = "";
     document.getElementById("editUserRoleSelect").value = u.role;
@@ -3365,7 +3472,7 @@ function openEditUserModal(id) {
 }
 
 async function saveUserEdit() {
-    let id = document.getElementById("editUserId").value; // تم إصلاح الاسم هنا
+    let id = document.getElementById("editUserId").value;
     let newPass = document.getElementById("editUserPassInput").value.trim();
     let newRole = document.getElementById("editUserRoleSelect").value;
     let users = safeJSON(store.users, []);
@@ -3870,9 +3977,154 @@ function deleteService(idx) {
     renderServicesSettings();
 }
 
+// ─────────────────────────────────────────────
+// Flatpickr — تقويم مخصص
+// ─────────────────────────────────────────────
+let fpFrom = null, fpTo = null;
+
+function initDatePickers() {
+    const commonCfg = {
+        dateFormat: "Y-m-d",
+        locale: {
+            firstDayOfWeek: 0,
+            weekdays: { shorthand: ['أح','اث','ثل','أر','خم','جم','سب'], longhand: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] },
+            months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
+        },
+        disableMobile: true,
+        onChange: () => { currentPage.history = 1; filterHistory(); }
+    };
+    if (document.getElementById("historyFromDate")) fpFrom = flatpickr("#historyFromDate", commonCfg);
+    if (document.getElementById("historyToDate"))   fpTo   = flatpickr("#historyToDate",   commonCfg);
+}
+
+function clearDateFilter() {
+    if (fpFrom) fpFrom.clear();
+    if (fpTo)   fpTo.clear();
+    currentPage.history = 1;
+    filterHistory();
+}
+
+// --- نسخ قيمة حقل إلى الحافظة ---
+function copyField(fieldId, btn) {
+    let input = document.getElementById(fieldId);
+    if (!input || !input.value) return notify("لا توجد قيمة للنسخ", "error");
+    navigator.clipboard.writeText(input.value).then(() => {
+        let origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.style.background = 'var(--success)';
+        setTimeout(() => { btn.innerHTML = origHTML; btn.style.background = ''; }, 1500);
+    }).catch(() => {
+        // Fallback for older browsers
+        input.disabled = false;
+        input.select();
+        document.execCommand('copy');
+        input.disabled = true;
+        let origHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.style.background = 'var(--success)';
+        setTimeout(() => { btn.innerHTML = origHTML; btn.style.background = ''; }, 1500);
+    });
+}
+
+// ─────────────────────────────────────────────
+// ميزة 1: البحث السريع العالمي
+// ─────────────────────────────────────────────
+// ميزة 2: تحديث عداد الخصومات في السايدبار
+// ─────────────────────────────────────────────
+function updateDiscountBadge() {
+    let badge = document.getElementById("discountBadge");
+    if (!badge) return;
+    let list = safeJSON(store.discounts, []);
+    let now = new Date().getTime();
+    let activeCount = list.filter(d => (d.usedCount || 0) < (d.maxUses || 1) && now < d.expiry).length;
+    if (activeCount > 0) { badge.textContent = activeCount; badge.style.display = "inline"; }
+    else { badge.style.display = "none"; }
+}
+
+// ─────────────────────────────────────────────
+// ميزة 3: تحديث إحصاء مبيعات الشهر
+// ─────────────────────────────────────────────
+function updateMonthSalesStat() {
+    let p = safeJSON(store.purchases, []);
+    let now = new Date();
+    let mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    let yyyy = now.getFullYear().toString();
+    let monthStr = `${yyyy}-${mm}`;
+    let count = p.filter(x => x.date && x.date.startsWith(monthStr)).length;
+    let el = document.getElementById("statMonthSales");
+    if (el) el.textContent = count;
+}
+
+// ─────────────────────────────────────────────
+// ميزة 4: تصدير الأرشيف المالي كـ CSV
+// ─────────────────────────────────────────────
+function exportHistoryCSV() {
+    if (currentUser && (currentUser.role === 'viewer' || currentUser.role === 'viewer_plus')) return notify("ليس لديك صلاحية", "error");
+    let p = safeJSON(store.purchases, []);
+    let v = document.getElementById("historySearch").value.toLowerCase();
+    let fromDate = document.getElementById("historyFromDate") ? document.getElementById("historyFromDate").value : "";
+    let toDate = document.getElementById("historyToDate") ? document.getElementById("historyToDate").value : "";
+
+    let filtered = p.slice().reverse().filter(item => {
+        let matchesSearch = !v || (item.customer||'').toLowerCase().includes(v) || (item.sub||'').toLowerCase().includes(v);
+        let matchesFrom = !fromDate || (item.date && item.date >= fromDate);
+        let matchesTo = !toDate || (item.date && item.date <= toDate);
+        return matchesSearch && matchesFrom && matchesTo;
+    });
+
+    if (filtered.length === 0) return notify("لا توجد بيانات للتصدير", "error");
+
+    const headers = ["التاريخ", "العميل", "الجوال", "الخدمة", "المدة", "المدفوع", "التكلفة", "المحفظة"];
+    const rows = filtered.map(item => [
+        item.date || '',
+        item.customer || '',
+        item.phone || '',
+        item.sub || '',
+        parseInt(item.duration) === 0 ? 'بدون مدة' : (item.duration || '') + ' شهر',
+        item.paid || '',
+        item.cost || '',
+        item.wallet || ''
+    ]);
+
+    let csvContent = '\uFEFF' + [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `MegaStore_Archive_${new Date().toLocaleDateString('en-CA')}.csv`;
+    a.click();
+    logAction("تصدير الأرشيف المالي كـ CSV");
+    notify("تم تصدير الملف بنجاح");
+}
+
+// ─────────────────────────────────────────────
+// مؤقت انتهاء الجلسة (30 دقيقة)
+// ─────────────────────────────────────────────
+let _sessionTimer = null;
+const SESSION_MS = 30 * 60 * 1000;
+
+function resetSessionTimer() {
+    if (!currentUser) return;
+    clearTimeout(_sessionTimer);
+    _sessionTimer = setTimeout(async () => {
+        let ok = await showConfirm(
+            "انتهاء مدة الجلسة",
+            "لم يتم رصد أي نشاط منذ 30 دقيقة. هل تريد الاستمرار؟",
+            "البقاء", "تسجيل خروج",
+            '<i class="fas fa-clock"></i>'
+        );
+        if (ok) {
+            resetSessionTimer();
+        } else {
+            logout();
+        }
+    }, SESSION_MS);
+}
+
+['mousemove','keydown','click','touchstart'].forEach(ev =>
+    document.addEventListener(ev, () => { if(currentUser) resetSessionTimer(); }, { passive: true })
+);
+
 window.onload = init;
 </script>
 </body>
 </html>
-
-
