@@ -48,12 +48,12 @@
         body.dark-mode {
             --bg-body: #0f172a; 
             --bg-card: #1e293b; 
-            --bg-input: #334155; 
+            --bg-input: #0f172a; /* تم التعديل: لون أغمق لبروز المربعات */
             --bg-sidebar: #020617;
             
             --text-main: #f1f5f9; 
             --text-muted: #94a3b8; 
-            --border-color: #334155;
+            --border-color: #475569; /* تم التعديل: لون إطار أفتح وأوضح */
             
             --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
             --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
@@ -606,7 +606,7 @@
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
         <div class="grid-2">
-            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97***********" oninput="validatePhoneInput(this)"></div>
+            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)"></div>
             <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
         </div>
         <div class="grid-2">
