@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
+        // منع ومضة اللون الأبيض المزعجة فور فتح الموقع
         if(localStorage.getItem("darkMode") === "true") { document.documentElement.classList.add("dark-mode"); }
         if(localStorage.getItem("isDemoMode") === "true") { document.documentElement.classList.add("demo-mode"); }
     </script>
@@ -1179,7 +1180,6 @@
 
 <script>
 // --- GLOBAL DEFINITIONS & UTILS ---
-let canUndo = false; 
 let migrationRun = false; 
 
 window.changeLogsVis = async function() {
@@ -1776,15 +1776,27 @@ function checkExpiredCouponsOnLogin() {
         let newlyExpired = 0;
         let updated = false;
         
-        dList.forEach(c => {
-            if(now > c.expiry && !c.notified) {
-                newlyExpired++;
-                c.notified = true;
+        let localNotified = safeJSON(localStorage.getItem("notified_coupons_" + currentUser.username) || "[]", []);
+
+        for (let i = dList.length - 1; i >= 0; i--) {
+            let c = dList[i];
+            if(now > c.expiry) {
+                if (!localNotified.includes(c.id)) {
+                    newlyExpired++;
+                    localNotified.push(c.id);
+                }
+                if (now > c.expiry + (30 * 86400000)) {
+                    dList.splice(i, 1);
+                    updated = true;
+                }
+            } else if ((c.usedCount || 0) >= (c.maxUses || 1)) {
+                dList.splice(i, 1);
                 updated = true;
             }
-        });
+        }
         
         if(newlyExpired > 0) {
+            localStorage.setItem("notified_coupons_" + currentUser.username, JSON.stringify(localNotified));
             setTimeout(() => notify(`تنبيه للأدمن: يوجد ${newlyExpired} كود خصم انتهت صلاحيتها للتو!`, "warning"), 4000);
         }
         
@@ -2433,6 +2445,8 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
     let ndd = nd.getDate().toString().padStart(2,'0');
 
+    purchases.forEach(p => p.canBeUndone = false);
+
     purchases.push({
         id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
         date: `${nd.getFullYear()}-${nmm}-${ndd}`,
@@ -2447,7 +2461,8 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         expiry: exp ? exp.getTime() : null,
         investSnapshot: invest_before_profit,
         isComp: isComp,
-        usedDiscountObj: usedDiscountObj
+        usedDiscountObj: usedDiscountObj,
+        canBeUndone: true
     });
     
     store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
@@ -2517,7 +2532,6 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         }
     }
     
-    canUndo = true; 
     currentPage.history = 1;
     loadPurchaseStock();
     refreshAll();  notify("تمت العملية بنجاح");
@@ -3172,15 +3186,17 @@ async function setWallet(){
     let before = w[modWalletVal].bal;
     let diff = parseFloat((modAmountVal - before).toFixed(2));
     
-    w[modWalletVal].bal = modAmountVal; 
-    
     let invest = safeJSON(store.invest, {});
     if(syncType === 'closed') {
         let cur = w[modWalletVal].cur === '$' ? 'd' : 's';
+        if (invest[targetShare][cur] + diff < 0) {
+            return notify(`رصيد حصة ${targetShare} غير كافٍ لتحمل هذا النقصان!`, "error");
+        }
         invest[targetShare][cur] = parseFloat((invest[targetShare][cur] + diff).toFixed(2));
         store.invest = JSON.stringify(invest); fbSave("invest", invest);
     }
     
+    w[modWalletVal].bal = modAmountVal; 
     store.wallets = JSON.stringify(w); fbSave("wallets", w); 
     logAction(`تعيين رصيد محفظة ${modWalletVal}`, { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff, syncedShare: targetShare });
     refreshWallets(); refreshInvestment(); notify("تم تحديث الرصيد بنجاح"); 
@@ -3216,14 +3232,16 @@ async function setProfitShare() {
     let before = invest[person][currency];
     let diff = parseFloat((amount - before).toFixed(2));
     
-    invest[person][currency] = amount;
-    
     let w = safeJSON(store.wallets, {});
     if(syncType === 'closed') {
+        if (w[targetWallet].bal + diff < 0) {
+            return notify(`رصيد المحفظة المرتبطة غير كافٍ لتحمل هذا النقصان!`, "error");
+        }
         w[targetWallet].bal = parseFloat((w[targetWallet].bal + diff).toFixed(2));
         store.wallets = JSON.stringify(w); fbSave("wallets", w);
     }
     
+    invest[person][currency] = amount;
     store.invest = JSON.stringify(invest); fbSave("invest", invest);
     logAction(`تعديل مباشر لحصة ${person}`, { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount, diff: diff, syncedWallet: targetWallet });
     refreshInvestment(); refreshWallets(); notify("تم تحديث الحصة بنجاح");
@@ -3234,9 +3252,34 @@ async function deleteWallet(){
     let targetWallet = document.getElementById("renameWalletSelect").value;
     if(!targetWallet) return notify("يرجى اختيار المحفظة", "error");
     
-    let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${targetWallet}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
-    if(!ok) return;
-    let w=safeJSON(store.wallets, {}); delete w[targetWallet]; store.wallets = JSON.stringify(w); fbSave("wallets", w); logAction(`حذف محفظة ${targetWallet}`); loadWallets(); refreshWallets();  notify("تم الحذف"); 
+    let w=safeJSON(store.wallets, {}); 
+    let wallet = w[targetWallet];
+    if(!wallet) return;
+
+    if (wallet.bal > 0) {
+        let expectedCurSymbol = wallet.cur === '$' ? 'd' : 's';
+        let targetShare = await showPrompt("رصيد المحفظة غير مصفر", `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. يرجى اختيار الحصة التي سيتم خصم هذا المبلغ منها قبل الحذف:`, "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
+        if(!targetShare) return;
+
+        let invest = safeJSON(store.invest, {});
+        if(invest[targetShare][expectedCurSymbol] < wallet.bal) {
+            return notify(`رصيد حصة ${targetShare} غير كافٍ لاستيعاب هذا الخصم!`, "error");
+        }
+
+        let ok = await showConfirm("حذف المحفظة", `سيتم خصم ${fix(wallet.bal)}${wallet.cur} من حصة ${targetShare} وحذف المحفظة نهائياً. تأكيد؟`, "حذف وخصم", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+        if(!ok) return;
+
+        invest[targetShare][expectedCurSymbol] -= wallet.bal;
+        store.invest = JSON.stringify(invest); fbSave("invest", invest);
+    } else {
+        let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${targetWallet}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+        if(!ok) return;
+    }
+
+    delete w[targetWallet]; 
+    store.wallets = JSON.stringify(w); fbSave("wallets", w); 
+    logAction(`حذف محفظة ${targetWallet}`); 
+    loadWallets(); refreshWallets(); refreshInvestment(); notify("تم الحذف"); 
     document.getElementById("renameWalletInput").value = "";
 }
 
@@ -3250,14 +3293,20 @@ function importData(){
 
 async function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
-    if(!canUndo) return notify("لا يمكن التراجع سوى لمرة واحدة عن أحدث عملية بيع فقط", "error");
     
     let purchases = safeJSON(store.purchases, []);
     if(purchases.length === 0) return notify("لا توجد عمليات للتراجع عنها", "error");
     
+    let lastP = purchases[purchases.length - 1];
+    if (!lastP.canBeUndone) {
+        return notify("لا يمكن التراجع سوى لمرة واحدة عن أحدث عملية بيع فقط", "error");
+    }
+    
     let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة والحصص وكود الخصم (إن وُجد). هل تريد المتابعة؟", "نعم، تراجع", "لا، إلغاء", '<i class="fas fa-undo"></i>');
     if(!ok) return;
-    let lastP = purchases.pop();
+    
+    purchases.pop(); // Remove the last purchase
+    
     let wallets = safeJSON(store.wallets, {});
     if(lastP.wallet && wallets[lastP.wallet]) { 
         let paidVal = parseFloat(lastP.paid); 
@@ -3298,7 +3347,6 @@ async function undoLastPurchase(){
     
     logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, deducted: lastP.paid });
     
-    canUndo = false;
     currentPage.history = 1;
     loadPurchaseStock();
     refreshAll();  notify("تم التراجع واستعادة البيانات بنجاح"); 
