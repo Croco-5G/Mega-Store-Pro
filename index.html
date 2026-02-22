@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // منع ومضة اللون الأبيض المزعجة فور فتح الموقع
+        // دالة سريعة لمنع ومضة اللون الأبيض عند تحميل الصفحة
         if(localStorage.getItem("darkMode") === "true") { document.documentElement.classList.add("dark-mode"); }
         if(localStorage.getItem("isDemoMode") === "true") { document.documentElement.classList.add("demo-mode"); }
     </script>
@@ -51,7 +51,7 @@
             --yellow-btn-bg: #eab308; --yellow-btn-hover: #ca8a04;
         }
 
-        html.dark-mode, body.dark-mode {
+        html.dark-mode, html.dark-mode body {
             --bg-body: #0f172a; 
             --bg-card: #1e293b; 
             --bg-input: #0f172a; 
@@ -561,29 +561,38 @@
 <div id="manualCouponModal" class="dialog-modal" style="display:none;">
     <div class="dialog-box" style="text-align:right; max-width:400px">
         <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;"><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> توليد كود خصم يدوياً</h3>
-        <div class="input-group">
-            <label>اسم العميل (اختياري)</label>
-            <input id="mcCustomer" placeholder="اسم العميل">
-        </div>
-        <div class="grid-2">
+        
+        <div id="mcInputs">
             <div class="input-group">
-                <label>نسبة الخصم (%)</label>
-                <input type="number" id="mcPct" placeholder="مثال: 15">
+                <label>اسم العميل (اختياري)</label>
+                <input id="mcCustomer" placeholder="اسم العميل">
+            </div>
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>نسبة الخصم (%)</label>
+                    <input type="number" id="mcPct" placeholder="مثال: 15">
+                </div>
+                <div class="input-group">
+                    <label>الصلاحية (بالأيام)</label>
+                    <input type="number" id="mcDays" placeholder="مثال: 30">
+                </div>
             </div>
             <div class="input-group">
-                <label>الصلاحية (بالأيام)</label>
-                <input type="number" id="mcDays" placeholder="مثال: 30">
+                <label>عدد مرات الاستعمال (الحد الأقصى)</label>
+                <input type="number" id="mcUses" placeholder="مثال: 5" value="1">
             </div>
         </div>
         
         <div id="mcPreview" style="display:none; background:var(--yellow-bg); border:2px dashed var(--yellow-border); padding:15px; border-radius:12px; margin-bottom:20px; text-align:center;">
             <h2 id="mcCodePreview" style="margin:0; color:var(--yellow-text); letter-spacing:3px;"></h2>
+            <div id="mcDetailsPreview" style="font-size:13px; color:var(--text-muted); margin-top:8px;"></div>
         </div>
 
         <div class="dialog-actions">
             <button class="btn btn-primary" id="btnGenerateMC" onclick="generateManualCoupon()"><i class="fas fa-magic"></i> إنتاج الكود</button>
+            <button class="btn btn-danger" id="btnBackMC" style="display:none; background:transparent; border:1px solid var(--danger); color:var(--danger);" onclick="backManualCoupon()"><i class="fas fa-undo"></i> تراجع وتعديل</button>
             <button class="btn btn-success" id="btnSaveMC" style="display:none; background:var(--success); color:#fff;" onclick="saveManualCoupon()"><i class="fas fa-check"></i> تأكيد وحفظ</button>
-            <button class="btn btn-danger" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="document.getElementById('manualCouponModal').style.display='none'">إلغاء</button>
+            <button class="btn" id="btnCancelMC" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('manualCouponModal').style.display='none'">إلغاء</button>
         </div>
     </div>
 </div>
@@ -644,7 +653,7 @@
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
         <div class="grid-2">
-            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)"></div>
+            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)" dir="ltr" style="text-align:right;"></div>
             <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
         </div>
         <div class="grid-2">
@@ -683,7 +692,7 @@
         </div>
         <div class="table-container">
             <table>
-                <thead><tr><th style="text-align:center;">كود الخصم</th><th style="text-align:center;">العميل</th><th style="text-align:center;">نسبة الخصم</th><th style="text-align:center;">المتبقي</th><th style="text-align:center;">حذف</th></tr></thead>
+                <thead><tr><th style="text-align:center;">كود الخصم</th><th style="text-align:center;">العميل</th><th style="text-align:center;">نسبة الخصم</th><th style="text-align:center;">الاستعمالات</th><th style="text-align:center;">المتبقي</th><th style="text-align:center;">حذف</th></tr></thead>
                 <tbody id="discountsBody"></tbody>
             </table>
         </div>
@@ -1116,7 +1125,7 @@
 <div id="editUserModal" class="modal-overlay hidden" onclick="closeEditUserModal(event)">
     <div class="modal-content">
         <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;"><i class="fas fa-user-edit"></i> تعديل بيانات المستخدم</h3>
-        <input type="hidden" id="editUserIndex">
+        <input type="hidden" id="editUserId">
         <div class="input-group"><label>اسم المستخدم</label><input id="editUserName" readonly style="background:#f1f5f9; color:#94a3b8"></div>
         <div class="input-group"><label>كلمة المرور الجديدة</label><input id="editUserPassInput" type="password" placeholder="اتركه فارغاً لعدم التغيير"></div>
         <div class="input-group"><label>الصلاحية</label>
@@ -1173,27 +1182,6 @@
 // --- GLOBAL DEFINITIONS & UTILS ---
 let canUndo = false; 
 let migrationRun = false; 
-
-window.changeLogsVis = async function() {
-    if(!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
-    let s = safeJSON(store.settings, {});
-    let current = s.logsVis || 'all';
-    let opts = `
-        <option value="all" ${current==='all'?'selected':''}>الجميع</option>
-        <option value="no_viewer" ${current==='no_viewer'?'selected':''}>منع المشاهدين</option>
-        <option value="no_employee" ${current==='no_employee'?'selected':''}>منع الموظفين والمشاهدين</option>
-        <option value="admin_only" ${current==='admin_only'?'selected':''}>الأدمن فقط</option>
-    `;
-    let res = await showPrompt("صلاحيات رؤية السجل", "اختر من يمكنه رؤية سجل النشاط:", "", '<i class="fas fa-eye-slash" style="color:var(--warning)"></i>', true, opts);
-    
-    if(res) {
-        s.logsVis = res;
-        store.settings = JSON.stringify(s); fbSave("settings", s);
-        logAction(`تعديل خصوصية السجل إلى: ${res}`);
-        notify("تم التعديل بنجاح");
-        applyRBAC();
-    }
-};
 
 const fix = n => Number(n).toFixed(2);
 function safeJSON(str, fallback) {
@@ -1405,7 +1393,20 @@ function initFirebase() {
                     migrationRun = true;
                 }
 
-                if (currentUser) refreshAll();
+                if (currentUser) {
+                    let latestUsers = safeJSON(store.users, []);
+                    let me = latestUsers.find(x => x.username === currentUser.username);
+                    if (!me || me.status === 'banned' || me.password !== currentUser.password) {
+                        alert("عذراً، تم تغيير بيانات حسابك أو تم حظرك بواسطة الإدارة. سيتم تسجيل الخروج الآن.");
+                        location.reload();
+                        return;
+                    }
+                    if (me.role !== currentUser.role) {
+                        currentUser.role = me.role;
+                        applyRBAC();
+                    }
+                    refreshAll();
+                }
             } else {
                 if (!fromCache) {
                     fbDocRef.set(getDefaultData(), {merge: true}).catch(e => console.error(e));
@@ -1513,11 +1514,9 @@ function showModalDetails(details) {
         body.innerHTML += row("المبلغ بعد", fix(details.tAfter));
         body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
         body.innerHTML += `<b>بيانات التكلفة:</b>`;
-        body.innerHTML += row("تم الخصم سابقاً؟", details.isFirstProfile ? "نعم (أول بروفايل)" : "لا (مدفوع سابقاً)");
-        if(details.isFirstProfile) {
-            body.innerHTML += row("قيمة التكلفة", details.costVal);
-            body.innerHTML += row("استرداد للمتجر", "تمت إضافة قيمة التكلفة لرأس المال");
-        }
+        body.innerHTML += row("حالة الدفع", "خصم التكلفة للبروفايل المباع");
+        body.innerHTML += row("قيمة التكلفة", details.costVal);
+        body.innerHTML += row("استرداد للمتجر", "تمت إضافة قيمة التكلفة لرأس المال");
     } else if (details.type === 'withdraw') {
         body.innerHTML += row("العملية", "سحب أرباح");
         body.innerHTML += row("الشريك/الجهة", esc(details.person));
@@ -1538,7 +1537,10 @@ function showModalDetails(details) {
              body.innerHTML += row("الخدمة الملغاة", esc(details.data.sub));
              body.innerHTML += row("العميل", esc(details.data.customer));
              body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
-             body.innerHTML += row(`خصم ربح (${esc(details.data.wallet)})`, "-"+details.data.paid, true, false);
+             body.innerHTML += row(`استرداد من (${esc(details.data.wallet)})`, "-"+parseFloat(details.data.paid), true, false);
+             if(details.data.usedDiscountObj) {
+                 body.innerHTML += `<div style="padding:5px; margin-top:5px; text-align:center; background:var(--success); color:#fff; font-size:12px; border-radius:5px;">تم استرجاع كود الخصم للعميل بنجاح</div>`;
+             }
         }
     } else if (details.type === 'stock_add') {
         body.innerHTML += row("العملية", "شراء مخزون");
@@ -1983,8 +1985,6 @@ function refreshLogs() {
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
-
-
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     
@@ -2065,7 +2065,6 @@ function changeMyPassword() {
     }
 }
 
-
 function showPage(id, btn){
     if(currentUser) {
         if((currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') && (id === 'purchase' || id === 'security' || id === 'backup')) return notify("ليس لديك صلاحية", "error");
@@ -2101,8 +2100,8 @@ function toggleSidebar() {
 }
 
 function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-    let isDark = document.body.classList.contains("dark-mode");
+    document.documentElement.classList.toggle("dark-mode");
+    let isDark = document.documentElement.classList.contains("dark-mode");
     localStorage.setItem("darkMode", isDark);
     
     if(document.getElementById("darkModeToggle")) document.getElementById("darkModeToggle").checked = isDark;
@@ -2294,24 +2293,28 @@ function addPurchase(){
         usedDiscountObj = dObj;
     }
 
-    let isFirstProfile = (stItem.soldProfiles || 0) === 0;
-    let originalCost = stItem.cost || 0;
+    let originalCost = parseFloat(stItem.cost) || 0;
     let originalCostCur = stItem.costCurrency || '₪';
+    let totalProfiles = parseInt(stItem.totalProfiles) || 1;
     
+    // حساب التكلفة للبروفايل الواحد
+    let fractionalCostOriginal = originalCost / totalProfiles;
     let calculatedCost = 0;
-    if (isFirstProfile && !isComp) {
+    
+    // إذا كانت تعويض، فلا يتم خصم التكلفة من الربح (لأن الربح صفر أساساً)، والمحل يتحمل الخسارة تلقائياً.
+    if (!isComp) {
         if (paidCur === originalCostCur) {
-            calculatedCost = originalCost;
+            calculatedCost = fractionalCostOriginal;
         } else {
             if (paidCur === '$' && originalCostCur === '₪') {
-                calculatedCost = originalCost / rate;
+                calculatedCost = fractionalCostOriginal / rate;
             } else if (paidCur === '₪' && originalCostCur === '$') {
-                calculatedCost = originalCost * rate;
+                calculatedCost = fractionalCostOriginal * rate;
             }
         }
     }
     
-    let cleanName = stItem.service + ((stItem.totalProfiles || 1) > 1 ? " Shared" : "");
+    let cleanName = stItem.service + (totalProfiles > 1 ? " Shared" : "");
     let customerVal = document.getElementById("customer").value;
     let walletVal = document.getElementById("wallet").value;
 
@@ -2323,20 +2326,20 @@ function addPurchase(){
             <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color)">
                 <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span>
             </div>
-            ${isComp ? `<div style="color:var(--danger); font-weight:bold; padding:5px; background:var(--yellow-bg); border-radius:5px;"><i class="fas fa-exclamation-circle"></i> هذه العملية مسجلة كـ "تعويض"</div>` : ''}
+            ${isComp ? `<div style="color:var(--danger); font-weight:bold; text-align:center; padding:5px; background:var(--yellow-bg); border-radius:5px; margin:5px 0;"><i class="fas fa-exclamation-circle"></i> عملية تعويض (المتجر سيتحمل تكلفة هذا البروفايل)</div>` : ''}
             ${appliedDiscountPct > 0 ? `<div style="color:var(--success); font-weight:bold; text-align:center; padding:5px; border:1px solid var(--success); border-radius:5px; margin:5px 0;"><i class="fas fa-ticket-alt"></i> تم تطبيق كود خصم: ${appliedDiscountPct}%</div>` : ''}
-            <div><i class="fas fa-info-circle"></i> <b>حالة التكلفة:</b> ${isFirstProfile ? `<span style="color:var(--danger)">أول بروفايل (سيتم خصم ${fix(calculatedCost)} ${paidCur})</span>` : '<span style="color:var(--success)">مدفوعة سابقاً (التكلفة 0)</span>'}</div>
+            <div><i class="fas fa-info-circle"></i> <b>حالة الدفع:</b> <span style="color:var(--danger)">سيتم خصم ${fix(calculatedCost)} ${paidCur} كتكلفة لهذا البروفايل</span></div>
             <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-right"></i> إيداع في: ${esc(walletVal)}</div>
         </div>`;
     
     document.getElementById("purchaseConfirmModal").style.display = "flex";
     document.getElementById("purchaseConfirmOkBtn").onclick = () => {
         document.getElementById("purchaseConfirmModal").style.display = "none";
-        _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal);
+        _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal);
     };
 }
 
-function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, isFirstProfile, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
+function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
     let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     
     let tBefore = wallets[walletVal].bal;
@@ -2347,21 +2350,30 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     let distributableProfit = paid;
     let recoupAmount = 0;
 
-    if (settings.deductCost && isFirstProfile && !isComp) {
+    if (settings.deductCost && !isComp) {
         recoupAmount = calculatedCost; 
         distributableProfit = paid - calculatedCost;
+    } else if (settings.deductCost && isComp) {
+        // في حالة التعويض، لا يوجد مبلغ مدفوع، فالمتجر يخسر قيمة التكلفة من رأس ماله.
+        // حساب التكلفة الاصلية بعمله الدفع صفر، لذلك نأخذ التكلفة بالاساس
+        let oC = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        let sT = stItem.costCurrency === '$' ? 'd' : 's';
+        invest.store[sT] -= oC;
     }
 
     let shareType = (paidCur === '$') ? 'd' : 's';
-    invest.store[shareType] += recoupAmount;
+    
+    if(!isComp) {
+        invest.store[shareType] += recoupAmount;
 
-    if (distributableProfit >= 0) {
-        let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
-        let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
-        let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
-        invest.ahmad[shareType] += aP; invest.mohamed[shareType] += mP; invest.store[shareType] += sP;
-    } else {
-        invest.store[shareType] += distributableProfit; 
+        if (distributableProfit >= 0) {
+            let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
+            let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
+            let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
+            invest.ahmad[shareType] += aP; invest.mohamed[shareType] += mP; invest.store[shareType] += sP;
+        } else {
+            invest.store[shareType] += distributableProfit; 
+        }
     }
     
     let d = new Date(stItem.timestamp || Date.now()), exp = null;
@@ -2401,7 +2413,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : ("0" + (stItem.costCurrency || "₪")),
+        cost: isComp ? "0" + (stItem.costCurrency || "₪") : fix(calculatedCost) + paidCur,
         wallet: walletVal,
         expiry: exp ? exp.getTime() : null,
         investSnapshot: invest_before_profit,
@@ -2418,8 +2430,8 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         customer: customerVal||"عميل",
         sub: cleanName,
         paid: paid+paidCur,
-        costVal: isFirstProfile ? ((stItem.cost || 0) + (stItem.costCurrency || "₪")) : "0",
-        isFirstProfile: isFirstProfile,
+        costVal: isComp ? "0" : fix(calculatedCost) + paidCur,
+        isFirstProfile: !isComp,
         toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal,
         appliedDiscountPct: appliedDiscountPct,
         isComp: isComp
@@ -2427,9 +2439,15 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
 
     if (usedDiscountObj) {
         let dList = safeJSON(store.discounts, []);
-        dList = dList.filter(x => x.code !== usedDiscountObj.code);
-        store.discounts = JSON.stringify(dList);
-        fbSave("discounts", dList);
+        let dIdx = dList.findIndex(x => x.id === usedDiscountObj.id);
+        if(dIdx !== -1) {
+            dList[dIdx].usedCount = (dList[dIdx].usedCount || 0) + 1;
+            if(dList[dIdx].usedCount >= (dList[dIdx].maxUses || 1)) {
+                dList.splice(dIdx, 1);
+            }
+            store.discounts = JSON.stringify(dList);
+            fbSave("discounts", dList);
+        }
     }
 
     let dEnabled = settings.discountEnabled !== false;
@@ -2456,6 +2474,8 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
                 percentage: pct,
                 expiry: expTime,
                 days: days,
+                maxUses: 1,
+                usedCount: 0,
                 notified: false
             };
 
@@ -2510,8 +2530,11 @@ function openManualCouponModal() {
     document.getElementById("mcCustomer").value = "";
     document.getElementById("mcPct").value = "";
     document.getElementById("mcDays").value = "";
+    document.getElementById("mcUses").value = "1";
+    document.getElementById("mcInputs").style.display = "block";
     document.getElementById("mcPreview").style.display = "none";
     document.getElementById("btnGenerateMC").style.display = "block";
+    document.getElementById("btnBackMC").style.display = "none";
     document.getElementById("btnSaveMC").style.display = "none";
     document.getElementById("manualCouponModal").style.display = "flex";
     tempMC = null;
@@ -2521,9 +2544,11 @@ function generateManualCoupon() {
     let cust = document.getElementById("mcCustomer").value.trim() || "عميل عام";
     let pct = parseInt(document.getElementById("mcPct").value);
     let days = parseInt(document.getElementById("mcDays").value);
+    let uses = parseInt(document.getElementById("mcUses").value) || 1;
     
     if(isNaN(pct) || pct <= 0 || pct > 100) return notify("أدخل نسبة الخصم بشكل صحيح", "error");
     if(isNaN(days) || days <= 0) return notify("أدخل مدة الصلاحية بشكل صحيح", "error");
+    if(uses <= 0) return notify("عدد الاستعمالات يجب أن يكون 1 على الأقل", "error");
     
     let code = Math.floor(100000000 + Math.random() * 900000000).toString();
     let expTime = new Date().getTime() + (days * 86400000);
@@ -2536,13 +2561,26 @@ function generateManualCoupon() {
         percentage: pct,
         expiry: expTime,
         days: days,
+        maxUses: uses,
+        usedCount: 0,
         notified: false
     };
     
     document.getElementById("mcCodePreview").innerText = code;
+    document.getElementById("mcDetailsPreview").innerText = `خصم ${pct}% | صالح لـ ${days} يوم | ${uses} استعمالات`;
+    document.getElementById("mcInputs").style.display = "none";
     document.getElementById("mcPreview").style.display = "block";
     document.getElementById("btnGenerateMC").style.display = "none";
+    document.getElementById("btnBackMC").style.display = "block";
     document.getElementById("btnSaveMC").style.display = "block";
+}
+
+function backManualCoupon() {
+    document.getElementById("mcInputs").style.display = "block";
+    document.getElementById("mcPreview").style.display = "none";
+    document.getElementById("btnGenerateMC").style.display = "block";
+    document.getElementById("btnBackMC").style.display = "none";
+    document.getElementById("btnSaveMC").style.display = "none";
 }
 
 function saveManualCoupon() {
@@ -2571,7 +2609,7 @@ function refreshAll(){
     }
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
@@ -2625,15 +2663,18 @@ function refreshDiscounts() {
         let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px" onclick="deleteSingleDiscount('${item.id}')"><i class="fas fa-trash-alt"></i></button>` : '-';
         let displayCode = isViewer ? '*********' : item.code;
         
+        let usageStr = `${item.usedCount || 0}/${item.maxUses || 1}`;
+        
         rows += `<tr>
             <td style="font-weight:bold; color:var(--primary); letter-spacing:1px; text-align:center;">${displayCode}</td>
             <td style="text-align:center;">${esc(item.customer)}</td>
             <td style="text-align:center; font-weight:bold;">${item.percentage}%</td>
+            <td class="eng-num" style="font-weight:bold; text-align:center;">${usageStr}</td>
             <td style="text-align:center;">${timeBadge}</td>
             <td style="text-align:center;">${delBtn}</td>
         </tr>`;
     });
-    tbody.innerHTML = rows || `<tr><td colspan='5' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد أكواد خصم</td></tr>`;
+    tbody.innerHTML = rows || `<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد أكواد خصم</td></tr>`;
 }
 
 async function deleteSingleDiscount(id) {
@@ -3199,10 +3240,15 @@ async function undoLastPurchase(){
 
     if(lastP.usedDiscountObj) {
         let dList = safeJSON(store.discounts, []);
-        if(!dList.find(x => x.code === lastP.usedDiscountObj.code)) {
-            dList.unshift(lastP.usedDiscountObj);
-            store.discounts = JSON.stringify(dList); fbSave("discounts", dList);
+        let existingIdx = dList.findIndex(x => x.id === lastP.usedDiscountObj.id);
+        if(existingIdx !== -1) {
+            dList[existingIdx].usedCount = Math.max(0, (dList[existingIdx].usedCount || 1) - 1);
+        } else {
+            let restoredCoupon = lastP.usedDiscountObj;
+            restoredCoupon.usedCount = Math.max(0, (restoredCoupon.maxUses || 1) - 1);
+            dList.unshift(restoredCoupon);
         }
+        store.discounts = JSON.stringify(dList); fbSave("discounts", dList);
     }
     
     logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, deducted: lastP.paid });
@@ -3450,6 +3496,24 @@ async function deleteActiveStock(id) {
     refreshStock(); loadPurchaseStock(); notify("تم الحذف بنجاح");
 }
 
+async function moveToSold(id) {
+    let ok = await showConfirm("نقل للمباع", "هذا الاشتراك انتهت صلاحيته وتم بيع جزء منه. هل تريد نقله لأرشيف المباع للاحتفاظ ببياناته؟", "نقل للأرشيف", "إلغاء", '<i class="fas fa-exchange-alt"></i>');
+    if(!ok) return;
+    
+    let stock = safeJSON(store.stock, []);
+    let idx = stock.findIndex(x => x.id === id);
+    if(idx !== -1) {
+        stock[idx].status = 'sold';
+        let nd = new Date();
+        let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+        let ndd = nd.getDate().toString().padStart(2,'0');
+        stock[idx].soldDate = `${nd.getFullYear()}-${nmm}-${ndd}`;
+        store.stock = JSON.stringify(stock); fbSave("stock", stock);
+        logAction("نقل اشتراك منتهي جزئياً إلى الأرشيف");
+        refreshStock(); loadPurchaseStock(); notify("تم النقل بنجاح");
+    }
+}
+
 function refreshStock() {
     let stock = safeJSON(store.stock, []);
     let tbody = document.getElementById("stockBody"); 
@@ -3528,7 +3592,11 @@ function refreshStock() {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock('${item.id}')"><i class="fas fa-eye"></i></button>`;
             let actionBtn = "";
             if(isExpired) {
-                actionBtn = canSell ? `<td><button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteActiveStock('${item.id}')"><i class="fas fa-trash-alt"></i> حذف</button></td>` : '';
+                if((item.soldProfiles || 0) > 0) {
+                    actionBtn = canSell ? `<td><button class="btn btn-warning" style="padding:5px 10px;" onclick="moveToSold('${item.id}')"><i class="fas fa-exchange-alt"></i> نقل</button></td>` : '';
+                } else {
+                    actionBtn = canSell ? `<td><button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteActiveStock('${item.id}')"><i class="fas fa-trash-alt"></i> حذف</button></td>` : '';
+                }
             } else {
                 actionBtn = canSell ? `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock('${item.id}')"><i class="fas fa-check"></i> بيع</button></td>` : '';
             }
