@@ -601,12 +601,12 @@
         <h3><i class="fas fa-cart-plus" style="color:var(--primary)"></i> تسجيل اشتراك جديد</h3>
         <div class="grid-2">
             <div class="input-group"><label>نوع الاشتراك (المخزون)</label>
-                <select id="sub" onchange="syncPurchaseDuration()"><option value="">اختر من المخزون المتاح...</option></select>
+                <select id="sub"><option value="">اختر من المخزون المتاح...</option></select>
             </div>
             <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
         </div>
         <div class="grid-2">
-            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)"></div>
+            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97***********" oninput="validatePhoneInput(this)"></div>
             <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
         </div>
         <div class="grid-2">
@@ -677,7 +677,7 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
             <h3><i class="fas fa-clipboard-list" style="color:var(--primary)"></i> سجل حركات الموقع</h3>
             <div style="display:flex; gap:10px">
-                <button id="btnVisLogs" class="btn btn-warning hidden" onclick="changeLogsVis()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-eye"></i> الخصوصية</button>
+                <button id="btnVisLogs" class="btn btn-warning hidden" onclick="window.changeLogsVis()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-eye"></i> الخصوصية</button>
                 <button id="btnClearLogs" class="btn btn-danger hidden" onclick="clearLogs()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-trash-alt"></i> مسح السجل</button>
             </div>
         </div>
@@ -1130,6 +1130,27 @@
 
 <script>
 // --- GLOBAL DEFINITIONS & UTILS ---
+window.changeLogsVis = async function() {
+    if(!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let s = safeJSON(store.settings, {});
+    let current = s.logsVis || 'all';
+    let opts = `
+        <option value="all" ${current==='all'?'selected':''}>الجميع</option>
+        <option value="no_viewer" ${current==='no_viewer'?'selected':''}>منع المشاهدين</option>
+        <option value="no_employee" ${current==='no_employee'?'selected':''}>منع الموظفين والمشاهدين</option>
+        <option value="admin_only" ${current==='admin_only'?'selected':''}>الأدمن فقط</option>
+    `;
+    let res = await showPrompt("صلاحيات رؤية السجل", "اختر من يمكنه رؤية سجل النشاط:", "", '<i class="fas fa-eye-slash" style="color:var(--warning)"></i>', true, opts);
+    
+    if(res) {
+        s.logsVis = res;
+        store.settings = JSON.stringify(s); fbSave("settings", s);
+        logAction(`تعديل خصوصية السجل إلى: ${res}`);
+        notify("تم التعديل بنجاح");
+        applyRBAC();
+    }
+};
+
 const fix = n => Number(n).toFixed(2);
 function safeJSON(str, fallback) {
     try { return str ? JSON.parse(str) : fallback; }
@@ -1207,25 +1228,32 @@ function resolveConfirm(val) {
     if(_confirmResolve) { _confirmResolve(val); _confirmResolve = null; }
 }
 
-function showPrompt(title, msg = "", placeholder = "", iconHtml = '<i class="fas fa-pen"></i>') {
+function showPrompt(title, msg = "", placeholder = "", iconHtml = '<i class="fas fa-pen"></i>', isSelect = false, selectOptions = "") {
     return new Promise(resolve => {
         _promptResolve = resolve;
         document.getElementById("pdIcon").innerHTML = iconHtml; 
         document.getElementById("pdTitle").textContent = title;
         document.getElementById("pdMsg").textContent = msg;
-        document.getElementById("pdInput").placeholder = placeholder;
-        document.getElementById("pdInput").value = "";
         
-        let selectExists = document.getElementById("logsVisSelect");
-        if(!selectExists) document.getElementById("pdInputContainer").style.display = "block";
+        if (isSelect) {
+            document.getElementById("pdInputContainer").innerHTML = `<select id="logsVisSelect" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none; background:var(--bg-input); color:var(--text-main); font-weight:bold;">${selectOptions}</select>`;
+        } else {
+            document.getElementById("pdInputContainer").innerHTML = `<input id="pdInput" class="dialog-input" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none; background:var(--bg-input); color:var(--text-main);" placeholder="${placeholder}">`;
+        }
         
         document.getElementById("customPromptDialog").style.display = "flex";
-        setTimeout(() => document.getElementById("pdInput").focus(), 100);
+        if(!isSelect) setTimeout(() => { let input = document.getElementById("pdInput"); if(input) input.focus(); }, 100);
     });
 }
 function resolvePrompt(ok) {
     document.getElementById("customPromptDialog").style.display = "none";
-    let val = ok ? document.getElementById("pdInput").value.trim() : null;
+    let val = null;
+    if(ok) {
+        let input = document.getElementById("pdInput");
+        let select = document.getElementById("logsVisSelect");
+        if (input) val = input.value.trim();
+        else if (select) val = select.value;
+    }
     if(_promptResolve) { _promptResolve(val); _promptResolve = null; }
 }
 
@@ -1285,7 +1313,10 @@ function initFirebase() {
                 });
                 if (currentUser) refreshAll();
             } else {
-                fbDocRef.set(getDefaultData()).catch(e => console.error(e));
+                // الحماية المزدوجة: لا تنشئ بيانات افتراضية إذا كانت القراءة من الكاش المحلي الفارغ!
+                if (!fromCache) {
+                    fbDocRef.set(getDefaultData(), {merge: true}).catch(e => console.error(e));
+                }
             }
             
             if (hasPendingWrites) {
@@ -1476,29 +1507,25 @@ function logAction(actionDescription, details=null) {
 }
 
 function init(){
-    if(!store.users) store.users = JSON.stringify([DEFAULT_USER]); fbSave("users", [DEFAULT_USER]);
+    // تجهيز المتغيرات في الكاش المحلي فقط (بدون أي أوامر fbSave لضمان عدم مسح السيرفر)
+    if(!store.users) store.users = JSON.stringify([DEFAULT_USER]);
     if(!store.wallets){
         store.wallets = JSON.stringify({
             "جوال باي — سعاد":{bal:0, cur:"₪", active:true},
             "جوال باي — محمد":{bal:0, cur:"₪", active:true},
             "بال باي — أحمد":{bal:0, cur:"₪", active:true},
             "بايننس — احمد":{bal:0, cur:"$", active:true}
-        }); fbSave("wallets", {
-            "جوال باي — سعاد":{bal:0, cur:"₪", active:true},
-            "جوال باي — محمد":{bal:0, cur:"₪", active:true},
-            "بال باي — أحمد":{bal:0, cur:"₪", active:true},
-            "بايننس — احمد":{bal:0, cur:"$", active:true}
         });
     }
-    if(!store.purchases) store.purchases = "[]"; fbSave("purchases", []);
-    if(!store.invest) store.invest = JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}); fbSave("invest", {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}});
-    if(!store.generalNotes) store.generalNotes = "[]"; fbSave("generalNotes", []);
-    if(!store.todoList) store.todoList = "[]"; fbSave("todoList", []);
-    if(!store.settings) store.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}); fbSave("settings", {ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45});
-    if(!store.activityLog) store.activityLog = "[]"; fbSave("activityLog", []);
-    if(!store.stock) store.stock = "[]"; fbSave("stock", []);
-    if(!store.services) store.services = "[]"; fbSave("services", []);
-    if(!store.discounts) store.discounts = "[]"; fbSave("discounts", []);
+    if(!store.purchases) store.purchases = "[]"; 
+    if(!store.invest) store.invest = JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}); 
+    if(!store.generalNotes) store.generalNotes = "[]"; 
+    if(!store.todoList) store.todoList = "[]"; 
+    if(!store.settings) store.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}); 
+    if(!store.activityLog) store.activityLog = "[]"; 
+    if(!store.stock) store.stock = "[]"; 
+    if(!store.services) store.services = "[]"; 
+    if(!store.discounts) store.discounts = "[]"; 
 
     if(localStorage.getItem("darkMode") === "true") {
         document.body.classList.add("dark-mode");
@@ -1863,6 +1890,8 @@ function refreshLogs() {
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
 
+
+
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     
@@ -2175,7 +2204,7 @@ function addPurchase(){
                 <span style="color:var(--success)"><i class="fas fa-money-bill-wave"></i> مدفوع: ${paid}${paidCur}</span>
             </div>
             ${isComp ? `<div style="color:var(--danger); font-weight:bold; padding:5px; background:var(--yellow-bg); border-radius:5px;"><i class="fas fa-exclamation-circle"></i> هذه العملية مسجلة كـ "تعويض"</div>` : ''}
-            ${appliedDiscountPct > 0 ? `<div style="color:var(--success); font-weight:bold; padding:5px; background:#dcfce7; border-radius:5px;"><i class="fas fa-ticket-alt"></i> تم تطبيق كود خصم: ${appliedDiscountPct}%</div>` : ''}
+            ${appliedDiscountPct > 0 ? `<div style="color:var(--success); font-weight:bold; text-align:center; padding:5px; border:1px solid var(--success); border-radius:5px; margin:5px 0;"><i class="fas fa-ticket-alt"></i> تم تطبيق كود خصم: ${appliedDiscountPct}%</div>` : ''}
             <div><i class="fas fa-info-circle"></i> <b>حالة التكلفة:</b> ${isFirstProfile ? `<span style="color:var(--danger)">أول بروفايل (سيتم خصم ${fix(calculatedCost)} ${paidCur})</span>` : '<span style="color:var(--success)">مدفوعة سابقاً (التكلفة 0)</span>'}</div>
             <div style="font-size:12px; margin-top:6px; color:var(--text-muted)"><i class="fas fa-arrow-right"></i> إيداع في: ${esc(wallet.value)}</div>
         </div>`;
@@ -2335,7 +2364,6 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     
     // Reset Form
     paidAmount.value=""; customer.value=""; sub.value=""; customerPhone.value=""; 
-    document.getElementById("subDuration").value="1";
     document.getElementById("discountCodeInput").value="";
     document.getElementById("isCompensation").checked = false;
 }
@@ -2380,7 +2408,7 @@ function refreshAll(){
     
     let days3 = 3 * 86400000, nowMs = now.getTime();
     // Updated: Only count non-reminded, non-compensation items for the badge
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
+    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
     let badge = document.getElementById("expiryBadge");
     if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
@@ -2462,7 +2490,7 @@ async function deleteSingleDiscount(code) {
 }
 
 async function deleteAllDiscounts() {
-    if(currentUser.role !== 'admin') return;
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     let ok = await showConfirm("حذف جميع الأكواد", "هل أنت متأكد من مسح كافة أكواد الخصم من النظام نهائياً؟", "مسح الكل", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
     if(!ok) return;
     
@@ -2939,28 +2967,6 @@ async function undoLastPurchase(){
     refreshAll();  notify("تم التراجع"); 
 }
 
-async function clearHistory(){ 
-    if(currentUser.role !== 'admin') return notify("للأدمن فقط","error"); 
-    let res = await showConfirm("مسح سجل العمليات", "سيتم حذف العمليات المالية المسجلة نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
-    if(!res) return;
-    
-    let purchases = safeJSON(store.purchases, []);
-    if(res === 'third') {
-        if(purchases.length > ITEMS_PER_PAGE) purchases.splice(0, ITEMS_PER_PAGE); 
-        else purchases = [];
-        store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
-        logAction("قام الأدمن بمسح أقدم 50 عملية مالية لتوفير المساحة");
-    } else {
-        store.purchases = "[]"; fbSave("purchases", []); 
-        logAction("مسح سجل العمليات بالكامل"); 
-    }
-    
-    currentPage.history = 1;
-    refreshHistory(); 
-     
-    notify("تم المسح بنجاح");
-}
-
 function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserModal') document.getElementById("editUserModal").classList.add("hidden"); }
 
 function openEditUserModal(index) {
@@ -3424,3 +3430,5 @@ window.onload = init;
 </script>
 </body>
 </html>
+
+
