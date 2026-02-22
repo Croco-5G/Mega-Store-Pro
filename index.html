@@ -1470,7 +1470,6 @@ function initFirebase() {
 
     // Real-time listener
     fbDocRef.onSnapshot(
-        { includeMetadataChanges: true },
         (doc) => {
             const fromCache = doc.metadata.fromCache;
             const hasPendingWrites = doc.metadata.hasPendingWrites;
@@ -2485,35 +2484,38 @@ function addPurchase(){
 function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
     let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     
+    if (!wallets[walletVal]) return notify("المحفظة المحددة غير موجودة، يرجى إعادة المحاولة", "error");
     let tBefore = wallets[walletVal].bal;
     let invest_before_profit = JSON.parse(JSON.stringify(invest));
     
-    wallets[walletVal].bal += paid;
+    wallets[walletVal].bal = parseFloat((wallets[walletVal].bal + paid).toFixed(2));
     
-    let distributableProfit = paid;
+    let distributableProfit = parseFloat((paid).toFixed(2));
     let recoupAmount = 0;
 
     if (settings.deductCost && !isComp) {
-        recoupAmount = calculatedCost; 
-        distributableProfit = paid - calculatedCost;
+        recoupAmount = parseFloat(calculatedCost.toFixed(2));
+        distributableProfit = parseFloat((paid - recoupAmount).toFixed(2));
     } else if (settings.deductCost && isComp) {
-        let oC = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        let oC = parseFloat(((parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1)).toFixed(2));
         let sT = stItem.costCurrency === '$' ? 'd' : 's';
-        invest.store[sT] -= oC;
+        invest.store[sT] = parseFloat((invest.store[sT] - oC).toFixed(2));
     }
 
     let shareType = (paidCur === '$') ? 'd' : 's';
     
     if(!isComp) {
-        invest.store[shareType] += recoupAmount;
+        invest.store[shareType] = parseFloat((invest.store[shareType] + recoupAmount).toFixed(2));
 
         if (distributableProfit >= 0) {
-            let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
-            let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
-            let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
-            invest.ahmad[shareType] += aP; invest.mohamed[shareType] += mP; invest.store[shareType] += sP;
+            let aP = parseFloat((distributableProfit * (settings.ahmad/100)).toFixed(2));
+            let mP = parseFloat((distributableProfit * (settings.mohamed/100)).toFixed(2));
+            let sP = parseFloat((distributableProfit * (settings.store/100)).toFixed(2));
+            invest.ahmad[shareType] = parseFloat((invest.ahmad[shareType] + aP).toFixed(2));
+            invest.mohamed[shareType] = parseFloat((invest.mohamed[shareType] + mP).toFixed(2));
+            invest.store[shareType] = parseFloat((invest.store[shareType] + sP).toFixed(2));
         } else {
-            invest.store[shareType] += distributableProfit; 
+            invest.store[shareType] = parseFloat((invest.store[shareType] + distributableProfit).toFixed(2));
         }
     }
     
@@ -2772,8 +2774,6 @@ function refreshAll(){
         'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
     };
     
-    refreshInvestment();
-    refreshExpiring();
     updateDiscountBadge();
     updateMonthSalesStat();
     
@@ -2781,11 +2781,6 @@ function refreshAll(){
         let id = card.id;
         if(visMap[id]) visMap[id]();
     });
-    
-    if(!document.getElementById("history").classList.contains("hidden")) refreshHistory();
-    if(!document.getElementById("generalNotes").classList.contains("hidden")) refreshGeneralNotes();
-    if(!document.getElementById("stock").classList.contains("hidden")) refreshStock();
-    if(!document.getElementById("discounts").classList.contains("hidden")) refreshDiscounts();
 }
 
 function refreshDiscounts() {
@@ -3220,7 +3215,7 @@ function calculateTransfer() {
     document.getElementById("tfResult").value = result.toFixed(2);
 }
 
-function executeTransfer() {
+async function executeTransfer() {
     let from = document.getElementById("tfFromWallet").value;
     let to = document.getElementById("tfToWallet").value;
     let amount = parseFloat(document.getElementById("tfAmount").value);
@@ -3233,25 +3228,35 @@ function executeTransfer() {
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
     let w = safeJSON(store.wallets, {});
+    if(!w[from]) return notify("المحفظة المصدر غير موجودة", "error");
+    if(!w[to]) return notify("المحفظة الهدف غير موجودة", "error");
     if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
 
     let fromCur = w[from].cur;
     let toCur = w[to].cur;
 
-    w[from].bal -= amount;
-    w[to].bal += result;
+    let ok = await showConfirm(
+        "تأكيد التحويل",
+        `تحويل ${amount}${fromCur} من (${from}) إلى (${to})\nالعمولة: ${fee}${fromCur}\nالصافي المودع: ${result}${toCur}`,
+        "تأكيد التحويل", "إلغاء",
+        '<i class="fas fa-exchange-alt"></i>'
+    );
+    if(!ok) return;
+
+    w[from].bal = parseFloat((w[from].bal - amount).toFixed(2));
+    w[to].bal = parseFloat((w[to].bal + result).toFixed(2));
 
     let invest = safeJSON(store.invest, {});
     
     if(fromCur !== toCur) {
         let fromType = (fromCur === '$') ? 'd' : 's';
         let toType = (toCur === '$') ? 'd' : 's';
-        invest.store[fromType] -= amount; 
-        invest.store[toType] += result;
+        invest.store[fromType] = parseFloat((invest.store[fromType] - amount).toFixed(2));
+        invest.store[toType] = parseFloat((invest.store[toType] + result).toFixed(2));
     } else {
         if(fee > 0) {
-            if(fromCur === '$') invest.store.d -= fee;
-            else invest.store.s -= fee;
+            if(fromCur === '$') invest.store.d = parseFloat((invest.store.d - fee).toFixed(2));
+            else invest.store.s = parseFloat((invest.store.s - fee).toFixed(2));
         }
     }
 
@@ -3262,7 +3267,7 @@ function executeTransfer() {
         type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: toCur
     });
 
-    refreshWallets(); refreshInvestment();  notify("تم التحويل");
+    refreshWallets(); refreshInvestment(); notify("تم التحويل");
     document.getElementById("tfAmount").value = "";
     document.getElementById("tfFee").value = "0";
     document.getElementById("tfResult").value = "";
@@ -3364,19 +3369,19 @@ async function deleteWallet(){
     if(!wallet) return;
 
     if (wallet.bal > 0) {
-        let expectedCurSymbol = wallet.cur === '$' ? 'd' : 's';
+        let shareType = wallet.cur === '$' ? 'd' : 's';
         let targetShare = await showPrompt("رصيد المحفظة غير مصفر", `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. يرجى اختيار الحصة التي سيتم خصم هذا المبلغ منها قبل الحذف:`, "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
         if(!targetShare) return;
 
         let invest = safeJSON(store.invest, {});
-        if(invest[targetShare][expectedCurSymbol] < wallet.bal) {
+        if(invest[targetShare][shareType] < wallet.bal) {
             return notify(`رصيد حصة ${targetShare} غير كافٍ لاستيعاب هذا الخصم!`, "error");
         }
 
         let ok = await showConfirm("حذف المحفظة", `سيتم خصم ${fix(wallet.bal)}${wallet.cur} من حصة ${targetShare} وحذف المحفظة نهائياً. تأكيد؟`, "حذف وخصم", "إلغاء", '<i class="fas fa-trash-alt"></i>');
         if(!ok) return;
 
-        invest[targetShare][expectedCurSymbol] -= wallet.bal;
+        invest[targetShare][shareType] = parseFloat((invest[targetShare][shareType] - wallet.bal).toFixed(2));
         store.invest = JSON.stringify(invest); fbSave("invest", invest);
     } else {
         let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${targetWallet}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
@@ -3391,11 +3396,15 @@ async function deleteWallet(){
 }
 
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
-function importData(){ 
+async function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
-    let f=document.getElementById("importFile").files[0], r=new FileReader(); 
+    let f=document.getElementById("importFile").files[0];
+    if(!f) return notify("اختر ملف","error");
+    let ok = await showConfirm("استعادة نسخة احتياطية", "سيتم مسح جميع البيانات الحالية واستبدالها بالملف المحدد. هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد؟", "نعم، استعادة", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
+    if(!ok) return;
+    let r=new FileReader(); 
     r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
-    if(f) r.readAsText(f); else notify("اختر ملف","error"); 
+    r.readAsText(f);
 }
 
 async function undoLastPurchase(){ 
