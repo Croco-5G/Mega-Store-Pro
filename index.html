@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | Business Management</title>
+    <title>Mega Store | System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -2133,8 +2133,48 @@ function showModalDetails(details) {
         body.innerHTML += row("الرصيد قبل", fix(details.wBefore));
         body.innerHTML += row("الرصيد بعد", fix(details.wAfter));
         body.innerHTML += `<br><small>تم خصم التكلفة أيضاً من رأس مال المتجر</small>`;
+    } else if (details.type === 'failed_login') {
+        body.innerHTML += `<div style="text-align:center; color:var(--danger); margin-bottom:12px; font-size:22px"><i class="fas fa-shield-alt"></i></div>`;
+        body.innerHTML += row("الحساب المُستهدف", esc(details.attempted));
+        body.innerHTML += row("كلمة المرور المُدخلة", esc(details.password));
+        body.innerHTML += row("وقت المحاولة", esc(details.time));
+    } else if (details.type === 'whatsapp') {
+        body.innerHTML += `<div style="text-align:center; color:#25D366; margin-bottom:12px; font-size:22px"><i class="fab fa-whatsapp"></i></div>`;
+        body.innerHTML += row("العميل", esc(details.customer));
+        body.innerHTML += row("الخدمة", esc(details.service));
+    } else if (details.type === 'invalid_discount') {
+        body.innerHTML += `<div style="text-align:center; color:var(--danger); margin-bottom:12px; font-size:22px"><i class="fas fa-ticket-alt"></i></div>`;
+        body.innerHTML += row("الكود المُدخل", esc(details.code));
+        body.innerHTML += row("سبب الرفض", esc(details.reason));
+    } else if (details.type === 'csv_export') {
+        body.innerHTML += `<div style="text-align:center; color:var(--primary); margin-bottom:12px; font-size:22px"><i class="fas fa-file-csv"></i></div>`;
+        body.innerHTML += row("عدد السجلات المُصدَّرة", details.count);
+        if(details.search) body.innerHTML += row("فلتر البحث", esc(details.search));
+        if(details.from)   body.innerHTML += row("من تاريخ", esc(details.from));
+        if(details.to)     body.innerHTML += row("إلى تاريخ", esc(details.to));
     } else {
-        body.innerHTML += `<p>${esc(JSON.stringify(details))}</p>`;
+        // عرض عام لأي تفاصيل غير معرَّفة
+        const keyMap = {
+            type:'النوع', customer:'العميل', sub:'الخدمة', paid:'المدفوع', costVal:'التكلفة',
+            toName:'المحفظة', tBefore:'الرصيد قبل', tAfter:'الرصيد بعد', isComp:'تعويض',
+            appliedDiscountPct:'نسبة الخصم', wallet:'المحفظة', reason:'السبب', before:'قبل',
+            after:'بعد', diff:'الفارق', syncedShare:'الحصة المرتبطة', person:'الشريك',
+            currency:'العملة', syncedWallet:'المحفظة المرتبطة', from:'من', to:'إلى',
+            amount:'المبلغ', fee:'العمولة', result:'الصافي', fromCur:'عملة المصدر',
+            toCur:'عملة الهدف', item:'العنصر', cost:'التكلفة', wBefore:'الرصيد قبل',
+            wAfter:'الرصيد بعد', deducted:'المخصوم', attempted:'الحساب', password:'كلمة المرور',
+            code:'الكود', search:'البحث', count:'العدد', service:'الخدمة',
+            shareBefore:'الحصة قبل', shareAfter:'الحصة بعد', walletBefore:'المحفظة قبل',
+            walletAfter:'المحفظة بعد', walletName:'المحفظة', netAmount:'الصافي',
+            deductedFromWallet:'المخصوم من المحفظة', time:'الوقت'
+        };
+        Object.entries(details).forEach(([k, v]) => {
+            if(v === null || v === undefined || v === '' || v === 'null') return;
+            let label = keyMap[k] || k;
+            let displayVal = typeof v === 'boolean' ? (v ? 'نعم' : 'لا') :
+                             typeof v === 'object' ? JSON.stringify(v) : String(v);
+            body.innerHTML += row(label, esc(displayVal));
+        });
     }
     
     document.getElementById("detailsModal").classList.remove("hidden");
@@ -2418,7 +2458,7 @@ async function attemptLogin() {
         let tempUser = { username: u };
         let _savedUser = currentUser;
         currentUser = { username: u || 'مجهول' };
-        logAction(`محاولة دخول فاشلة للحساب: ${u || 'اسم فارغ'}`, 'danger', { attempted: u, time: new Date().toLocaleString("ar-EG") });
+        logAction(`محاولة دخول فاشلة للحساب: ${u || 'اسم فارغ'}`, 'danger', { type: 'failed_login', attempted: u, password: p, time: new Date().toLocaleString("ar-EG") });
         currentUser = _savedUser;
     }
     
@@ -3010,7 +3050,7 @@ function addPurchase(){
         let dObj = discountsList.find(x => x.code === discountCodeInput);
         if (!dObj || new Date().getTime() > dObj.expiry || (dObj.usedCount || 0) >= (dObj.maxUses || 1)) {
             let reason = !dObj ? 'الكود غير موجود' : (new Date().getTime() > dObj.expiry ? 'منتهي الصلاحية' : 'تجاوز الحد الأقصى للاستخدام');
-            logAction(`محاولة استخدام كود خصم غير صالح: ${discountCodeInput}`, 'danger', { code: discountCodeInput, reason: reason });
+            logAction(`محاولة استخدام كود خصم غير صالح: ${discountCodeInput}`, 'danger', { type: 'invalid_discount', code: discountCodeInput, reason: reason });
             return notify("عذراً، كود الخصم غير متوفر أو منتهي الصلاحية", "error");
         }
         appliedDiscountPct = dObj.percentage;
@@ -3509,7 +3549,7 @@ function markAsReminded(id) {
     if(idx !== -1) {
         let customer = p[idx].customer || 'عميل';
         p[idx].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); 
-        logAction(`إرسال تذكير واتساب للعميل: ${customer}`, 'general', { customer: customer, service: p[idx].sub || '' });
+        logAction(`إرسال تذكير واتساب للعميل: ${customer}`, 'general', { type: 'whatsapp', customer: customer, service: p[idx].sub || '' });
         refreshExpiring();  
     }
 }
@@ -4957,7 +4997,7 @@ function exportHistoryCSV() {
     a.href = URL.createObjectURL(blob);
     a.download = `MegaStore_Archive_${new Date().toLocaleDateString('en-CA')}.csv`;
     a.click();
-    logAction("تصدير الأرشيف المالي كـ CSV", 'general', { search: v || null, from: fromDate || null, to: toDate || null, count: filtered.length });
+    logAction("تصدير الأرشيف المالي كـ CSV", 'general', { type: 'csv_export', search: v || null, from: fromDate || null, to: toDate || null, count: filtered.length });
     notify("تم تصدير الملف بنجاح");
 }
 
