@@ -808,8 +808,9 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchLogsTab('financial', this)">حركات مالية وتفصيلية</button>
-            <button class="tab-btn" onclick="switchLogsTab('general', this)">حركات عامة</button>
+            <button class="tab-btn active" onclick="switchLogsTab('financial', this)">💰 حركات مالية وتفصيلية</button>
+            <button class="tab-btn" onclick="switchLogsTab('danger', this)">🔴 حركات مهمة أو خطرة</button>
+            <button class="tab-btn" onclick="switchLogsTab('general', this)">📋 حركات عامة</button>
         </div>
         
         <div class="input-group" style="margin-bottom:20px;">
@@ -1306,7 +1307,7 @@ window.changeLogsVis = async function() {
     if(res) {
         s.logsVis = res;
         store.settings = JSON.stringify(s); fbSave("settings", s);
-        logAction(`تعديل خصوصية السجل إلى: ${res}`);
+        logAction(`تعديل خصوصية السجل إلى: ${res}`, 'general');
         notify("تم التعديل بنجاح");
         applyRBAC();
     }
@@ -2181,15 +2182,16 @@ function updateSyncStatus(msg, type="loading") {
     }
 }
 
-function logAction(actionDescription, details=null) {
+function logAction(actionDescription, type='general', details=null) {
     if(!currentUser) return;
     let logs = safeJSON(store.activityLog, []);
     logs.unshift({
-        id:      genId(),                             // لازم للـ Subcollection
-        _ts:     Date.now(),                          // للترتيب الزمني الدقيق
+        id:      genId(),
+        _ts:     Date.now(),
         user:    currentUser.username,
         action:  actionDescription,
         time:    new Date().toLocaleString("ar-EG"),
+        logType: type,
         details: details 
     });
     if(logs.length > 500) logs = logs.slice(0, 500);
@@ -2293,6 +2295,7 @@ async function toggleDemoMode() {
         let ok = await showConfirm("تفعيل الوضع التجريبي", "سيتوقف الربط السحابي، ويمكنك التجربة بحرية. عند الإيقاف سيتم حذف جميع التغييرات التجريبية.", "تفعيل", "إلغاء", '<i class="fas fa-flask"></i>');
         if(!ok) { document.getElementById("demoModeToggle").checked = false; return; }
         localStorage.setItem("isDemoMode", "true");
+        logAction("تفعيل الوضع التجريبي (Demo Mode)", 'general');
         location.reload();
     } else {
         let ok = await showConfirm("إيقاف الوضع التجريبي", "سيتم استعادة البيانات الأصلية من السحابة وحذف أي تعديلات قمت بها الآن.", "إيقاف", "إلغاء", '<i class="fas fa-cloud-download-alt"></i>');
@@ -2387,7 +2390,7 @@ async function attemptLogin() {
         userObj.deviceInfo = getOS();
         store.users = JSON.stringify(users); fbSave("users", users);
         
-        logAction("تسجيل دخول للنظام");
+        logAction("تسجيل دخول للنظام", 'general');
 
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
@@ -2410,6 +2413,13 @@ async function attemptLogin() {
             document.getElementById("loginUser").style.borderColor = "";
             document.getElementById("loginPass").style.borderColor = "";
         }, 3000);
+        // تسجيل محاولة الدخول الفاشلة
+        let failedUsers = safeJSON(store.users, []);
+        let tempUser = { username: u };
+        let _savedUser = currentUser;
+        currentUser = { username: u || 'مجهول' };
+        logAction(`محاولة دخول فاشلة للحساب: ${u || 'اسم فارغ'}`, 'danger', { attempted: u, time: new Date().toLocaleString("ar-EG") });
+        currentUser = _savedUser;
     }
     
     btn.classList.remove('loading'); 
@@ -2470,7 +2480,7 @@ function getOS() {
     return os || "Unknown";
 }
 
-function logout() { clearTimeout(_sessionTimer); currentUser = null; location.reload(); }
+function logout() { clearTimeout(_sessionTimer); logAction("تسجيل خروج من النظام", 'general'); currentUser = null; location.reload(); }
 function getRoleName(role) { 
     if(role==='admin') return 'أدمن';
     if(role==='employee') return 'موظف';
@@ -2650,16 +2660,19 @@ function switchLogsTab(tab, btn) {
     refreshLogs();
 }
 
+function getLogType(log) {
+    if(log.logType) return log.logType;
+    // توافق مع السجلات القديمة
+    return log.details != null ? 'financial' : 'general';
+}
+
 function refreshLogs() {
     let logs = safeJSON(store.activityLog, []);
     let search = document.getElementById("logsSearch").value.toLowerCase();
     const tbody = document.getElementById("logsTableBody");
     let isViewer = currentUser && currentUser.role === 'viewer';
     
-    let tabFiltered = logs.filter(log => {
-        if(currentLogsTab === 'financial') return log.details != null;
-        else return log.details == null;
-    });
+    let tabFiltered = logs.filter(log => getLogType(log) === currentLogsTab);
 
     let filtered = tabFiltered.filter(log => {
         return !search || log.user.toLowerCase().includes(search) || log.action.toLowerCase().includes(search);
@@ -2669,16 +2682,67 @@ function refreshLogs() {
     let paginated = filtered.slice((currentPage.logs - 1) * ITEMS_PER_PAGE, currentPage.logs * ITEMS_PER_PAGE);
 
     let rows = "";
-    paginated.forEach((log) => {
+    paginated.forEach((log, i) => {
+        const uid = `log_${log.id || i}`;
+        let typeIcon = '';
+        if(currentLogsTab === 'financial') typeIcon = '<span style="color:var(--success); margin-left:5px;">💰</span>';
+        else if(currentLogsTab === 'danger') typeIcon = '<span style="color:var(--danger); margin-left:5px;">🔴</span>';
+        else typeIcon = '<span style="color:var(--primary); margin-left:5px;">📋</span>';
+
         let detailsBtn = "";
         if(log.details && !isViewer) {
-            detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
-        } else if (!log.details) {
+            detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick="toggleLogDetails('${uid}')"><i class="fas fa-chevron-down" id="icon_${uid}"></i></button>`;
+        } else {
             detailsBtn = `<span style="color:var(--text-muted); font-size:12px;">-</span>`;
         }
-        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
+
+        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${typeIcon}${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
+
+        if(log.details && !isViewer) {
+            let detailRows = Object.entries(log.details).map(([k,v]) => {
+                if(v === null || v === undefined || v === '') return '';
+                let displayKey = {
+                    type:'النوع', customer:'العميل', sub:'الخدمة', paid:'المدفوع', costVal:'التكلفة',
+                    toName:'المحفظة', tBefore:'الرصيد قبل', tAfter:'الرصيد بعد', isComp:'تعويض',
+                    appliedDiscountPct:'نسبة الخصم', wallet:'المحفظة', reason:'السبب', before:'قبل',
+                    after:'بعد', diff:'الفارق', syncedShare:'الحصة المرتبطة', person:'الشريك',
+                    currency:'العملة', syncedWallet:'المحفظة المرتبطة', from:'من', to:'إلى',
+                    amount:'المبلغ', fee:'العمولة', result:'الصافي', fromCur:'عملة المصدر',
+                    toCur:'عملة الهدف', item:'العنصر', cost:'التكلفة', wBefore:'المحفظة قبل',
+                    wAfter:'المحفظة بعد', deducted:'المخصوم', attempted:'المستخدم المُدخل',
+                    code:'الكود', search:'البحث', count:'العدد', fromDate:'من تاريخ', toDate:'إلى تاريخ',
+                    shareBefore:'الحصة قبل', shareAfter:'الحصة بعد', walletBefore:'المحفظة قبل',
+                    walletAfter:'المحفظة بعد', deductedFromWallet:'المخصوم من المحفظة',
+                    walletName:'المحفظة', netAmount:'المبلغ الصافي',
+                    service: 'الخدمة'
+                }[k] || k;
+                let displayVal = typeof v === 'boolean' ? (v ? 'نعم' : 'لا') : 
+                                 typeof v === 'object' ? JSON.stringify(v).substring(0, 80) + (JSON.stringify(v).length > 80 ? '...' : '') : 
+                                 String(v).substring(0, 120);
+                if(displayVal === 'null' || displayVal === '') return '';
+                return `<div style="display:flex; gap:10px; padding:4px 0; border-bottom:1px dashed var(--border-color); flex-wrap:wrap;"><span style="color:var(--text-muted); min-width:120px; font-weight:700;">${displayKey}:</span><span style="color:var(--text-main);">${esc(String(displayVal))}</span></div>`;
+            }).filter(Boolean).join('');
+
+            rows += `<tr id="${uid}" style="display:none; background:var(--bg-input);">
+                <td colspan="4" style="padding:15px 20px;">
+                    <div style="background:var(--bg-card); border-radius:10px; padding:15px; border:1px solid var(--border-color); font-size:13px;">
+                        <div style="font-weight:800; margin-bottom:10px; color:var(--primary);">📋 تفاصيل الحركة</div>
+                        ${detailRows || '<span style="color:var(--text-muted);">لا توجد تفاصيل إضافية</span>'}
+                    </div>
+                </td>
+            </tr>`;
+        }
     });
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
+}
+
+function toggleLogDetails(uid) {
+    let row = document.getElementById(uid);
+    let icon = document.getElementById('icon_' + uid);
+    if(!row) return;
+    let isHidden = row.style.display === 'none';
+    row.style.display = isHidden ? 'table-row' : 'none';
+    if(icon) icon.className = isHidden ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
 }
 
 
@@ -2686,24 +2750,25 @@ function refreshLogs() {
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     
-    let tabName = currentLogsTab === 'financial' ? "الحركات المالية" : "الحركات العامة";
+    const tabNames = { financial: "الحركات المالية", danger: "الحركات الخطرة", general: "الحركات العامة" };
+    let tabName = tabNames[currentLogsTab] || "السجلات";
     let res = await showConfirm(`مسح ${tabName}`, `سيتم حذف سجلات ${tabName} نهائياً.`, "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم صفحة");
     if(!res) return;
     
     let allLogs = safeJSON(store.activityLog, []);
-    let targetLogs = allLogs.filter(log => (currentLogsTab === 'financial' ? log.details != null : log.details == null));
+    let targetLogs = allLogs.filter(log => getLogType(log) === currentLogsTab);
     
     let logsToSave = [];
     if(res === 'third') {
         let itemsToRemove = targetLogs.slice(-ITEMS_PER_PAGE);
         logsToSave = allLogs.filter(l => !itemsToRemove.includes(l));
     } else {
-        logsToSave = allLogs.filter(log => (currentLogsTab === 'financial' ? log.details == null : log.details != null));
+        logsToSave = allLogs.filter(log => getLogType(log) !== currentLogsTab);
     }
     
     store.activityLog = JSON.stringify(logsToSave); fbSave("activityLog", logsToSave);
     
-    logAction(`قام الأدمن بمسح ${res === 'third' ? 'أقدم 50 سجل من' : 'كافة'} ${tabName}`);
+    logAction(`قام الأدمن بمسح ${res === 'third' ? 'أقدم 50 سجل من' : 'كافة'} ${tabName}`, 'danger');
     
     currentPage.logs = 1;
     refreshLogs();
@@ -2718,7 +2783,7 @@ function addNewUser() {
     if(users.some(x => x.username.toLowerCase() === u.toLowerCase())) return notify("اسم المستخدم موجود", "error");
     users.push({ id: 'id_' + Date.now() + Math.random().toString(36).substr(2,5), username: u, password: p, role: r, status: "active", lastLogin: "-", deviceInfo: "-" });
     store.users = JSON.stringify(users); fbSave("users", users);
-    logAction(`إضافة مستخدم جديد: ${u} بصلاحية ${r}`);
+    logAction(`إضافة مستخدم جديد: ${u} بصلاحية ${r}`, 'danger');
     document.getElementById("newUserName").value = ""; document.getElementById("newUserPass").value = "";
     renderUsersTable();  notify("تم إضافة المستخدم");
 }
@@ -2730,7 +2795,7 @@ function toggleBan(id) {
         let newState = users[index].status === 'active' ? 'banned' : 'active';
         users[index].status = newState;
         store.users = JSON.stringify(users); fbSave("users", users);
-        logAction(`تغيير حالة المستخدم ${users[index].username} إلى ${newState}`);
+        logAction(`تغيير حالة المستخدم ${users[index].username} إلى ${newState}`, 'danger');
         renderUsersTable(); 
     }
 }
@@ -2741,7 +2806,7 @@ async function deleteUser(id) {
     let users = safeJSON(store.users, []);
     let index = users.findIndex(x => x.id === id);
     if(index !== -1) {
-        logAction(`حذف المستخدم: ${users[index].username}`);
+        logAction(`حذف المستخدم: ${users[index].username}`, 'danger');
         users.splice(index, 1);
         store.users = JSON.stringify(users); fbSave("users", users);
         renderUsersTable(); 
@@ -2758,7 +2823,7 @@ function changeMyPassword() {
         currentUser.password = newP; 
         store.users = JSON.stringify(users); fbSave("users", users);
         document.getElementById("changePassInput").value = "";
-        logAction("قام بتغيير كلمة المرور الخاصة به");
+        logAction("قام بتغيير كلمة المرور الخاصة به", 'danger');
          notify("تم التغيير بنجاح");
     }
 }
@@ -2913,7 +2978,7 @@ function saveProfitSettings(){
     let sObj = safeJSON(store.settings, {});
     sObj.ahmad = a; sObj.mohamed = m; sObj.store = s; sObj.deductCost = document.getElementById("setDeductCost").checked; sObj.exchangeRate = +document.getElementById("setExchangeRate").value;
     store.settings = JSON.stringify(sObj); fbSave("settings", sObj);
-    logAction("تعديل إعدادات توزيع الأرباح");
+    logAction("تعديل إعدادات توزيع الأرباح", 'general');
      notify("تم الحفظ");
 }
 
@@ -2928,7 +2993,7 @@ function saveDiscountSettings(){
     sObj.validityMax = +document.getElementById("setValidityMax").value || 0;
     
     store.settings = JSON.stringify(sObj); fbSave("settings", sObj);
-    logAction("تعديل إعدادات أكواد الخصم");
+    logAction("تعديل إعدادات أكواد الخصم", 'general');
     notify("تم حفظ إعدادات الخصم");
 }
 
@@ -2986,6 +3051,8 @@ function addPurchase(){
         let discountsList = safeJSON(store.discounts, []);
         let dObj = discountsList.find(x => x.code === discountCodeInput);
         if (!dObj || new Date().getTime() > dObj.expiry || (dObj.usedCount || 0) >= (dObj.maxUses || 1)) {
+            let reason = !dObj ? 'الكود غير موجود' : (new Date().getTime() > dObj.expiry ? 'منتهي الصلاحية' : 'تجاوز الحد الأقصى للاستخدام');
+            logAction(`محاولة استخدام كود خصم غير صالح: ${discountCodeInput}`, 'danger', { code: discountCodeInput, reason: reason });
             return notify("عذراً، كود الخصم غير متوفر أو منتهي الصلاحية", "error");
         }
         appliedDiscountPct = dObj.percentage;
@@ -3154,7 +3221,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     fbAtomicWalletInvest(_wIncs, _iIncs, wallets, invest);
     fbSaveMultiple({ stock: stockList, purchases: purchases });
     
-    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, {
+    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, 'financial', {
         type: 'purchase',
         customer: customerVal||"عميل",
         sub: cleanName,
@@ -3320,7 +3387,7 @@ function saveManualCoupon() {
     let dList = safeJSON(store.discounts, []);
     dList.unshift(tempMC);
     store.discounts = JSON.stringify(dList); fbSave("discounts", dList);
-    logAction(`إنشاء كود خصم يدوي بنسبة ${tempMC.percentage}% للعميل ${tempMC.customer}`);
+    logAction(`إنشاء كود خصم يدوي بنسبة ${tempMC.percentage}% للعميل ${tempMC.customer}`, 'financial');
     document.getElementById("manualCouponModal").style.display = "none";
     refreshDiscounts();
     notify("تم حفظ الكود بنجاح");
@@ -3419,7 +3486,7 @@ async function deleteSingleDiscount(id) {
     store.discounts = JSON.stringify(dList);
     fbSave("discounts", dList);
     
-    logAction(`قام الأدمن بحذف كود خصم يدوياً`);
+    logAction(`قام الأدمن بحذف كود خصم يدوياً`, 'danger');
     refreshDiscounts();
     notify("تم حذف الكود");
 }
@@ -3431,7 +3498,7 @@ async function deleteAllDiscounts() {
     
     store.discounts = "[]";
     fbSave("discounts", []);
-    logAction("قام الأدمن بمسح جميع أكواد الخصم");
+    logAction("قام الأدمن بمسح جميع أكواد الخصم", 'danger');
     currentPage.discounts = 1;
     refreshDiscounts();
     notify("تم مسح جميع الأكواد");
@@ -3482,7 +3549,10 @@ function markAsReminded(id) {
     let p = safeJSON(store.purchases, []); 
     let idx = p.findIndex(x => x.id === id);
     if(idx !== -1) {
-        p[idx].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); refreshExpiring();  
+        let customer = p[idx].customer || 'عميل';
+        p[idx].reminded = true; store.purchases = JSON.stringify(p); fbSave("purchases", p); 
+        logAction(`إرسال تذكير واتساب للعميل: ${customer}`, 'general', { customer: customer, service: p[idx].sub || '' });
+        refreshExpiring();  
     }
 }
 async function deleteExpired() { 
@@ -3491,7 +3561,7 @@ async function deleteExpired() {
     if(!ok) return;
     let p = safeJSON(store.purchases, []), now = new Date().getTime(); 
     p.forEach(x => { if(x.expiry && x.expiry < now) x.expiryDismissed = true; }); 
-    store.purchases = JSON.stringify(p); fbSave("purchases", p); logAction("إخفاء الاشتراكات المنتهية"); currentPage.expiring = 1; refreshAll();  
+    store.purchases = JSON.stringify(p); fbSave("purchases", p); logAction("إخفاء الاشتراكات المنتهية", 'danger'); currentPage.expiring = 1; refreshAll();  
 }
 function refreshWallets(){
     let w=safeJSON(store.wallets, {}), td=0, ts=0;
@@ -3610,7 +3680,7 @@ function addGeneralNote(){
     n.push({id: 'id_'+Date.now(), text:gnTextVal, date:new Date().toLocaleString("ar-EG")}); 
     store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); 
     document.getElementById("gnText").value=""; 
-    logAction("إضافة ملاحظة جديدة"); refreshGeneralNotes();  
+    logAction("إضافة ملاحظة جديدة", 'general'); refreshGeneralNotes();  
 }
 function refreshGeneralNotes(){ 
     let n = safeJSON(store.generalNotes, []); 
@@ -3632,7 +3702,7 @@ function deleteNote(id){
     let n=safeJSON(store.generalNotes, []); 
     n = n.filter(x => x.id !== id); 
     store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n); 
-    logAction("حذف ملاحظة"); refreshGeneralNotes();  
+    logAction("حذف ملاحظة", 'danger'); refreshGeneralNotes();  
 }
 function addTodo(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
@@ -3642,7 +3712,7 @@ function addTodo(){
     l.push({id:'id_'+Date.now(), text:todoInputVal, date:new Date().toLocaleString("ar-EG")}); 
     store.todoList = JSON.stringify(l); fbSave("todoList", l); 
     document.getElementById("todoInput").value=""; 
-    logAction("إضافة مهمة جديدة"); refreshTodoList();  
+    logAction("إضافة مهمة جديدة", 'general'); refreshTodoList();  
 }
 function refreshTodoList(){ 
     let l=safeJSON(store.todoList, []).slice().sort((a,b)=>(b.id||'').localeCompare(a.id||'')); 
@@ -3659,7 +3729,7 @@ function completeTodo(id){
     let l=safeJSON(store.todoList, []); 
     let idx = l.findIndex(x=>x.id===id);
     if(idx!==-1) {
-        logAction(`إكمال مهمة: ${esc(l[idx].text)}`); 
+        logAction(`إكمال مهمة: ${esc(l[idx].text)}`, 'general'); 
         l.splice(idx,1); 
         store.todoList = JSON.stringify(l); fbSave("todoList", l); 
         refreshTodoList();  
@@ -3709,7 +3779,7 @@ async function withdrawPartial(p){
         w, i
     );
 
-    logAction(`سحب أرباح من حصة ${p} عبر ${walletName}`, {
+    logAction(`سحب أرباح من حصة ${p} عبر ${walletName}`, 'financial', {
         type: 'withdraw',
         person: p,
         amount: amount,
@@ -3736,7 +3806,7 @@ function addNewWallet(){
     store.wallets = JSON.stringify(w); fbSave("wallets", w); 
     loadWallets(); refreshWallets(); 
     document.getElementById("newWalletName").value=""; 
-    logAction(`إنشاء محفظة جديدة: ${n}`);  notify("تمت"); 
+    logAction(`إنشاء محفظة جديدة: ${n}`, 'financial');  notify("تمت"); 
 }
 
 function fillWalletEditData() {
@@ -3773,7 +3843,7 @@ function updateWalletData(){
         p.forEach(x => { if(x.wallet === oldName) x.wallet = newName; }); 
         store.purchases = JSON.stringify(p); fbSave("purchases", p);
         
-        logAction(`تعديل محفظة: تم تغيير الاسم من ${oldName} إلى ${newName}`);
+        logAction(`تعديل محفظة: تم تغيير الاسم من ${oldName} إلى ${newName}`, 'financial');
     }
 
     w[newName].cur = newCur;
@@ -3926,7 +3996,7 @@ function executeTransfer() {
     }
     fbAtomicWalletInvest(_wIncsTransfer, _iIncsTransfer, w, invest);
     
-    logAction(`تحويل من ${from} إلى ${to}`, {
+    logAction(`تحويل من ${from} إلى ${to}`, 'financial', {
         type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: toCur
     });
 
@@ -4001,7 +4071,7 @@ async function setWallet(){
                 .catch(e => { clearTimeout(_pendingWritesTimer); console.error("setWallet error:", e); updateSyncStatus("فشل الحفظ", "error"); });
         }
     } 
-    logAction(`تعيين رصيد محفظة ${modWalletVal}`, { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff, syncedShare: targetShare });
+    logAction(`تعيين رصيد محفظة ${modWalletVal}`, 'financial', { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff, syncedShare: targetShare });
     refreshWallets(); refreshInvestment(); notify("تم تحديث الرصيد بنجاح"); 
 }
 
@@ -4058,7 +4128,7 @@ async function setProfitShare() {
     } else {
         fbAtomicWalletInvest({}, _iPIncs, null, invest);
     }
-    logAction(`تعديل مباشر لحصة ${person}`, { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount, diff: diff, syncedWallet: targetWallet });
+    logAction(`تعديل مباشر لحصة ${person}`, 'financial', { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount, diff: diff, syncedWallet: targetWallet });
     refreshInvestment(); refreshWallets(); notify("تم تحديث الحصة بنجاح");
 }
 
@@ -4095,12 +4165,12 @@ async function deleteWallet(){
 
     delete w[targetWallet]; 
     store.wallets = JSON.stringify(w); fbSave("wallets", w); 
-    logAction(`حذف محفظة ${targetWallet}`); 
+    logAction(`حذف محفظة ${targetWallet}`, 'danger'); 
     loadWallets(); refreshWallets(); refreshInvestment(); notify("تم الحذف"); 
     document.getElementById("renameWalletInput").value = "";
 }
 
-function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
+function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية", 'general'); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     let f=document.getElementById("importFile").files[0];
@@ -4163,7 +4233,7 @@ function importData(){
             }
             
             notify("تم الاستعادة بنجاح"); 
-            logAction("استيراد بيانات من نسخة احتياطية"); 
+            logAction("استيراد بيانات من نسخة احتياطية", 'danger'); 
             setTimeout(() => location.reload(), 1500);
         }catch(err){ 
             console.error("importData error:", err);
@@ -4256,7 +4326,7 @@ async function undoLastPurchase(){
         fbAtomicWalletInvest(_undoWalletIncs, {}, wallets, wallets);
     }
     
-    logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, deducted: lastP.paid });
+    logAction("تراجع عن عملية شراء", 'financial', { type: 'undo', data: lastP, deducted: lastP.paid });
     
     currentPage.history = 1;
     loadPurchaseStock();
@@ -4272,10 +4342,10 @@ async function clearHistory() {
         // الأقدم أولاً هو في نهاية المصفوفة (مرتبة الأحدث أولاً)
         let toRemoveCount = Math.min(ITEMS_PER_PAGE, purchases.length);
         purchases.splice(purchases.length - toRemoveCount, toRemoveCount);
-        logAction(`قام الأدمن بمسح أقدم ${toRemoveCount} سجل من الأرشيف المالي`);
+        logAction(`قام الأدمن بمسح أقدم ${toRemoveCount} سجل من الأرشيف المالي`, 'danger');
     } else {
         purchases = [];
-        logAction("قام الأدمن بمسح كافة الأرشيف المالي");
+        logAction("قام الأدمن بمسح كافة الأرشيف المالي", 'danger');
     }
     store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
     currentPage.history = 1;
@@ -4307,9 +4377,13 @@ async function saveUserEdit() {
         let ok = await showConfirm("تغيير صلاحيتك", "ستقلل صلاحيتك من أدمن. هل أنت متأكد؟", "نعم", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
         if(!ok) return;
     }
+    let oldRole = users[index].role;
     users[index].role = newRole;
     store.users = JSON.stringify(users); fbSave("users", users);
-    logAction(`تعديل بيانات المستخدم: ${users[index].username}`);
+    let changeDesc = [];
+    if(newPass) changeDesc.push("كلمة المرور");
+    if(oldRole !== newRole) changeDesc.push(`الصلاحية من ${oldRole} إلى ${newRole}`);
+    logAction(`تعديل بيانات المستخدم: ${users[index].username}${changeDesc.length ? ' (' + changeDesc.join('، ') + ')' : ''}`, 'danger');
     document.getElementById("editUserModal").classList.add("hidden");
     renderUsersTable();  notify("تم تحديث بيانات المستخدم");
 }
@@ -4444,7 +4518,7 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
         wallets, invest
     );
     
-    logAction(`شراء مخزون جديد: ${s.displayName}`, {
+    logAction(`شراء مخزون جديد: ${s.displayName}`, 'financial', {
         type: 'stock_add',
         item: s.displayName,
         cost: stCost,
@@ -4472,7 +4546,7 @@ function updateStockNote() {
     stock[index].notes = document.getElementById("stNotes").value;
     
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
-    logAction(`تحديث ملاحظات المخزون: ${stock[index].displayName || stock[index].service}`);
+    logAction(`تحديث ملاحظات المخزون: ${stock[index].displayName || stock[index].service}`, 'general');
     
     document.getElementById("stockModal").classList.add("hidden");
     refreshStock();
@@ -4504,10 +4578,10 @@ async function deleteAllSoldStock() {
         soldItems.sort((a, b) => a.timestamp - b.timestamp); 
         let toRemove = soldItems.slice(0, ITEMS_PER_PAGE).map(s => s.id);
         stock = stock.filter(s => !toRemove.includes(s.id));
-        logAction("قام الأدمن بحذف أقدم 50 اشتراك مباع");
+        logAction("قام الأدمن بحذف أقدم 50 اشتراك مباع", 'danger');
     } else {
         stock = stock.filter(s => s.status !== 'sold');
-        logAction("قام الأدمن بحذف كافة الاشتراكات المباعة");
+        logAction("قام الأدمن بحذف كافة الاشتراكات المباعة", 'danger');
     }
     
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
@@ -4522,7 +4596,7 @@ async function deleteActiveStock(id) {
     let stock = safeJSON(store.stock, []);
     stock = stock.filter(x => x.id !== id);
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
-    logAction("حذف اشتراك منتهي من المخزون المتاح");
+    logAction("حذف اشتراك منتهي من المخزون المتاح", 'danger');
     refreshStock(); loadPurchaseStock(); notify("تم الحذف بنجاح");
 }
 
@@ -4539,7 +4613,7 @@ async function moveToSold(id) {
         let ndd = nd.getDate().toString().padStart(2,'0');
         stock[idx].soldDate = `${nd.getFullYear()}-${nmm}-${ndd}`;
         store.stock = JSON.stringify(stock); fbSave("stock", stock);
-        logAction("نقل اشتراك منتهي جزئياً إلى الأرشيف");
+        logAction("نقل اشتراك منتهي جزئياً إلى الأرشيف", 'danger');
         refreshStock(); loadPurchaseStock(); notify("تم النقل بنجاح");
     }
 }
@@ -4740,7 +4814,7 @@ async function deleteSoldStock(id) {
     let stock = safeJSON(store.stock, []);
     stock = stock.filter(x => x.id !== id);
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
-    logAction("حذف سجل مباع من المخزون");
+    logAction("حذف سجل مباع من المخزون", 'danger');
     refreshStock();  notify("تم الحذف");
 }
 
@@ -4768,7 +4842,7 @@ async function sellStock(id) {
     stock[index] = item;
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
     
-    logAction(`تم بيع اشتراك من المخزون يدوياً: ${item.displayName || item.service}`);
+    logAction(`تم بيع اشتراك من المخزون يدوياً: ${item.displayName || item.service}`, 'financial');
     refreshStock(); loadPurchaseStock();  notify("تم نقل الاشتراك إلى المباع");
 }
 
@@ -4794,7 +4868,7 @@ function addService() {
     if(list.includes(val)) return notify("الخدمة موجودة مسبقاً", "error");
     list.push(val);
     store.services = JSON.stringify(list); fbSave("services", list);
-    logAction(`إضافة خدمة جديدة: ${val}`);
+    logAction(`إضافة خدمة جديدة: ${val}`, 'general');
     renderServicesSettings();
     loadServices();
     loadPurchaseStock();
@@ -4805,7 +4879,7 @@ function deleteService(idx) {
     let list = safeJSON(store.services, []);
     let removed = list.splice(idx, 1);
     store.services = JSON.stringify(list); fbSave("services", list);
-    logAction(`حذف خدمة: ${removed[0] || ''}`);
+    logAction(`حذف خدمة: ${removed[0] || ''}`, 'danger');
     renderServicesSettings();
     loadServices();
     loadPurchaseStock();
@@ -4925,7 +4999,7 @@ function exportHistoryCSV() {
     a.href = URL.createObjectURL(blob);
     a.download = `MegaStore_Archive_${new Date().toLocaleDateString('en-CA')}.csv`;
     a.click();
-    logAction("تصدير الأرشيف المالي كـ CSV");
+    logAction("تصدير الأرشيف المالي كـ CSV", 'general', { search: v || null, from: fromDate || null, to: toDate || null, count: filtered.length });
     notify("تم تصدير الملف بنجاح");
 }
 
@@ -4961,5 +5035,4 @@ window.onload = init;
 </script>
 </body>
 </html>
-
 
