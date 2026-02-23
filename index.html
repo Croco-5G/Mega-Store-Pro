@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | شSystem</title>
+    <title>Mega Store | System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -1816,6 +1816,10 @@ function _sortCollection(key, arr) {
             return (b.id || '').localeCompare(a.id || '');
         });
     }
+    // الملاحظات والمهام: الأحدث أولاً بالاعتماد على الـ id (يحتوي timestamp)
+    if (key === 'generalNotes' || key === 'todoList') {
+        return arr.slice().sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+    }
     return arr;
 }
 
@@ -2874,6 +2878,7 @@ function loadProfitSettings(){
     document.getElementById("setValidityMax").value = s.validityMax ?? 45;
 }
 function saveProfitSettings(){
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     let a = +document.getElementById("setAhmadProp").value;
     let m = +document.getElementById("setMohamedProp").value;
     let s = +document.getElementById("setStoreProp").value;
@@ -3298,7 +3303,7 @@ function refreshAll(){
     let ndd = now.getDate().toString().padStart(2,'0');
     let todayStr = `${now.getFullYear()}-${nmm}-${ndd}`;
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
-    document.getElementById("statSales").textContent = p.filter(x => x.date && x.date.includes(todayStr)).length;
+    document.getElementById("statSales").textContent = p.filter(x => x.date && x.date.includes(todayStr) && !x.isComp).length;
     if(isRestricted) {
         document.getElementById("statDollar").textContent = "****";
         document.getElementById("statShekel").textContent = "****";
@@ -3486,7 +3491,7 @@ function refreshHistory(){
     let fromDate = document.getElementById("historyFromDate") ? document.getElementById("historyFromDate").value : "";
     let toDate = document.getElementById("historyToDate") ? document.getElementById("historyToDate").value : "";
     
-    let filtered = p.slice().reverse().filter(item => {
+    let filtered = p.slice().filter(item => {
         let matchesSearch = !v || (item.customer||'').toLowerCase().includes(v) || (item.sub||'').toLowerCase().includes(v) || (item.phone||'').includes(v);
         let matchesFrom = !fromDate || (item.date && item.date >= fromDate);
         let matchesTo = !toDate || (item.date && item.date <= toDate);
@@ -3554,7 +3559,7 @@ function refreshAnalytics() {
     let months = {}, labels = [], data = [];
     for(let i=5; i>=0; i--){ let d = new Date(); d.setMonth(d.getMonth() - i); let mm = (d.getMonth()+1).toString().padStart(2,'0'); labels.push(mm+'/'+d.getFullYear()); months[labels[labels.length-1]] = 0; }
     purchases.forEach(p => { 
-        if(p.date) {
+        if(p.date && !p.isComp) {
             let parts = p.date.split('-');
             if(parts.length===3) {
                let k = parts[1]+'/'+parts[0]; 
@@ -3581,13 +3586,14 @@ function refreshGeneralNotes(){
     let box = document.getElementById("generalNotesBox");
     if(!box) return; 
     if(currentUser && currentUser.role === 'viewer') { box.innerHTML = ""; return; }
+    // ترتيب الملاحظات: الأحدث أولاً (بناءً على الـ id المبني على timestamp)
+    let sorted = n.slice().sort((a, b) => (b.id || '').localeCompare(a.id || ''));
     let rows = "";
-    for (let i = n.length - 1; i >= 0; i--) {
-        let x = n[i];
+    sorted.forEach(x => {
         let isViewerPlus = currentUser ? (currentUser.role === 'viewer_plus') : true;
         let delBtn = isViewerPlus ? '' : `<i class="fas fa-trash-alt" onclick="deleteNote('${x.id}')" style="color:var(--danger); cursor:pointer"></i>`;
         rows += `<div class="todo-item" style="border-right-color:var(--primary)"><div><small>${x.date}</small><div>${esc(x.text)}</div></div>${delBtn}</div>`; 
-    }
+    });
     box.innerHTML = rows;
 }
 function deleteNote(id){ 
@@ -4006,9 +4012,74 @@ async function deleteWallet(){
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
-    let f=document.getElementById("importFile").files[0], r=new FileReader(); 
-    r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
-    if(f) r.readAsText(f); else notify("اختر ملف","error"); 
+    let f=document.getElementById("importFile").files[0];
+    if(!f) return notify("اختر ملف","error");
+    let r=new FileReader(); 
+    r.onload=async (e)=>{ 
+        try{ 
+            let d=JSON.parse(e.target.result);
+            
+            let ok = await showConfirm(
+                "استعادة النسخة الاحتياطية",
+                "تحذير: سيتم استبدال جميع بيانات الموقع الحالية بالبيانات المستوردة. هذه العملية لا يمكن التراجع عنها. هل أنت متأكد؟",
+                "استعادة", "إلغاء",
+                '<i class="fas fa-exclamation-triangle" style="color:var(--danger)"></i>'
+            );
+            if(!ok) return;
+            
+            const SCALAR_IMPORT = ["wallets","invest","settings","services"];
+            const ARRAY_IMPORT  = ["users","purchases","generalNotes","todoList","activityLog","stock","discounts"];
+            
+            // حفظ الحقول القياسية في المستند الرئيسي
+            let scalarUpdates = {};
+            SCALAR_IMPORT.forEach(k => {
+                if(d[k] !== undefined) {
+                    let val = typeof d[k]==='string' ? JSON.parse(d[k]) : d[k];
+                    store[k] = JSON.stringify(val);
+                    scalarUpdates[k] = val;
+                }
+            });
+            
+            if(Object.keys(scalarUpdates).length > 0 && !isDemoMode && fbDocRef) {
+                await fbDocRef.set(scalarUpdates, {merge:true});
+            }
+            
+            // حفظ المصفوفات كـ Subcollections
+            for(let k of ARRAY_IMPORT) {
+                if(d[k] !== undefined) {
+                    let arr = typeof d[k]==='string' ? JSON.parse(d[k]) : d[k];
+                    if(!Array.isArray(arr)) continue;
+                    // ضمان IDs
+                    arr.forEach(item => { if(!item.id) item.id = genId(); });
+                    store[k] = JSON.stringify(arr);
+                    if(!isDemoMode && fbDocRef) {
+                        // حذف القديم وكتابة الجديد بالكامل
+                        const collRef = fbDocRef.collection(k);
+                        for(let i = 0; i < arr.length; i += 400) {
+                            const batch = db.batch();
+                            arr.slice(i, i+400).forEach(item => batch.set(collRef.doc(item.id), item));
+                            await batch.commit();
+                        }
+                    } else if(isDemoMode) {
+                        localStorage.setItem('demo_' + k, JSON.stringify(arr));
+                    }
+                }
+            }
+            
+            // ضمان وضع علامة V2 بعد الاستيراد
+            if(!isDemoMode && fbDocRef) {
+                await fbDocRef.set({ _v2migrated: true }, {merge:true});
+            }
+            
+            notify("تم الاستعادة بنجاح"); 
+            logAction("استيراد بيانات من نسخة احتياطية"); 
+            setTimeout(() => location.reload(), 1500);
+        }catch(err){ 
+            console.error("importData error:", err);
+            notify("ملف تالف أو خطأ في الاستيراد","error"); 
+        } 
+    }; 
+    r.readAsText(f);
 }
 
 async function undoLastPurchase(){ 
@@ -4736,7 +4807,7 @@ function exportHistoryCSV() {
     let fromDate = document.getElementById("historyFromDate") ? document.getElementById("historyFromDate").value : "";
     let toDate = document.getElementById("historyToDate") ? document.getElementById("historyToDate").value : "";
 
-    let filtered = p.slice().reverse().filter(item => {
+    let filtered = p.slice().filter(item => {
         let matchesSearch = !v || (item.customer||'').toLowerCase().includes(v) || (item.sub||'').toLowerCase().includes(v);
         let matchesFrom = !fromDate || (item.date && item.date >= fromDate);
         let matchesTo = !toDate || (item.date && item.date <= toDate);
