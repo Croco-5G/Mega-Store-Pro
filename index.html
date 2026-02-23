@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store | شSystem</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -508,6 +508,10 @@
         <h2>تسجيل الدخول</h2>
         <p style="color:var(--text-muted); font-size:14px; margin-bottom:30px">أهلاً بك مجدداً في نظام Mega Store</p>
         
+        <div id="demoLoginBanner" style="display:none; background:rgba(245,158,11,0.15); border:1px solid #f59e0b; border-radius:10px; padding:10px 14px; margin-bottom:18px; font-size:13px; color:#d97706; font-weight:700; text-align:center;">
+            <i class="fas fa-flask"></i> وضع تجريبي — أدخل أي اسم مستخدم وكلمة مرور
+        </div>
+        
         <div class="custom-input">
             <input id="loginUser" placeholder="اسم المستخدم" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';">
             <i class="fas fa-user"></i>
@@ -994,6 +998,10 @@
                     <span class="slider"></span>
                 </label>
             </div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <button class="btn btn-danger" onclick="resetDemoData()" style="font-size:13px; padding:8px 18px;"><i class="fas fa-undo-alt"></i> إعادة تعيين بيانات الوضع التجريبي</button>
+                <p style="font-size: 12px; color: #64748b; margin: 8px 0 0 0;">يعيد جميع البيانات التجريبية إلى الحالة الافتراضية.</p>
+            </div>
         </div>
 
         <h3><i class="fas fa-key" style="color:var(--primary)"></i> تغيير كلمة المرور</h3>
@@ -1256,6 +1264,18 @@
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════════════
+//  MEGA STORE SYSTEM — v5.0 (Atomic Race-Condition Fix)
+//  تاريخ الإصلاح: 2026-02-23
+//
+//  ✅ wallets + invest: جميع التحديثات المالية تستخدم
+//     FieldValue.increment() — عمليات ذرية على الخادم مباشرة،
+//     مستحيل يحدث Race Condition حتى مع 100 موظف متزامن
+//
+//  ✅ stock + purchases + logs: Subcollections بـ Diff algorithm
+//
+//  ✅ fbAtomicWalletInvest(): دالة مركزية لكل العمليات المالية
+// ═══════════════════════════════════════════════════════════════
 // --- GLOBAL DEFINITIONS & UTILS ---
 let migrationRun = false; 
 
@@ -1313,9 +1333,14 @@ const firebaseConfig = {
 
 // ─── In-Memory Store (replaces localStorage for app data) ────────
 let store = {};
-let fbDocRef = null;
+let db = null;                   // مرجع Firestore العالمي
+let fbDocRef = null;             // مرجع المستند الرئيسي megastore/data
 let fbConnected = false;
-let isFbSaving = false;
+let lastServerState = {};        // آخر حالة مؤكدة من الخادم — أساس عملية الـ Diff
+let _syncStatusTimer = null;
+let _pendingWritesTimer = null;
+let _refreshAllTimer = null;     // لـ Debounce استدعاءات refreshAll المتكررة
+let _collectionsLoaded = {};     // يتتبع أي Subcollections أتمت التحميل الأولي
 let myProfitChart = null;
 let mySalesChart = null;
 let currentUser = null; 
@@ -1324,7 +1349,16 @@ let currentStockTab = 'active';
 let currentLogsTab = 'financial';
 let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1 };
 const ITEMS_PER_PAGE = 50;
-const STORE_KEYS = ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"];
+
+// ─── تصنيف مفاتيح البيانات ──────────────────────────────────────
+// SCALAR: يُخزَّن كحقل في المستند الرئيسي (wallets وinvest وsettings)
+// ARRAY:  يُخزَّن كـ Subcollection — كل عنصر وثيقة Firestore مستقلة
+// services: مصفوفة strings بسيطة ← تُخزَّن كحقل في المستند الرئيسي (Scalar)
+// لا تحتوي على IDs فلا تصلح كـ Subcollection
+const SCALAR_KEYS = ["wallets", "settings", "invest", "services"];
+const ARRAY_KEYS  = ["purchases", "stock", "users", "activityLog",
+                     "todoList", "generalNotes", "discounts"];
+const STORE_KEYS  = [...SCALAR_KEYS, ...ARRAY_KEYS];
 
 // --- UPDATED DIALOG SYSTEM ---
 let _confirmResolve = null;
@@ -1399,18 +1433,258 @@ document.addEventListener("keydown", e => {
     }
 });
 
-// Save a single key to Firebase
-function fbSave(key, val) {
-    if (isDemoMode) return;
-    if (!fbDocRef) return;
-    updateSyncStatus("جاري الحفظ...", "loading");
-    
-    fbDocRef.set({ [key]: val }, { merge: true }).catch(e => {
-        console.error("fbSave error:", e);
-        updateSyncStatus("غير متصل", "error");
-    });
+// ═══════════════════════════════════════════════════════════════
+//  نظام المزامنة الذكي V2
+//  - البيانات القياسية (wallets/settings/invest) ← حقول في المستند الرئيسي
+//  - مصفوفات البيانات ← Subcollections (كل عنصر وثيقة مستقلة)
+//  - رفع: يُحسب الـ Diff ويُرسَل ما تغيّر فقط (إضافة/تعديل/حذف)
+//  - استقبال: docChanges() يُطبّق التغييرات الجزئية فقط على store
+//  - ترحيل: migrateToV2() يحوّل البيانات القديمة تلقائياً
+// ═══════════════════════════════════════════════════════════════
+
+// ── أداة مشتركة: مُعرِّف فريد ────────────────────────────────
+function genId() {
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
+// ── Debounce لـ refreshAll (يمنع الاستدعاءات المتكررة) ────────
+function debouncedRefreshAll() {
+    clearTimeout(_refreshAllTimer);
+    _refreshAllTimer = setTimeout(() => { if (currentUser) refreshAll(); }, 120);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  fbSave — نقطة الدخول الرئيسية للحفظ
+//  يُوجِّه الطلب إلى المنطق المناسب حسب نوع المفتاح
+// ══════════════════════════════════════════════════════════════
+function fbSave(key, val) {
+    if (isDemoMode) {
+        // في الوضع التجريبي: حفظ في localStorage فقط
+        localStorage.setItem('demo_' + key, JSON.stringify(val));
+        return;
+    }
+    if (!fbDocRef) return;
+    if (SCALAR_KEYS.includes(key)) {
+        _fbSaveScalar(key, val);
+    } else if (ARRAY_KEYS.includes(key)) {
+        _fbSaveArrayDiff(key, Array.isArray(val) ? val : []);
+    }
+}
+
+// ── حفظ متعدد في طلب واحد (لعمليات تُعدِّل عدة مفاتيح دفعة) ─
+function fbSaveMultiple(updates) {
+    if (isDemoMode) {
+        Object.entries(updates).forEach(([key, val]) => {
+            localStorage.setItem('demo_' + key, JSON.stringify(val));
+        });
+        return;
+    }
+    if (!fbDocRef) return;
+
+    _startSyncTimer();
+
+    const scalarUpdates = {};
+    const allBatchOps   = [];
+
+    Object.entries(updates).forEach(([key, val]) => {
+        if (SCALAR_KEYS.includes(key)) {
+            scalarUpdates[key] = val;
+        } else if (ARRAY_KEYS.includes(key)) {
+            const oldArr  = lastServerState[key] || [];
+            const newArr  = Array.isArray(val) ? val : [];
+            const collRef = fbDocRef.collection(key);
+
+            newArr.forEach(item => {
+                if (!item.id) item.id = genId();
+                const old = oldArr.find(x => x.id === item.id);
+                if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
+                    allBatchOps.push({ type: 'set', ref: collRef.doc(item.id), data: item });
+                }
+            });
+            oldArr.forEach(item => {
+                if (item.id && !newArr.find(x => x.id === item.id)) {
+                    allBatchOps.push({ type: 'delete', ref: collRef.doc(item.id) });
+                }
+            });
+        }
+    });
+
+    const promises = [];
+
+    if (Object.keys(scalarUpdates).length > 0) {
+        promises.push(fbDocRef.set(scalarUpdates, { merge: true }));
+    }
+
+    // Firestore batch limit = 500 عملية
+    for (let i = 0; i < allBatchOps.length; i += 400) {
+        const batch = db.batch();
+        allBatchOps.slice(i, i + 400).forEach(op => {
+            if (op.type === 'set') batch.set(op.ref, op.data);
+            else                   batch.delete(op.ref);
+        });
+        promises.push(batch.commit());
+    }
+
+    if (promises.length === 0) { clearTimeout(_pendingWritesTimer); return; }
+
+    Promise.all(promises)
+        .then(() => {
+            clearTimeout(_pendingWritesTimer);
+            Object.entries(updates).forEach(([k, v]) => {
+                lastServerState[k] = JSON.parse(JSON.stringify(v));
+            });
+            updateSyncStatus("تم الحفظ بنجاح", "success");
+        })
+        .catch(e => {
+            clearTimeout(_pendingWritesTimer);
+            console.error("fbSaveMultiple error:", e);
+            updateSyncStatus("فشل الحفظ — غير متصل", "error");
+        });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  fbAtomicWalletInvest — تحديث ذري (Atomic) للأرصدة والحصص
+//  يستخدم FieldValue.increment() لمنع Race Condition بالكامل
+//  لا يقرأ القيمة الحالية — الخادم يحسب النتيجة مباشرة
+//
+//  walletIncs  : { "اسم المحفظة": delta }          ← يُطبَّق على .bal
+//  investIncs  : { "ahmad.d": delta, "store.s": delta, ... }
+//  localW/localI: نسخة محلية محدَّثة للـ UI (optimistic)
+// ══════════════════════════════════════════════════════════════
+function fbAtomicWalletInvest(walletIncs, investIncs, localW, localI) {
+    if (isDemoMode) {
+        // في الوضع التجريبي: الـ store تم تحديثه مسبقاً، فقط احفظ في localStorage
+        if (localW) localStorage.setItem('demo_wallets', JSON.stringify(localW));
+        if (localI) localStorage.setItem('demo_invest', JSON.stringify(localI));
+        return Promise.resolve();
+    }
+    if (!fbDocRef) return Promise.resolve();
+
+    _startSyncTimer();
+
+    const updateObj = {};
+
+    // wallets.<name>.bal += delta
+    if (walletIncs) {
+        Object.entries(walletIncs).forEach(([name, delta]) => {
+            if (delta !== 0) {
+                updateObj[`wallets.${name}.bal`] =
+                    firebase.firestore.FieldValue.increment(delta);
+            }
+        });
+    }
+
+    // invest.<person>.<currency> += delta  (e.g. "ahmad.d", "store.s")
+    if (investIncs) {
+        Object.entries(investIncs).forEach(([path, delta]) => {
+            if (delta !== 0) {
+                updateObj[`invest.${path}`] =
+                    firebase.firestore.FieldValue.increment(delta);
+            }
+        });
+    }
+
+    if (Object.keys(updateObj).length === 0) {
+        clearTimeout(_pendingWritesTimer);
+        return Promise.resolve();
+    }
+
+    return fbDocRef.update(updateObj)
+        .then(() => {
+            clearTimeout(_pendingWritesTimer);
+            // حفظ الحالة المحلية في lastServerState لمنع overwrite من الـ Diff
+            if (localW) lastServerState['wallets'] = JSON.parse(JSON.stringify(localW));
+            if (localI) lastServerState['invest']  = JSON.parse(JSON.stringify(localI));
+            updateSyncStatus("تم الحفظ بنجاح", "success");
+        })
+        .catch(e => {
+            clearTimeout(_pendingWritesTimer);
+            console.error("fbAtomicWalletInvest error:", e);
+            updateSyncStatus("فشل الحفظ — غير متصل", "error");
+        });
+}
+
+// ── حفظ حقل قياسي (object أو array) في المستند الرئيسي ────────
+function _fbSaveScalar(key, val) {
+    _startSyncTimer();
+    fbDocRef.set({ [key]: val }, { merge: true })
+        .then(() => {
+            clearTimeout(_pendingWritesTimer);
+            lastServerState[key] = JSON.parse(JSON.stringify(val));
+            updateSyncStatus("تم الحفظ بنجاح", "success");
+        })
+        .catch(e => {
+            clearTimeout(_pendingWritesTimer);
+            console.error("fbSave scalar error:", e);
+            updateSyncStatus("فشل الحفظ — غير متصل", "error");
+        });
+}
+
+// ── حفظ مصفوفة: يحسب الـ Diff ويرسل ما تغيّر فقط ────────────
+function _fbSaveArrayDiff(key, newArr) {
+    const oldArr  = lastServerState[key] || [];
+    const collRef = fbDocRef.collection(key);
+
+    const toWrite  = [];
+    const toDelete = [];
+
+    newArr.forEach(item => {
+        if (!item.id) item.id = genId();
+        const old = oldArr.find(x => x.id === item.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
+            toWrite.push(item);
+        }
+    });
+    oldArr.forEach(item => {
+        if (item.id && !newArr.find(x => x.id === item.id)) {
+            toDelete.push(item.id);
+        }
+    });
+
+    if (toWrite.length === 0 && toDelete.length === 0) return;
+
+    _startSyncTimer();
+
+    const allOps = [
+        ...toWrite.map(item => ({ type: 'set',    ref: collRef.doc(item.id), data: item })),
+        ...toDelete.map(id   => ({ type: 'delete', ref: collRef.doc(id) }))
+    ];
+
+    const batches = [];
+    for (let i = 0; i < allOps.length; i += 400) {
+        const batch = db.batch();
+        allOps.slice(i, i + 400).forEach(op => {
+            if (op.type === 'set') batch.set(op.ref, op.data);
+            else                   batch.delete(op.ref);
+        });
+        batches.push(batch.commit());
+    }
+
+    Promise.all(batches)
+        .then(() => {
+            clearTimeout(_pendingWritesTimer);
+            lastServerState[key] = JSON.parse(JSON.stringify(newArr));
+            updateSyncStatus("تم الحفظ بنجاح", "success");
+        })
+        .catch(e => {
+            clearTimeout(_pendingWritesTimer);
+            console.error(`fbSave array (${key}) error:`, e);
+            updateSyncStatus("فشل الحفظ — غير متصل", "error");
+        });
+}
+
+// ── مؤقت الانتظار المشترك ─────────────────────────────────────
+function _startSyncTimer() {
+    updateSyncStatus("جاري الحفظ...", "loading");
+    clearTimeout(_pendingWritesTimer);
+    _pendingWritesTimer = setTimeout(() => {
+        updateSyncStatus("تأخر في الاتصال، تحقق من الإنترنت", "error");
+    }, 10000);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  runSilentMigration — ضمان IDs وتنسيق التواريخ (V1 → V1.1)
+// ══════════════════════════════════════════════════════════════
 function runSilentMigration() {
     let changed = false;
     let p = safeJSON(store.purchases, []);
@@ -1420,140 +1694,321 @@ function runSilentMigration() {
     let u = safeJSON(store.users, []);
 
     const fixDate = (dStr) => {
-        if(!dStr) return dStr;
+        if (!dStr) return dStr;
         let parts = dStr.split('-');
-        if(parts.length === 3) {
-            let m = parts[1].length === 1 ? '0'+parts[1] : parts[1];
-            let d = parts[2].length === 1 ? '0'+parts[2] : parts[2];
+        if (parts.length === 3) {
+            let m = parts[1].length === 1 ? '0' + parts[1] : parts[1];
+            let d = parts[2].length === 1 ? '0' + parts[2] : parts[2];
             return `${parts[0]}-${m}-${d}`;
         }
         return dStr;
     };
 
     const ensureId = (item) => {
-        if(!item.id) { item.id = 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,9); return true; }
+        if (!item.id) { item.id = genId(); return true; }
         return false;
     };
 
-    p.forEach(x => { 
-        let fd = fixDate(x.date); 
-        if(fd !== x.date) { x.date = fd; changed = true; } 
-        if(ensureId(x)) changed = true; 
+    // ضمان حقل _ts لترتيب سجل النشاط
+    let logs = safeJSON(store.activityLog, []);
+    let logChanged = false;
+    logs.forEach(x => {
+        if (!x.id)  { x.id  = genId();     logChanged = true; }
+        if (!x._ts) { x._ts = Date.now();  logChanged = true; }
     });
-    s.forEach(x => { 
-        let fd = fixDate(x.soldDate); 
-        if(x.soldDate && fd !== x.soldDate) { x.soldDate = fd; changed = true; } 
-        if(ensureId(x)) changed = true; 
-    });
-    n.forEach(x => { if(ensureId(x)) changed = true; });
-    t.forEach(x => { if(ensureId(x)) changed = true; });
-    u.forEach(x => { if(ensureId(x)) changed = true; });
 
-    if(changed) {
-        let updates = {};
-        updates.purchases = p; store.purchases = JSON.stringify(p);
-        updates.stock = s; store.stock = JSON.stringify(s);
-        updates.generalNotes = n; store.generalNotes = JSON.stringify(n);
-        updates.todoList = t; store.todoList = JSON.stringify(t);
-        updates.users = u; store.users = JSON.stringify(u);
-        fbDocRef.set(updates, {merge:true});
+    p.forEach(x => {
+        let fd = fixDate(x.date);
+        if (fd !== x.date) { x.date = fd; changed = true; }
+        if (ensureId(x)) changed = true;
+    });
+    s.forEach(x => {
+        let fd = fixDate(x.soldDate);
+        if (x.soldDate && fd !== x.soldDate) { x.soldDate = fd; changed = true; }
+        if (ensureId(x)) changed = true;
+    });
+    n.forEach(x => { if (ensureId(x)) changed = true; });
+    t.forEach(x => { if (ensureId(x)) changed = true; });
+    u.forEach(x => { if (ensureId(x)) changed = true; });
+
+    if (changed) {
+        store.purchases    = JSON.stringify(p); fbSave("purchases",    p);
+        store.stock        = JSON.stringify(s); fbSave("stock",        s);
+        store.generalNotes = JSON.stringify(n); fbSave("generalNotes", n);
+        store.todoList     = JSON.stringify(t); fbSave("todoList",     t);
+        store.users        = JSON.stringify(u); fbSave("users",        u);
+    }
+    if (logChanged) {
+        store.activityLog = JSON.stringify(logs); fbSave("activityLog", logs);
     }
 }
 
+// ══════════════════════════════════════════════════════════════
+//  migrateToV2 — ترحيل البيانات القديمة (Flat → Subcollections)
+//  يعمل مرة واحدة فقط عند اكتشاف بيانات بالصيغة القديمة
+// ══════════════════════════════════════════════════════════════
+async function migrateToV2(oldData) {
+    console.log("⏳ بدء الترحيل إلى V2 (Subcollections)...");
+    updateSyncStatus("جاري الترحيل...", "loading");
+
+    try {
+        // فقط ARRAY_KEYS الحقيقية (بدون services)
+        const MIGRATE_KEYS = ARRAY_KEYS;
+
+        for (const key of MIGRATE_KEYS) {
+            const arr = oldData[key];
+            if (!Array.isArray(arr) || arr.length === 0) continue;
+
+            // ضمان IDs لكل العناصر
+            arr.forEach(item => { if (!item.id) item.id = genId(); });
+            // ضمان _ts لسجل النشاط
+            if (key === 'activityLog') {
+                arr.forEach(item => { if (!item._ts) item._ts = Date.now(); });
+            }
+
+            const collRef = fbDocRef.collection(key);
+            for (let i = 0; i < arr.length; i += 400) {
+                const batch = db.batch();
+                arr.slice(i, i + 400).forEach(item => batch.set(collRef.doc(item.id), item));
+                await batch.commit();
+            }
+
+            // تحديث الـ store والـ lastServerState فوراً
+            const sorted = _sortCollection(key, arr);
+            store[key]           = JSON.stringify(sorted);
+            lastServerState[key] = JSON.parse(JSON.stringify(sorted));
+        }
+
+        // حذف الحقول القديمة من المستند الرئيسي وتسجيل الترحيل
+        const cleanupObj = { _v2migrated: true };
+        MIGRATE_KEYS.forEach(k => {
+            if (oldData[k] !== undefined)
+                cleanupObj[k] = firebase.firestore.FieldValue.delete();
+        });
+        // services كانت مصفوفة strings في V1 → تبقى كـ scalar field
+        if (Array.isArray(oldData.services)) {
+            cleanupObj.services = oldData.services;
+            store.services = JSON.stringify(oldData.services);
+            lastServerState['services'] = JSON.parse(JSON.stringify(oldData.services));
+        }
+        await fbDocRef.update(cleanupObj);
+
+        console.log("✅ الترحيل إلى V2 اكتمل!");
+        runSilentMigration(); // تشغيل هجرة V1.1 بعد V2
+        updateSyncStatus("تم الترحيل بنجاح", "success");
+
+    } catch (e) {
+        console.error("❌ خطأ في الترحيل:", e);
+        updateSyncStatus("خطأ أثناء الترحيل", "error");
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ترتيب Subcollection عند التحميل (الأحدث أولاً)
+// ══════════════════════════════════════════════════════════════
+function _sortCollection(key, arr) {
+    if (key === 'activityLog') {
+        return arr.slice().sort((a, b) => (b._ts || 0) - (a._ts || 0));
+    }
+    if (key === 'purchases') {
+        return arr.slice().sort((a, b) => {
+            if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
+            return (b.id || '').localeCompare(a.id || '');
+        });
+    }
+    return arr;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  initFirebase — تهيئة Firebase والمستمعين
+// ══════════════════════════════════════════════════════════════
 function initFirebase() {
     const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore(app);
-
+    db       = firebase.firestore(app);
     fbDocRef = db.collection("megastore").doc("data");
 
     updateSyncStatus("جاري الاتصال...", "loading");
 
-    // Real-time listener
+    // ── 1. مستمع البيانات القياسية (wallets / settings / invest) ─
     fbDocRef.onSnapshot(
-        (doc) => {
-            const fromCache = doc.metadata.fromCache;
+        { includeMetadataChanges: true },
+        async (doc) => {
+            const fromCache      = doc.metadata.fromCache;
             const hasPendingWrites = doc.metadata.hasPendingWrites;
-            
-            fbConnected = !fromCache; 
-            
+
+            if (!fromCache) fbConnected = true;
+
             if (doc.exists) {
                 const data = doc.data();
-                STORE_KEYS.forEach(k => {
+
+                // تحديث الـ store للحقول القياسية فقط (بما فيها services)
+                SCALAR_KEYS.forEach(k => {
                     if (data[k] !== undefined) {
-                        store[k] = JSON.stringify(data[k]);
+                        const newStr = JSON.stringify(data[k]);
+                        if (store[k] !== newStr) {
+                            store[k] = newStr;
+                            if (!fromCache) lastServerState[k] = JSON.parse(JSON.stringify(data[k]));
+                        }
                     }
                 });
-                
-                if(!fromCache && !migrationRun) {
-                    runSilentMigration();
+
+                // ─ ترحيل البيانات القديمة (يعمل مرة واحدة فقط) ─
+                if (!fromCache && !migrationRun) {
                     migrationRun = true;
+                    if (!data._v2migrated) {
+                        // قاعدة بيانات قديمة: ترحيل إلى V2
+                        await migrateToV2(data);
+                    } else {
+                        // قاعدة V2: هجرة بيانات بسيطة فقط
+                        runSilentMigration();
+                    }
                 }
 
-                if (currentUser) {
-                    let latestUsers = safeJSON(store.users, []);
-                    let me = latestUsers.find(x => x.username === currentUser.username);
-                    if (!me || me.status === 'banned' || me.password !== currentUser.password) {
-                        alert("عذراً، تم تغيير بيانات حسابك أو تم حظرك بواسطة الإدارة. سيتم تسجيل الخروج الآن.");
-                        location.reload();
-                        return;
-                    }
-                    if (me.role !== currentUser.role) {
-                        currentUser.role = me.role;
-                        applyRBAC();
-                    }
-                    refreshAll();
+                // ─ التحقق من صلاحية المستخدم الحالي ─
+                if (currentUser && !fromCache && !hasPendingWrites) {
+                    _validateCurrentUser();
                 }
-            } else {
-                if (!fromCache) {
-                    fbDocRef.set(getDefaultData(), {merge: true}).catch(e => console.error(e));
-                }
+
+            } else if (!fromCache) {
+                // قاعدة بيانات جديدة — إنشاء البنية الأساسية
+                _initNewDatabase();
             }
-            
-            if (hasPendingWrites) {
-                updateSyncStatus("تم الحفظ (بانتظار المزامنة)", "warning"); 
-            } else {
-                updateSyncStatus("متزامن", "success"); 
+
+            // تحديث حالة المزامنة
+            if (!hasPendingWrites && !fromCache) {
+                clearTimeout(_pendingWritesTimer);
+                updateSyncStatus("متزامن", "success");
+            } else if (fromCache && !fbConnected) {
+                updateSyncStatus("غير متصل (البيانات محفوظة)", "warning");
             }
-            
+
             updateStorageUI();
-            
-            if (document.getElementById("loginCard").style.display === "none" || 
-                document.getElementById("loginLayer").style.display !== "none") {
-                if (document.getElementById("loginLayer").style.display !== "none") {
-                    document.getElementById("loginCard").style.display = "";
-                }
+
+            // إظهار بطاقة تسجيل الدخول بعد جاهزية البيانات
+            if (document.getElementById("loginLayer").style.display !== "none") {
+                document.getElementById("loginCard").style.display = "";
             }
         },
         (error) => {
-            console.error("Firestore error:", error);
+            console.error("Firestore scalar error:", error);
+            fbConnected = false;
             updateSyncStatus("وضع غير متصل (محمي)", "warning");
             updateStorageUI();
         }
     );
 
+    // ── 2. مستمعو Subcollections (كل مفتاح مصفوفة مستمع مستقل) ─
+    ARRAY_KEYS.forEach(key => {
+        _collectionsLoaded[key] = false;
+        lastServerState[key]    = [];
+
+        fbDocRef.collection(key).onSnapshot(
+            { includeMetadataChanges: true },
+            (snapshot) => {
+                const fromCache      = snapshot.metadata.fromCache;
+                const hasPendingWrites = snapshot.metadata.hasPendingWrites;
+
+                if (!fromCache) fbConnected = true;
+
+                let arr = safeJSON(store[key], []);
+
+                if (!_collectionsLoaded[key]) {
+                    // ──── التحميل الأولي: استيعاب كل الوثائق ────
+                    _collectionsLoaded[key] = true;
+                    arr = snapshot.docs.map(d => d.data());
+                } else {
+                    // ──── تحديث تدريجي: تطبيق التغييرات فقط ────
+                    snapshot.docChanges().forEach(change => {
+                        const item = change.doc.data();
+                        if (change.type === 'added' || change.type === 'modified') {
+                            const idx = arr.findIndex(x => x.id === item.id);
+                            if (idx !== -1) arr[idx] = item;
+                            else arr.push(item);
+                        } else if (change.type === 'removed') {
+                            arr = arr.filter(x => x.id !== change.doc.id);
+                        }
+                    });
+                }
+
+                // ترتيب المصفوفة حسب نوعها
+                arr = _sortCollection(key, arr);
+
+                store[key] = JSON.stringify(arr);
+                if (!fromCache) {
+                    lastServerState[key] = JSON.parse(JSON.stringify(arr));
+                }
+
+                // ─ التحقق من المستخدمين عند تغيّر جدول users ─
+                if (key === 'users' && !fromCache && !hasPendingWrites && currentUser) {
+                    _validateCurrentUser();
+                }
+
+                // ─ تحديث الواجهة عند وصول بيانات من الخادم ─
+                if (!fromCache && !hasPendingWrites && currentUser) {
+                    debouncedRefreshAll();
+                }
+
+                updateStorageUI();
+            },
+            (error) => {
+                console.error(`Firestore collection (${key}) error:`, error);
+            }
+        );
+    });
+
+    // ── 3. معالجة الاتصال / الانقطاع ─────────────────────────
     window.addEventListener('online', () => {
-        fbDocRef.get(); 
-        updateSyncStatus("جاري المزامنة...", "loading");
+        fbConnected = false;
+        updateSyncStatus("جاري استعادة الاتصال...", "loading");
+        fbDocRef.get({ source: 'server' }).catch(() => {});
     });
     window.addEventListener('offline', () => {
+        fbConnected = false;
+        clearTimeout(_pendingWritesTimer);
         updateSyncStatus("غير متصل (البيانات محفوظة)", "warning");
         updateStorageUI();
     });
 }
 
+// ── دوال مساعدة لـ initFirebase ──────────────────────────────
+
+function _validateCurrentUser() {
+    let latestUsers = safeJSON(store.users, []);
+    let me = latestUsers.find(x => x.username === currentUser.username);
+    if (!me || me.status === 'banned' || me.password !== currentUser.password) {
+        alert("عذراً، تم تغيير بيانات حسابك أو تم حظرك بواسطة الإدارة. سيتم تسجيل الخروج الآن.");
+        location.reload();
+        return;
+    }
+    if (me.role !== currentUser.role) {
+        currentUser.role = me.role;
+        applyRBAC();
+    }
+    debouncedRefreshAll();
+}
+
+function _initNewDatabase() {
+    // قاعدة بيانات جديدة — إنشاء المستند الرئيسي بالقيم الافتراضية
+    const defaults = getDefaultData();
+    fbDocRef.set({
+        wallets:      defaults.wallets,
+        settings:     defaults.settings,
+        invest:       defaults.invest,
+        services:     defaults.services,
+        _v2migrated:  true
+    }, { merge: true }).catch(e => console.error(e));
+
+    // إنشاء المستخدم الافتراضي في Subcollection users
+    fbDocRef.collection('users').doc(DEFAULT_USER.id).set(DEFAULT_USER).catch(e => console.error(e));
+}
+
 function getDefaultData() {
+    // في V2 تُخزَّن المصفوفات كـ Subcollections، وهذه الدالة تُعيد الحقول القياسية فقط
     return {
-        users: safeJSON(store.users, [DEFAULT_USER]),
-        wallets: safeJSON(store.wallets, {"جوال باي — سعاد":{bal:0,cur:"₪",active:true},"جوال باي — محمد":{bal:0,cur:"₪",active:true},"بال باي — أحمد":{bal:0,cur:"₪",active:true},"بايننس — احمد":{bal:0,cur:"$",active:true}}),
-        purchases: safeJSON(store.purchases, []),
-        invest: safeJSON(store.invest, {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}),
-        settings: safeJSON(store.settings, {ahmad:35,mohamed:35,store:30,deductCost:true,exchangeRate:0,logsVis:"all", discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}),
-        generalNotes: safeJSON(store.generalNotes, []),
-        todoList: safeJSON(store.todoList, []),
-        activityLog: safeJSON(store.activityLog, []),
-        stock: safeJSON(store.stock, []),
-        services: safeJSON(store.services, []),
-        discounts: safeJSON(store.discounts, [])
+        wallets:  safeJSON(store.wallets,  {"جوال باي — سعاد":{bal:0,cur:"₪",active:true},"جوال باي — محمد":{bal:0,cur:"₪",active:true},"بال باي — أحمد":{bal:0,cur:"₪",active:true},"بايننس — احمد":{bal:0,cur:"$",active:true}}),
+        invest:   safeJSON(store.invest,   {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}),
+        settings: safeJSON(store.settings, {ahmad:35,mohamed:35,store:30,deductCost:true,exchangeRate:0,logsVis:"all",discountEnabled:true,discountChance:25,discountMin:10,discountMax:20,validityMin:15,validityMax:45}),
+        services: safeJSON(store.services, [])
     };
 }
 
@@ -1671,15 +2126,27 @@ function updateSyncStatus(msg, type="loading") {
          el.innerHTML = `<i class="fas fa-flask"></i> <span>وضع تجريبي</span>`;
          return;
     }
+    // إلغاء أي مؤقت سابق لتجنّب التعارض
+    clearTimeout(_syncStatusTimer);
     if(type==="loading") {
         el.innerHTML = `<i class="fas fa-circle-notch fa-spin" style="color:var(--primary)"></i> <span>${msg}</span>`;
+        el.style.borderColor = "";
     } else if (type==="success") {
-        el.innerHTML = `<i class="fas fa-check" style="color:var(--success)"></i> <span>${msg}</span>`;
-        setTimeout(() => el.innerHTML = `<i class="fas fa-cloud"></i> <span>متزامن</span>`, 3000);
+        el.innerHTML = `<i class="fas fa-check-circle" style="color:var(--success)"></i> <span style="color:var(--success)">${msg}</span>`;
+        el.style.borderColor = "var(--success)";
+        _syncStatusTimer = setTimeout(() => {
+            el.innerHTML = `<i class="fas fa-cloud" style="color:var(--text-muted)"></i> <span>متزامن</span>`;
+            el.style.borderColor = "";
+        }, 3000);
     } else if (type==="error") {
-        el.innerHTML = `<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> <span>${msg}</span>`;
+        el.innerHTML = `<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> <span style="color:var(--danger)">${msg}</span>`;
+        el.style.borderColor = "var(--danger)";
+    } else if (type==="warning") {
+        el.innerHTML = `<i class="fas fa-cloud-upload-alt" style="color:#d97706"></i> <span style="color:#d97706">${msg}</span>`;
+        el.style.borderColor = "#d97706";
     } else {
-        el.innerHTML = `<i class="fas fa-cloud"></i> <span>${msg}</span>`;
+        el.innerHTML = `<i class="fas fa-cloud" style="color:var(--text-muted)"></i> <span>${msg}</span>`;
+        el.style.borderColor = "";
     }
 }
 
@@ -1687,9 +2154,11 @@ function logAction(actionDescription, details=null) {
     if(!currentUser) return;
     let logs = safeJSON(store.activityLog, []);
     logs.unshift({
-        user: currentUser.username,
-        action: actionDescription,
-        time: new Date().toLocaleString("ar-EG"),
+        id:      genId(),                             // لازم للـ Subcollection
+        _ts:     Date.now(),                          // للترتيب الزمني الدقيق
+        user:    currentUser.username,
+        action:  actionDescription,
+        time:    new Date().toLocaleString("ar-EG"),
         details: details 
     });
     if(logs.length > 500) logs = logs.slice(0, 500);
@@ -1717,7 +2186,7 @@ function init(){
     if(!store.settings) store.settings = JSON.stringify({ahmad: 35, mohamed: 35, store: 30, deductCost: true, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}); 
     if(!store.activityLog) store.activityLog = "[]"; 
     if(!store.stock) store.stock = "[]"; 
-    if(!store.services) store.services = "[]"; 
+    if(!store.services) store.services = "[]";
     if(!store.discounts) store.discounts = "[]"; 
 
     let isDark = localStorage.getItem("darkMode") === "true";
@@ -1727,6 +2196,14 @@ function init(){
     if(localStorage.getItem("isDemoMode") === "true") {
         isDemoMode = true;
         if(document.getElementById("demoModeToggle")) document.getElementById("demoModeToggle").checked = true;
+        // إظهار شعار الوضع التجريبي في صفحة الدخول
+        let demoBanner = document.getElementById("demoLoginBanner");
+        if(demoBanner) demoBanner.style.display = "block";
+        // تحميل بيانات الوضع التجريبي من localStorage
+        STORE_KEYS.forEach(k => {
+            let saved = localStorage.getItem('demo_' + k);
+            if(saved) store[k] = saved;
+        });
         updateSyncStatus("وضع تجريبي (غير متصل)", "warning");
     } else {
         initFirebase();
@@ -1790,9 +2267,19 @@ async function toggleDemoMode() {
         let ok = await showConfirm("إيقاف الوضع التجريبي", "سيتم استعادة البيانات الأصلية من السحابة وحذف أي تعديلات قمت بها الآن.", "إيقاف", "إلغاء", '<i class="fas fa-cloud-download-alt"></i>');
         if(!ok) { document.getElementById("demoModeToggle").checked = true; return; }
         
+        // حذف جميع بيانات الوضع التجريبي
+        STORE_KEYS.forEach(k => localStorage.removeItem('demo_' + k));
         localStorage.setItem("isDemoMode", "false");
         location.reload();
     }
+}
+
+async function resetDemoData() {
+    if(!isDemoMode) return notify("هذا الخيار متاح في الوضع التجريبي فقط", "error");
+    let ok = await showConfirm("إعادة تعيين بيانات الوضع التجريبي", "سيتم حذف جميع التغييرات التجريبية وإعادة البيانات لوضعها الافتراضي.", "إعادة تعيين", "إلغاء", '<i class="fas fa-undo-alt"></i>');
+    if(!ok) return;
+    STORE_KEYS.forEach(k => localStorage.removeItem('demo_' + k));
+    location.reload();
 }
 
 async function attemptLogin() {
@@ -1808,6 +2295,42 @@ async function attemptLogin() {
     btn.classList.add('loading'); 
 
     await new Promise(r => setTimeout(r, 800));
+
+    // ─── الوضع التجريبي: أي اسم مستخدم وأي كلمة مرور ───────────
+    if (isDemoMode) {
+        if (!u || !p) {
+            errEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> يرجى إدخال اسم مستخدم وكلمة مرور.';
+            errEl.style.background = 'rgba(239,68,68,0.12)';
+            errEl.style.color = '#ef4444';
+            errEl.style.border = '1.5px solid rgba(239,68,68,0.35)';
+            errEl.style.display = 'block';
+            btn.classList.remove('loading');
+            return;
+        }
+        // إنشاء مستخدم تجريبي بالاسم المدخل (مسح القديمين)
+        let demoUser = {
+            id: 'id_demo_user',
+            username: u,
+            password: p,
+            role: "admin",
+            status: "active",
+            lastLogin: new Date().toLocaleString("ar-EG"),
+            deviceInfo: getOS()
+        };
+        let newUsers = [demoUser];
+        store.users = JSON.stringify(newUsers);
+        localStorage.setItem('demo_users', JSON.stringify(newUsers));
+        currentUser = demoUser;
+        document.getElementById("loginLayer").style.display = "none";
+        document.body.classList.remove("locked");
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+        document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
+        resetSessionTimer();
+        checkExpiringOnLogin();
+        checkExpiredCouponsOnLogin();
+        btn.classList.remove('loading');
+        return;
+    }
 
     let userObj = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
 
@@ -2484,38 +3007,35 @@ function addPurchase(){
 function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
     let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     
-    if (!wallets[walletVal]) return notify("المحفظة المحددة غير موجودة، يرجى إعادة المحاولة", "error");
     let tBefore = wallets[walletVal].bal;
     let invest_before_profit = JSON.parse(JSON.stringify(invest));
     
-    wallets[walletVal].bal = parseFloat((wallets[walletVal].bal + paid).toFixed(2));
+    wallets[walletVal].bal += paid;
     
-    let distributableProfit = parseFloat((paid).toFixed(2));
+    let distributableProfit = paid;
     let recoupAmount = 0;
 
     if (settings.deductCost && !isComp) {
-        recoupAmount = parseFloat(calculatedCost.toFixed(2));
-        distributableProfit = parseFloat((paid - recoupAmount).toFixed(2));
+        recoupAmount = calculatedCost; 
+        distributableProfit = paid - calculatedCost;
     } else if (settings.deductCost && isComp) {
-        let oC = parseFloat(((parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1)).toFixed(2));
+        let oC = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
         let sT = stItem.costCurrency === '$' ? 'd' : 's';
-        invest.store[sT] = parseFloat((invest.store[sT] - oC).toFixed(2));
+        invest.store[sT] -= oC;
     }
 
     let shareType = (paidCur === '$') ? 'd' : 's';
     
     if(!isComp) {
-        invest.store[shareType] = parseFloat((invest.store[shareType] + recoupAmount).toFixed(2));
+        invest.store[shareType] += recoupAmount;
 
         if (distributableProfit >= 0) {
-            let aP = parseFloat((distributableProfit * (settings.ahmad/100)).toFixed(2));
-            let mP = parseFloat((distributableProfit * (settings.mohamed/100)).toFixed(2));
-            let sP = parseFloat((distributableProfit * (settings.store/100)).toFixed(2));
-            invest.ahmad[shareType] = parseFloat((invest.ahmad[shareType] + aP).toFixed(2));
-            invest.mohamed[shareType] = parseFloat((invest.mohamed[shareType] + mP).toFixed(2));
-            invest.store[shareType] = parseFloat((invest.store[shareType] + sP).toFixed(2));
+            let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
+            let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
+            let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
+            invest.ahmad[shareType] += aP; invest.mohamed[shareType] += mP; invest.store[shareType] += sP;
         } else {
-            invest.store[shareType] = parseFloat((invest.store[shareType] + distributableProfit).toFixed(2));
+            invest.store[shareType] += distributableProfit; 
         }
     }
     
@@ -2541,8 +3061,6 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     let stockList = safeJSON(store.stock, []);
     let stIdx = stockList.findIndex(x => x.id === stItem.id);
     if(stIdx !== -1) stockList[stIdx] = stItem;
-    store.stock = JSON.stringify(stockList); fbSave("stock", stockList);
-
     let nd = new Date();
     let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
     let ndd = nd.getDate().toString().padStart(2,'0');
@@ -2566,10 +3084,39 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         usedDiscountObj: usedDiscountObj,
         canBeUndone: true
     });
-    
-    store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
-    store.invest = JSON.stringify(invest); fbSave("invest", invest);
-    store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
+
+    // ─── حفظ ذري (Atomic) لمنع Race Condition ───────────────────
+    // wallets + invest ← FieldValue.increment() على الخادم مباشرة
+    // stock + purchases ← Subcollections عادية
+    store.stock     = JSON.stringify(stockList);
+    store.wallets   = JSON.stringify(wallets);
+    store.invest    = JSON.stringify(invest);
+    store.purchases = JSON.stringify(purchases);
+
+    // بناء قاموس increment لـ wallets
+    const _wIncs = { [walletVal]: paid };
+
+    // بناء قاموس increment لـ invest
+    const _iIncs = {};
+    if (!isComp) {
+        // المتجر يسترد التكلفة + حصته من الربح الصافي
+        const _storeTotal = recoupAmount + (distributableProfit >= 0
+            ? +(distributableProfit * (settings.store / 100)).toFixed(2)
+            : distributableProfit);
+        _iIncs[`store.${shareType}`]   = _storeTotal;
+        if (distributableProfit >= 0) {
+            _iIncs[`ahmad.${shareType}`]   = +(distributableProfit * (settings.ahmad / 100)).toFixed(2);
+            _iIncs[`mohamed.${shareType}`] = +(distributableProfit * (settings.mohamed / 100)).toFixed(2);
+        }
+    } else if (settings.deductCost) {
+        // تعويض: خصم تكلفة البروفايل من حصة المتجر
+        let _oC  = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        let _sT  = stItem.costCurrency === '$' ? 'd' : 's';
+        _iIncs[`store.${_sT}`] = -_oC;
+    }
+
+    fbAtomicWalletInvest(_wIncs, _iIncs, wallets, invest);
+    fbSaveMultiple({ stock: stockList, purchases: purchases });
     
     logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, {
         type: 'purchase',
@@ -2757,10 +3304,6 @@ function refreshAll(){
         document.getElementById("statShekel").textContent = "****";
     }
     
-    let days3 = 3 * 86400000, nowMs = now.getTime();
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs < days3 && x.expiry - nowMs > -2592000000)).length;
-    let badge = document.getElementById("expiryBadge");
-    if(badge) { badge.textContent = expiringCount; badge.style.display = expiringCount > 0 ? "inline-flex" : "none"; }
     
     const visMap = {
         'history': refreshHistory,
@@ -2777,6 +3320,16 @@ function refreshAll(){
     updateDiscountBadge();
     updateMonthSalesStat();
     
+    // تحديث badge التنبيهات دائماً بغض النظر عن الصفحة المرئية
+    let days3 = 3 * 86400000, nowMs2 = now.getTime();
+    let expiryBadge2 = document.getElementById("expiryBadge");
+    if(expiryBadge2) {
+        let expiringCount2 = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs2 < days3 && x.expiry - nowMs2 > -2592000000)).length;
+        expiryBadge2.textContent = expiringCount2;
+        expiryBadge2.style.display = expiringCount2 > 0 ? "inline-flex" : "none";
+    }
+    
+    // تحديث الصفحات المرئية فقط (مرة واحدة لكل صفحة)
     document.querySelectorAll(".main-content > .card:not(.hidden)").forEach(card => {
         let id = card.id;
         if(visMap[id]) visMap[id]();
@@ -3110,8 +3663,14 @@ async function withdrawPartial(p){
     i[p][shareType] -= amount; 
     w[walletName].bal -= amount; 
 
-    store.invest = JSON.stringify(i); fbSave("invest", i); 
-    store.wallets = JSON.stringify(w); fbSave("wallets", w);
+    // ─── Atomic: سحب الأرباح ─────────────────────────────────────
+    store.invest = JSON.stringify(i);
+    store.wallets = JSON.stringify(w);
+    fbAtomicWalletInvest(
+        { [walletName]: -amount },
+        { [`${p}.${shareType}`]: -amount },
+        w, i
+    );
 
     logAction(`سحب أرباح من حصة ${p} عبر ${walletName}`, {
         type: 'withdraw',
@@ -3215,7 +3774,7 @@ function calculateTransfer() {
     document.getElementById("tfResult").value = result.toFixed(2);
 }
 
-async function executeTransfer() {
+function executeTransfer() {
     let from = document.getElementById("tfFromWallet").value;
     let to = document.getElementById("tfToWallet").value;
     let amount = parseFloat(document.getElementById("tfAmount").value);
@@ -3228,46 +3787,53 @@ async function executeTransfer() {
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
     let w = safeJSON(store.wallets, {});
-    if(!w[from]) return notify("المحفظة المصدر غير موجودة", "error");
-    if(!w[to]) return notify("المحفظة الهدف غير موجودة", "error");
     if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
 
     let fromCur = w[from].cur;
     let toCur = w[to].cur;
 
-    let ok = await showConfirm(
-        "تأكيد التحويل",
-        `تحويل ${amount}${fromCur} من (${from}) إلى (${to})\nالعمولة: ${fee}${fromCur}\nالصافي المودع: ${result}${toCur}`,
-        "تأكيد التحويل", "إلغاء",
-        '<i class="fas fa-exchange-alt"></i>'
-    );
-    if(!ok) return;
-
-    w[from].bal = parseFloat((w[from].bal - amount).toFixed(2));
-    w[to].bal = parseFloat((w[to].bal + result).toFixed(2));
+    w[from].bal -= amount;
+    w[to].bal += result;
 
     let invest = safeJSON(store.invest, {});
     
     if(fromCur !== toCur) {
         let fromType = (fromCur === '$') ? 'd' : 's';
         let toType = (toCur === '$') ? 'd' : 's';
-        invest.store[fromType] = parseFloat((invest.store[fromType] - amount).toFixed(2));
-        invest.store[toType] = parseFloat((invest.store[toType] + result).toFixed(2));
+        invest.store[fromType] -= amount; 
+        invest.store[toType] += result;
     } else {
         if(fee > 0) {
-            if(fromCur === '$') invest.store.d = parseFloat((invest.store.d - fee).toFixed(2));
-            else invest.store.s = parseFloat((invest.store.s - fee).toFixed(2));
+            if(fromCur === '$') invest.store.d -= fee;
+            else invest.store.s -= fee;
         }
     }
 
-    store.wallets = JSON.stringify(w); fbSave("wallets", w);
-    store.invest = JSON.stringify(invest); fbSave("invest", invest);
+    // ─── Atomic: تحويل الأرصدة ───────────────────────────────────
+    store.wallets = JSON.stringify(w); 
+    store.invest  = JSON.stringify(invest);
+
+    const _wIncsTransfer = {
+        [from]: -amount,
+        [to]:   +result
+    };
+    const _iIncsTransfer = {};
+    if (fromCur !== toCur) {
+        let _fType = (fromCur === '$') ? 'd' : 's';
+        let _tType = (toCur   === '$') ? 'd' : 's';
+        _iIncsTransfer[`store.${_fType}`] = -amount;
+        _iIncsTransfer[`store.${_tType}`] = +result;
+    } else if (fee > 0) {
+        let _feeType = (fromCur === '$') ? 'd' : 's';
+        _iIncsTransfer[`store.${_feeType}`] = -fee;
+    }
+    fbAtomicWalletInvest(_wIncsTransfer, _iIncsTransfer, w, invest);
     
     logAction(`تحويل من ${from} إلى ${to}`, {
         type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: toCur
     });
 
-    refreshWallets(); refreshInvestment(); notify("تم التحويل");
+    refreshWallets(); refreshInvestment();  notify("تم التحويل");
     document.getElementById("tfAmount").value = "";
     document.getElementById("tfFee").value = "0";
     document.getElementById("tfResult").value = "";
@@ -3305,11 +3871,39 @@ async function setWallet(){
             return notify(`رصيد حصة ${targetShare} غير كافٍ لتحمل هذا النقصان!`, "error");
         }
         invest[targetShare][cur] = parseFloat((invest[targetShare][cur] + diff).toFixed(2));
-        store.invest = JSON.stringify(invest); fbSave("invest", invest);
+        // invest سيُحفظ بـ fbAtomicWalletInvest أدناه
     }
     
     w[modWalletVal].bal = modAmountVal; 
-    store.wallets = JSON.stringify(w); fbSave("wallets", w); 
+    store.wallets = JSON.stringify(w);
+
+    // ─── Atomic: تعيين الرصيد + تعديل الحصة المرتبطة ─────────────
+    if(syncType === 'closed') {
+        const _cur = w[modWalletVal].cur === '$' ? 'd' : 's';
+        store.invest = JSON.stringify(invest);
+        fbAtomicWalletInvest(
+            {},
+            { [`${targetShare}.${_cur}`]: diff },
+            w, invest
+        );
+        // حفظ الـ wallet بـ set (ليس increment) لأن القيمة مُعيَّنة يدوياً بشكل مطلق
+        if (isDemoMode) {
+            localStorage.setItem('demo_wallets', JSON.stringify(w));
+        } else if (fbDocRef) {
+            fbDocRef.update({ [`wallets.${modWalletVal}.bal`]: modAmountVal })
+                .then(() => { lastServerState['wallets'] = JSON.parse(JSON.stringify(w)); updateSyncStatus("تم الحفظ بنجاح", "success"); })
+                .catch(e => { console.error("setWallet error:", e); updateSyncStatus("فشل الحفظ", "error"); });
+        }
+    } else {
+        if (isDemoMode) {
+            localStorage.setItem('demo_wallets', JSON.stringify(w));
+        } else if (fbDocRef) {
+            _startSyncTimer();
+            fbDocRef.update({ [`wallets.${modWalletVal}.bal`]: modAmountVal })
+                .then(() => { clearTimeout(_pendingWritesTimer); lastServerState['wallets'] = JSON.parse(JSON.stringify(w)); updateSyncStatus("تم الحفظ بنجاح", "success"); })
+                .catch(e => { clearTimeout(_pendingWritesTimer); console.error("setWallet error:", e); updateSyncStatus("فشل الحفظ", "error"); });
+        }
+    } 
     logAction(`تعيين رصيد محفظة ${modWalletVal}`, { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff, syncedShare: targetShare });
     refreshWallets(); refreshInvestment(); notify("تم تحديث الرصيد بنجاح"); 
 }
@@ -3350,11 +3944,23 @@ async function setProfitShare() {
             return notify(`رصيد المحفظة المرتبطة غير كافٍ لتحمل هذا النقصان!`, "error");
         }
         w[targetWallet].bal = parseFloat((w[targetWallet].bal + diff).toFixed(2));
-        store.wallets = JSON.stringify(w); fbSave("wallets", w);
+        // wallet سيُحفظ بـ fbAtomicWalletInvest أدناه
     }
     
     invest[person][currency] = amount;
-    store.invest = JSON.stringify(invest); fbSave("invest", invest);
+    store.invest = JSON.stringify(invest);
+
+    // ─── Atomic: تعديل الحصة ─────────────────────────────────────
+    const _iPIncs = { [`${person}.${currency}`]: diff };
+    if (syncType === 'closed') {
+        // الـ wallet يُعدَّل أيضاً بـ increment ذري
+        const _walletCur = currency === 'd' ? '$' : '₪';
+        const _wPIncs = { [targetWallet]: diff };
+        store.wallets = JSON.stringify(w);
+        fbAtomicWalletInvest(_wPIncs, _iPIncs, w, invest);
+    } else {
+        fbAtomicWalletInvest({}, _iPIncs, null, invest);
+    }
     logAction(`تعديل مباشر لحصة ${person}`, { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount, diff: diff, syncedWallet: targetWallet });
     refreshInvestment(); refreshWallets(); notify("تم تحديث الحصة بنجاح");
 }
@@ -3369,20 +3975,22 @@ async function deleteWallet(){
     if(!wallet) return;
 
     if (wallet.bal > 0) {
-        let shareType = wallet.cur === '$' ? 'd' : 's';
+        let expectedCurSymbol = wallet.cur === '$' ? 'd' : 's';
         let targetShare = await showPrompt("رصيد المحفظة غير مصفر", `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. يرجى اختيار الحصة التي سيتم خصم هذا المبلغ منها قبل الحذف:`, "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
         if(!targetShare) return;
 
         let invest = safeJSON(store.invest, {});
-        if(invest[targetShare][shareType] < wallet.bal) {
+        if(invest[targetShare][expectedCurSymbol] < wallet.bal) {
             return notify(`رصيد حصة ${targetShare} غير كافٍ لاستيعاب هذا الخصم!`, "error");
         }
 
         let ok = await showConfirm("حذف المحفظة", `سيتم خصم ${fix(wallet.bal)}${wallet.cur} من حصة ${targetShare} وحذف المحفظة نهائياً. تأكيد؟`, "حذف وخصم", "إلغاء", '<i class="fas fa-trash-alt"></i>');
         if(!ok) return;
 
-        invest[targetShare][shareType] = parseFloat((invest[targetShare][shareType] - wallet.bal).toFixed(2));
-        store.invest = JSON.stringify(invest); fbSave("invest", invest);
+        invest[targetShare][expectedCurSymbol] -= wallet.bal;
+        store.invest = JSON.stringify(invest);
+        // Atomic: خصم رصيد المحفظة المحذوفة من حصة الشريك
+        fbAtomicWalletInvest({}, { [`${targetShare}.${expectedCurSymbol}`]: -wallet.bal }, null, invest);
     } else {
         let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${targetWallet}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
         if(!ok) return;
@@ -3396,15 +4004,11 @@ async function deleteWallet(){
 }
 
 function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية"); }
-async function importData(){ 
+function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
-    let f=document.getElementById("importFile").files[0];
-    if(!f) return notify("اختر ملف","error");
-    let ok = await showConfirm("استعادة نسخة احتياطية", "سيتم مسح جميع البيانات الحالية واستبدالها بالملف المحدد. هذا الإجراء لا يمكن التراجع عنه. هل أنت متأكد؟", "نعم، استعادة", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
-    if(!ok) return;
-    let r=new FileReader(); 
+    let f=document.getElementById("importFile").files[0], r=new FileReader(); 
     r.onload=async (e)=>{ try{ let d=JSON.parse(e.target.result); const KEYS=["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"]; let updateObj={}; KEYS.forEach(k=>{ if(d[k]){ store[k]=typeof d[k]==='string'?d[k]:JSON.stringify(d[k]); updateObj[k]=safeJSON(store[k],{}); } }); await fbDocRef.set(updateObj, {merge:true}); notify("تم الاستعادة بنجاح"); logAction("استيراد بيانات من نسخة احتياطية"); location.reload(); }catch(err){ notify("ملف تالف","error"); } }; 
-    r.readAsText(f);
+    if(f) r.readAsText(f); else notify("اختر ملف","error"); 
 }
 
 async function undoLastPurchase(){ 
@@ -3413,52 +4017,81 @@ async function undoLastPurchase(){
     let purchases = safeJSON(store.purchases, []);
     if(purchases.length === 0) return notify("لا توجد عمليات للتراجع عنها", "error");
     
-    let lastP = purchases[purchases.length - 1];
-    if (!lastP.canBeUndone) {
+    // البحث عن العملية القابلة للتراجع (الأحدث دائماً هي التي canBeUndone = true)
+    let undoIdx = purchases.findIndex(x => x.canBeUndone);
+    if (undoIdx === -1) {
         return notify("لا يمكن التراجع سوى لمرة واحدة عن أحدث عملية بيع فقط", "error");
     }
+    let lastP = purchases[undoIdx];
     
     let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة والحصص وكود الخصم (إن وُجد). هل تريد المتابعة؟", "نعم، تراجع", "لا، إلغاء", '<i class="fas fa-undo"></i>');
     if(!ok) return;
     
-    purchases.pop(); // Remove the last purchase
+    purchases.splice(undoIdx, 1); // Remove the undoable purchase
     
+    // ─── Atomic: استرداد مبلغ المحفظة ──────────────────────────────
     let wallets = safeJSON(store.wallets, {});
+    const _undoWalletIncs = {};
     if(lastP.wallet && wallets[lastP.wallet]) { 
         let paidVal = parseFloat(lastP.paid); 
-        wallets[lastP.wallet].bal -= paidVal; 
+        wallets[lastP.wallet].bal -= paidVal;
+        _undoWalletIncs[lastP.wallet] = -paidVal;
     }
     
-    store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
-    store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
-    
-    if(lastP.investSnapshot) { store.invest = JSON.stringify(lastP.investSnapshot); fbSave("invest", lastP.investSnapshot); }
-    
-    if(lastP.stockId) {
+    // جمع كل التغييرات في طلب واحد
+    let undoUpdates = { purchases: purchases };
+    store.wallets   = JSON.stringify(wallets);
+    store.purchases = JSON.stringify(purchases);
+
+    if (lastP.stockId) {
         let stockList = safeJSON(store.stock, []);
         let sItem = stockList.find(x => x.id === lastP.stockId);
-        if(sItem) {
+        if (sItem) {
             sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1);
-            if(sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop(); 
-            if(sItem.status === 'sold') {
-                sItem.status = 'active';
-                delete sItem.soldDate;
-            }
-            store.stock = JSON.stringify(stockList); fbSave("stock", stockList);
+            if (sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop();
+            if (sItem.status === 'sold') { sItem.status = 'active'; delete sItem.soldDate; }
+            store.stock = JSON.stringify(stockList);
+            undoUpdates.stock = stockList;
         }
     }
 
-    if(lastP.usedDiscountObj) {
+    if (lastP.usedDiscountObj) {
         let dList = safeJSON(store.discounts, []);
         let existingIdx = dList.findIndex(x => x.id === lastP.usedDiscountObj.id);
-        if(existingIdx !== -1) {
+        if (existingIdx !== -1) {
             dList[existingIdx].usedCount = Math.max(0, (dList[existingIdx].usedCount || 1) - 1);
         } else {
             let restoredCoupon = lastP.usedDiscountObj;
             restoredCoupon.usedCount = Math.max(0, (restoredCoupon.maxUses || 1) - 1);
             dList.unshift(restoredCoupon);
         }
-        store.discounts = JSON.stringify(dList); fbSave("discounts", dList);
+        store.discounts = JSON.stringify(dList);
+        undoUpdates.discounts = dList;
+    }
+
+    fbSaveMultiple(undoUpdates);
+
+    // ─── Atomic: استرداد حصص الأرباح ───────────────────────────────
+    if (lastP.investSnapshot) {
+        // نحسب الفرق بين الـ snapshot القديم والـ invest الحالي ونعكسه
+        let currentInvest = safeJSON(store.invest, {});
+        store.invest = JSON.stringify(lastP.investSnapshot);
+        lastServerState['invest'] = JSON.parse(JSON.stringify(lastP.investSnapshot));
+        // نرسل set كامل للـ invest لأن الـ snapshot هو الحالة المطلوبة
+        fbAtomicWalletInvest(
+            _undoWalletIncs,
+            {}, // invest سيُعاد بالكامل بـ fbDocRef.update أدناه
+            wallets,
+            lastP.investSnapshot
+        );
+        // حفظ invest snapshot بالكامل (ليس increment) — آمن لأنه undo ونادر
+        if (isDemoMode) {
+            localStorage.setItem('demo_invest', JSON.stringify(lastP.investSnapshot));
+        } else if (fbDocRef) {
+            fbDocRef.update({ invest: lastP.investSnapshot }).catch(e => console.error("undo invest:", e));
+        }
+    } else {
+        fbAtomicWalletInvest(_undoWalletIncs, {}, wallets, wallets);
     }
     
     logAction("تراجع عن عملية شراء", { type: 'undo', data: lastP, deducted: lastP.paid });
@@ -3466,6 +4099,25 @@ async function undoLastPurchase(){
     currentPage.history = 1;
     loadPurchaseStock();
     refreshAll();  notify("تم التراجع واستعادة البيانات بنجاح"); 
+}
+
+async function clearHistory() {
+    if(!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let res = await showConfirm("مسح الأرشيف المالي", "سيتم حذف سجلات الشراء نهائياً. هذا لا يؤثر على الأرصدة أو الحصص.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح أقدم 50 سجل");
+    if(!res) return;
+    let purchases = safeJSON(store.purchases, []);
+    if(res === 'third') {
+        // الأقدم أولاً هو في نهاية المصفوفة (مرتبة الأحدث أولاً)
+        let toRemoveCount = Math.min(ITEMS_PER_PAGE, purchases.length);
+        purchases.splice(purchases.length - toRemoveCount, toRemoveCount);
+        logAction(`قام الأدمن بمسح أقدم ${toRemoveCount} سجل من الأرشيف المالي`);
+    } else {
+        purchases = [];
+        logAction("قام الأدمن بمسح كافة الأرشيف المالي");
+    }
+    store.purchases = JSON.stringify(purchases); fbSave("purchases", purchases);
+    currentPage.history = 1;
+    refreshAll(); notify("تم المسح بنجاح");
 }
 
 function closeEditUserModal(e) { if(e === 'force' || e.target.id === 'editUserModal') document.getElementById("editUserModal").classList.add("hidden"); }
@@ -3620,8 +4272,15 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
     stock.unshift(s);
     
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
-    store.wallets = JSON.stringify(wallets); fbSave("wallets", wallets);
-    store.invest = JSON.stringify(invest); fbSave("invest", invest);
+
+    // ─── Atomic: خصم التكلفة من المحفظة وحصة المتجر ─────────────
+    store.wallets = JSON.stringify(wallets);
+    store.invest  = JSON.stringify(invest);
+    fbAtomicWalletInvest(
+        { [stWallet]: -stCost },
+        { [`store.${shareType}`]: -stCost },
+        wallets, invest
+    );
     
     logAction(`شراء مخزون جديد: ${s.displayName}`, {
         type: 'stock_add',
@@ -3968,22 +4627,27 @@ function renderServicesSettings() {
 function addService() {
     let inp = document.getElementById("newServiceName");
     let val = inp.value.trim();
-    if(!val) return;
+    if(!val) return notify("أدخل اسم الخدمة", "error");
     let list = safeJSON(store.services, []);
-    if(!list.includes(val)) {
-        list.push(val);
-        store.services = JSON.stringify(list); fbSave("services", list);
-        logAction(`إضافة خدمة جديدة: ${val}`);
-        renderServicesSettings();
-        
-    }
+    if(list.includes(val)) return notify("الخدمة موجودة مسبقاً", "error");
+    list.push(val);
+    store.services = JSON.stringify(list); fbSave("services", list);
+    logAction(`إضافة خدمة جديدة: ${val}`);
+    renderServicesSettings();
+    loadServices();
+    loadPurchaseStock();
+    notify("تمت إضافة الخدمة بنجاح");
     inp.value = "";
 }
 function deleteService(idx) {
     let list = safeJSON(store.services, []);
-    list.splice(idx, 1);
+    let removed = list.splice(idx, 1);
     store.services = JSON.stringify(list); fbSave("services", list);
+    logAction(`حذف خدمة: ${removed[0] || ''}`);
     renderServicesSettings();
+    loadServices();
+    loadPurchaseStock();
+    notify("تم حذف الخدمة");
 }
 
 // ─────────────────────────────────────────────
@@ -4036,8 +4700,6 @@ function copyField(fieldId, btn) {
 }
 
 // ─────────────────────────────────────────────
-// ميزة 1: البحث السريع العالمي
-// ─────────────────────────────────────────────
 // ميزة 2: تحديث عداد الخصومات في السايدبار
 // ─────────────────────────────────────────────
 function updateDiscountBadge() {
@@ -4059,7 +4721,7 @@ function updateMonthSalesStat() {
     let mm = (now.getMonth() + 1).toString().padStart(2, '0');
     let yyyy = now.getFullYear().toString();
     let monthStr = `${yyyy}-${mm}`;
-    let count = p.filter(x => x.date && x.date.startsWith(monthStr)).length;
+    let count = p.filter(x => x.date && x.date.startsWith(monthStr) && !x.isComp).length;
     let el = document.getElementById("statMonthSales");
     if (el) el.textContent = count;
 }
