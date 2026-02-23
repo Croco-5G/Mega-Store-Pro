@@ -717,10 +717,10 @@
         </div>
         <div class="grid-2">
             <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)" dir="ltr" style="text-align:right;"></div>
-            <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
+            <div class="input-group"><label>المبلغ المدفوع من العميل</label><div style="display:flex; gap:10px"><input type="number" id="paidAmount" placeholder="0.00"><select id="paidCurrency" style="width:100px"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select></div></div>
         </div>
         <div class="grid-2">
-            <div class="input-group"><label>المبلغ المدفوع من العميل</label><div style="display:flex; gap:10px"><input type="number" id="paidAmount" placeholder="0.00"><select id="paidCurrency" style="width:100px"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select></div></div>
+            <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
         </div>
         
         <div class="grid-2" style="margin-top:10px; padding-top:20px; border-top:1px dashed var(--border-color)">
@@ -2987,6 +2987,8 @@ function addPurchase(){
     let cleanName = stItem.service + (totalProfiles > 1 ? " Shared" : "");
     let customerVal = document.getElementById("customer").value;
     let walletVal = document.getElementById("wallet").value;
+    
+    if(!walletVal) { notify("يرجى اختيار المحفظة", "error"); return; }
 
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
@@ -3011,6 +3013,8 @@ function addPurchase(){
 
 function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
     let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
+    
+    if(!wallets[walletVal]) { notify("المحفظة المحددة غير موجودة", "error"); return; }
     
     let tBefore = wallets[walletVal].bal;
     let invest_before_profit = JSON.parse(JSON.stringify(invest));
@@ -3614,7 +3618,7 @@ function addTodo(){
     logAction("إضافة مهمة جديدة"); refreshTodoList();  
 }
 function refreshTodoList(){ 
-    let l=safeJSON(store.todoList, []); 
+    let l=safeJSON(store.todoList, []).slice().sort((a,b)=>(b.id||'').localeCompare(a.id||'')); 
     let rows=""; 
     let canEdit = currentUser ? (currentUser.role === 'admin' || currentUser.role === 'employee') : false;
     l.forEach((x)=>{ 
