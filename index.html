@@ -596,6 +596,18 @@
     </div>
 </div>
 
+<div id="transferConfirmModal" class="dialog-modal" style="display:none;">
+    <div class="dialog-box" style="text-align:right; max-width:500px">
+        <div style="text-align:center; font-size:48px; margin-bottom:15px; color:var(--primary);"><i class="fas fa-exchange-alt"></i></div>
+        <h3 style="text-align:center; margin-top:0; margin-bottom:5px;">تأكيد التحويل</h3>
+        <div id="transferConfirmBody" style="background:var(--bg-input); border-radius:14px; padding:20px; margin:15px 0; font-size:14px; line-height:1.8; border:1px dashed var(--border-color);"></div>
+        <div class="dialog-actions">
+            <button class="btn btn-primary" id="transferConfirmOkBtn"><i class="fas fa-check"></i> تأكيد التحويل</button>
+            <button class="btn btn-danger" style="background:transparent; border:1px solid var(--danger); color:var(--danger);" onclick="document.getElementById('transferConfirmModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
+
 <div id="couponModal" class="dialog-modal" style="display:none;">
     <div class="dialog-box" style="text-align:center; max-width:400px">
         <div style="font-size:50px; color:var(--accent); margin-bottom:15px"><i class="fas fa-gift"></i></div>
@@ -1085,7 +1097,7 @@
                     <input type="number" id="tfResult" placeholder="0.00" style="background:var(--bg-card); border:1px solid var(--yellow-border); font-weight:800; font-size:18px; color:var(--yellow-text); padding:8px 12px; border-radius:var(--radius-md); width:100%; box-sizing:border-box;">
                 </div>
 
-                <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="executeTransfer()">إتمام التحويل</button>
+                <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="confirmTransfer()">إتمام التحويل</button>
             </div>
         </div>
 
@@ -1116,7 +1128,7 @@
                         <label>الرصيد الجديد</label>
                         <input id="setShareAmount" type="number" placeholder="0.00">
                     </div>
-                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setProfitShare()">تحديث</button>
+                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setProfitShare()">حفظ</button>
                 </div>
             </div>
         </div>
@@ -1391,29 +1403,43 @@ function resolveConfirm(val) {
     if(_confirmResolve) { _confirmResolve(val); _confirmResolve = null; }
 }
 
-function showPrompt(title, msg = "", placeholder = "", iconHtml = '<i class="fas fa-pen"></i>', isSelect = false, selectOptions = "") {
+function showPrompt(title, msg = "", placeholder = "", iconHtml = '<i class="fas fa-pen"></i>', isSelect = false, selectOptions = "", requireReason = false) {
     return new Promise(resolve => {
         _promptResolve = resolve;
         document.getElementById("pdIcon").innerHTML = iconHtml; 
         document.getElementById("pdTitle").textContent = title;
         document.getElementById("pdMsg").textContent = msg;
+        document.getElementById("customPromptDialog")._requireReason = requireReason && !isSelect;
         
         if (isSelect) {
             document.getElementById("pdInputContainer").innerHTML = `<select id="logsVisSelect" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none; background:var(--bg-input); color:var(--text-main); font-weight:bold;">${selectOptions}</select>`;
         } else {
-            document.getElementById("pdInputContainer").innerHTML = `<input id="pdInput" class="dialog-input" style="width:100%; padding:12px; border-radius:10px; border:2px solid var(--border-color); outline:none; background:var(--bg-input); color:var(--text-main);" placeholder="${placeholder}">`;
+            document.getElementById("pdInputContainer").innerHTML = `<input id="pdInput" class="dialog-input" style="width:100%; padding:12px; border-radius:10px; border:2px solid ${requireReason ? 'var(--danger)' : 'var(--border-color)'}; outline:none; background:var(--bg-input); color:var(--text-main);" placeholder="${placeholder}">`;
         }
         
         document.getElementById("customPromptDialog").style.display = "flex";
-        if(!isSelect) setTimeout(() => { let input = document.getElementById("pdInput"); if(input) input.focus(); }, 100);
+        if(!isSelect) setTimeout(() => { let input = document.getElementById("pdInput"); if(input) { input.focus(); input.addEventListener('input', () => { if(input.value.trim()) input.style.borderColor = 'var(--success)'; else if(requireReason) input.style.borderColor = 'var(--danger)'; }); } }, 100);
     });
 }
 function resolvePrompt(ok) {
+    let input = document.getElementById("pdInput");
+    let select = document.getElementById("logsVisSelect");
+    
+    // إذا ضغط تأكيد وكان الحقل نصياً وإجبارياً وفارغاً - أظهر خطأ ولا تغلق
+    if(ok && input && document.getElementById("customPromptDialog")._requireReason) {
+        let val = input.value.trim();
+        if(!val) {
+            notify("هذا الحقل إجباري ولا يمكن تركه فارغاً", "error");
+            input.style.borderColor = "var(--danger)";
+            input.focus();
+            return; // لا تغلق النافذة
+        }
+    }
+    
     document.getElementById("customPromptDialog").style.display = "none";
+    document.getElementById("customPromptDialog")._requireReason = false;
     let val = null;
     if(ok) {
-        let input = document.getElementById("pdInput");
-        let select = document.getElementById("logsVisSelect");
         if (input) val = input.value.trim();
         else if (select) val = select.value;
     }
@@ -1430,6 +1456,7 @@ document.addEventListener("keydown", e => {
         if(document.getElementById("customConfirmDialog").style.display === "flex") resolveConfirm(false);
         if(document.getElementById("purchaseConfirmModal").style.display === "flex") document.getElementById("purchaseConfirmModal").style.display = "none";
         if(document.getElementById("stockConfirmModal").style.display === "flex") document.getElementById("stockConfirmModal").style.display = "none";
+        if(document.getElementById("transferConfirmModal").style.display === "flex") document.getElementById("transferConfirmModal").style.display = "none";
     }
 });
 
@@ -3651,7 +3678,7 @@ async function withdrawPartial(p){
     if(!amount) return notify("أدخل المبلغ","error");
     if(!walletName) return notify("يرجى اختيار المحفظة","error");
 
-    let reason = await showPrompt("سبب السحب", "هذا الحقل إجباري", "أدخل سبب السحب...", '<i class="fas fa-money-bill-wave"></i>');
+    let reason = await showPrompt("سبب السحب", "هذا الحقل إجباري", "أدخل سبب السحب...", '<i class="fas fa-money-bill-wave"></i>', false, "", true);
     if(!reason) return notify("تم الإلغاء: السبب مطلوب","error");
 
     let i = safeJSON(store.invest, {});
@@ -3731,8 +3758,11 @@ function updateWalletData(){
     
     let w = safeJSON(store.wallets, {}); 
     
-    if(!newName) return notify("خطأ في الاسم","error");
+    if(!oldName) return notify("يرجى اختيار محفظة أولاً","error");
     if(!w[oldName]) return notify("المحفظة غير موجودة", "error");
+
+    // إذا ترك الاسم فارغاً نبقيه كما هو
+    if(!newName) newName = oldName;
 
     if(newName !== oldName) {
         if(w[newName]) return notify("يوجد محفظة بهذا الاسم مسبقاً", "error");
@@ -3782,6 +3812,63 @@ function calculateTransfer() {
     }
     
     document.getElementById("tfResult").value = result.toFixed(2);
+}
+
+function confirmTransfer() {
+    let from = document.getElementById("tfFromWallet").value;
+    let to = document.getElementById("tfToWallet").value;
+    let amount = parseFloat(document.getElementById("tfAmount").value);
+    let fee = parseFloat(document.getElementById("tfFee").value) || 0;
+    let rate = parseFloat(document.getElementById("tfRate").value) || 1;
+    let result = parseFloat(document.getElementById("tfResult").value);
+
+    if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
+    if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
+    if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
+
+    let w = safeJSON(store.wallets, {});
+    if(!w[from] || !w[to]) return notify("محفظة غير موجودة", "error");
+    if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
+
+    let fromBefore = w[from].bal;
+    let toBefore = w[to].bal;
+    let fromAfter = fromBefore - amount;
+    let toAfter = toBefore + result;
+    let fromCur = w[from].cur;
+    let toCur = w[to].cur;
+
+    function fmtBal(val, cur) { return fix(val) + ' ' + cur; }
+
+    let body = `<div style="display:grid; gap:10px;">`;
+
+    body += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="background:var(--bg-card); border-radius:10px; padding:12px; border:1px solid var(--border-color);">
+            <div style="font-weight:800; color:var(--primary); margin-bottom:8px;"><i class="fas fa-arrow-up"></i> المصدر: ${esc(from)}</div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--border-color);"><span style="color:var(--text-muted)">قبل:</span><span style="font-weight:700">${fmtBal(fromBefore, fromCur)}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; color:var(--danger);"><span>بعد:</span><span style="font-weight:800">${fmtBal(fromAfter, fromCur)}</span></div>
+        </div>
+        <div style="background:var(--bg-card); border-radius:10px; padding:12px; border:1px solid var(--border-color);">
+            <div style="font-weight:800; color:var(--success); margin-bottom:8px;"><i class="fas fa-arrow-down"></i> المستلم: ${esc(to)}</div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--border-color);"><span style="color:var(--text-muted)">قبل:</span><span style="font-weight:700">${fmtBal(toBefore, toCur)}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:4px 0; color:var(--success);"><span>بعد:</span><span style="font-weight:800">${fmtBal(toAfter, toCur)}</span></div>
+        </div>
+    </div>`;
+
+    body += `<div style="padding:10px; background:var(--bg-card); border-radius:10px; border:1px solid var(--border-color); font-size:13px; display:grid; gap:5px;">
+        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted)">المبلغ المحوَّل:</span><span style="font-weight:800">${fmtBal(amount, fromCur)}</span></div>
+        ${fee > 0 ? `<div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted)">العمولة:</span><span style="font-weight:700; color:var(--danger)">-${fmtBal(fee, fromCur)}</span></div>` : ''}
+        ${fromCur !== toCur ? `<div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted)">سعر الصرف:</span><span style="font-weight:700">1$ = ${rate}₪</span></div>` : ''}
+        <div style="display:flex; justify-content:space-between; padding-top:5px; border-top:1px dashed var(--border-color);"><span style="color:var(--text-muted)">الصافي للمستلم:</span><span style="font-weight:800; color:var(--success)">${fmtBal(result, toCur)}</span></div>
+    </div>`;
+
+    body += `</div>`;
+
+    document.getElementById("transferConfirmBody").innerHTML = body;
+    document.getElementById("transferConfirmModal").style.display = "flex";
+    document.getElementById("transferConfirmOkBtn").onclick = () => {
+        document.getElementById("transferConfirmModal").style.display = "none";
+        executeTransfer();
+    };
 }
 
 function executeTransfer() {
@@ -3867,7 +3954,7 @@ async function setWallet(){
         if(!targetShare) return;
     }
 
-    let reason = await showPrompt("سبب التعيين المباشر", "هذا الحقل إجباري", "أدخل سبب التعيين...", '<i class="fas fa-edit"></i>');
+    let reason = await showPrompt("سبب التعيين المباشر", "هذا الحقل إجباري", "أدخل سبب التعيين...", '<i class="fas fa-edit"></i>', false, "", true);
     if(!reason) return;
     
     let w=safeJSON(store.wallets, {}); 
@@ -3941,7 +4028,7 @@ async function setProfitShare() {
         if(!targetWallet) return;
     }
 
-    let reason = await showPrompt("سبب تعديل الحصة", "هذا الحقل إجباري", "أدخل السبب...", '<i class="fas fa-edit"></i>');
+    let reason = await showPrompt("سبب تعديل الحصة", "هذا الحقل إجباري", "أدخل السبب...", '<i class="fas fa-edit"></i>', false, "", true);
     if(!reason) return;
 
     let invest = safeJSON(store.invest, {});
