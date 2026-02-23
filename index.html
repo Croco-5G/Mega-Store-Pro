@@ -2133,6 +2133,17 @@ function showModalDetails(details) {
         body.innerHTML += row("الرصيد قبل", fix(details.wBefore));
         body.innerHTML += row("الرصيد بعد", fix(details.wAfter));
         body.innerHTML += `<br><small>تم خصم التكلفة أيضاً من رأس مال المتجر</small>`;
+    } else if (details.type === 'user_edit') {
+        body.innerHTML += row("المستخدم", esc(details.username));
+        if(details.passwordChanged) body.innerHTML += `<div style="padding:6px 10px; margin:5px 0; background:rgba(245,158,11,0.1); color:#d97706; border-radius:8px; font-size:13px; text-align:center;"><i class="fas fa-key"></i> تم تغيير كلمة المرور</div>`;
+        if(details.oldRole && details.newRole) {
+            body.innerHTML += `<hr style="margin:10px 0; border:0; border-top:1px dashed var(--border-color)">`;
+            body.innerHTML += row("الصلاحية القديمة", esc(details.oldRole));
+            body.innerHTML += row("الصلاحية الجديدة", esc(details.newRole), true, true);
+        }
+        if(!details.passwordChanged && !details.oldRole) {
+            body.innerHTML += `<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">لم يتم تغيير أي بيانات</div>`;
+        }
     } else if (details.type === 'failed_login') {
         body.innerHTML += `<div style="text-align:center; color:var(--danger); margin-bottom:12px; font-size:22px"><i class="fas fa-shield-alt"></i></div>`;
         body.innerHTML += row("الحساب المُستهدف", esc(details.attempted));
@@ -2710,8 +2721,12 @@ function refreshLogs() {
     let logs = safeJSON(store.activityLog, []);
     let search = document.getElementById("logsSearch").value.toLowerCase();
     const tbody = document.getElementById("logsTableBody");
-    let isViewer = currentUser && currentUser.role === 'viewer';
-    
+    let role = currentUser ? currentUser.role : 'viewer';
+    // المشاهدون: لا يرون زر التفاصيل نهائياً
+    // الموظف: يرى التفاصيل في المالية فقط
+    // الأدمن: يرى التفاصيل في كل التبويبات
+    let canSeeDetails = (role === 'admin') || (role === 'employee' && currentLogsTab === 'financial');
+
     let tabFiltered = logs.filter(log => getLogType(log) === currentLogsTab);
 
     let filtered = tabFiltered.filter(log => {
@@ -2724,7 +2739,7 @@ function refreshLogs() {
     let rows = "";
     paginated.forEach((log) => {
         let detailsBtn = "";
-        if(log.details && !isViewer) {
+        if(log.details && canSeeDetails) {
             detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
         } else {
             detailsBtn = `<span style="color:var(--text-muted); font-size:12px;">-</span>`;
@@ -4378,10 +4393,10 @@ async function saveUserEdit() {
     let oldRole = users[index].role;
     users[index].role = newRole;
     store.users = JSON.stringify(users); fbSave("users", users);
-    let changeDesc = [];
-    if(newPass) changeDesc.push("كلمة المرور");
-    if(oldRole !== newRole) changeDesc.push(`الصلاحية من ${oldRole} إلى ${newRole}`);
-    logAction(`تعديل بيانات المستخدم: ${users[index].username}${changeDesc.length ? ' (' + changeDesc.join('، ') + ')' : ''}`, 'danger');
+    let editDetails = { type: 'user_edit', username: users[index].username };
+    if(newPass) editDetails.passwordChanged = true;
+    if(oldRole !== newRole) { editDetails.oldRole = getRoleName(oldRole); editDetails.newRole = getRoleName(newRole); }
+    logAction(`تعديل بيانات المستخدم: ${users[index].username}`, 'danger', editDetails);
     document.getElementById("editUserModal").classList.add("hidden");
     renderUsersTable();  notify("تم تحديث بيانات المستخدم");
 }
