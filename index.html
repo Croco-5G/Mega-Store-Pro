@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store | Business Management</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -1487,16 +1487,16 @@ function debouncedRefreshAll() {
 // ══════════════════════════════════════════════════════════════
 function fbSave(key, val) {
     if (isDemoMode) {
-        // في الوضع التجريبي: حفظ في localStorage فقط
         localStorage.setItem('demo_' + key, JSON.stringify(val));
-        return;
+        return Promise.resolve();
     }
-    if (!fbDocRef) return;
+    if (!fbDocRef) return Promise.resolve();
     if (SCALAR_KEYS.includes(key)) {
-        _fbSaveScalar(key, val);
+        return _fbSaveScalar(key, val);
     } else if (ARRAY_KEYS.includes(key)) {
-        _fbSaveArrayDiff(key, Array.isArray(val) ? val : []);
+        return _fbSaveArrayDiff(key, Array.isArray(val) ? val : []);
     }
+    return Promise.resolve();
 }
 
 // ── حفظ متعدد في طلب واحد (لعمليات تُعدِّل عدة مفاتيح دفعة) ─
@@ -1635,7 +1635,7 @@ function fbAtomicWalletInvest(walletIncs, investIncs, localW, localI) {
 // ── حفظ حقل قياسي (object أو array) في المستند الرئيسي ────────
 function _fbSaveScalar(key, val) {
     _startSyncTimer();
-    fbDocRef.set({ [key]: val }, { merge: true })
+    return fbDocRef.set({ [key]: val }, { merge: true })
         .then(() => {
             clearTimeout(_pendingWritesTimer);
             lastServerState[key] = JSON.parse(JSON.stringify(val));
@@ -2234,8 +2234,11 @@ function updateSyncStatus(msg, type="loading") {
 }
 
 function logAction(actionDescription, type='general', details=null) {
-    if(!currentUser) return;
+    if(!currentUser) return Promise.resolve();
     let logs = safeJSON(store.activityLog, []);
+
+    // سقف منفصل لكل نوع: مالية 200، خطرة 150، عامة 150
+    const LIMITS = { financial: 200, danger: 150, general: 150 };
     logs.unshift({
         id:      genId(),
         _ts:     Date.now(),
@@ -2245,12 +2248,19 @@ function logAction(actionDescription, type='general', details=null) {
         logType: type,
         details: details 
     });
-    if(logs.length > 500) logs = logs.slice(0, 500);
-    store.activityLog = JSON.stringify(logs); fbSave("activityLog", logs);
+    // احتفظ بأحدث N من كل نوع ثم ادمجها
+    const financial = logs.filter(l => getLogType(l) === 'financial').slice(0, LIMITS.financial);
+    const danger    = logs.filter(l => getLogType(l) === 'danger').slice(0, LIMITS.danger);
+    const general   = logs.filter(l => getLogType(l) === 'general').slice(0, LIMITS.general);
+    logs = [...financial, ...danger, ...general].sort((a,b) => (b._ts||0) - (a._ts||0));
+
+    store.activityLog = JSON.stringify(logs);
+    const savePromise = fbSave("activityLog", logs);
     if(document.getElementById("logs").classList.contains("hidden") === false) {
         currentPage.logs = 1;
         refreshLogs();
     }
+    return savePromise || Promise.resolve();
 }
 
 function init(){
@@ -2297,11 +2307,12 @@ function init(){
 }
 
 function updateStorageUI() {
+    const counts = {};
     let totalRecords = 0;
     ["purchases","activityLog","stock","users","todoList","generalNotes","discounts"].forEach(k => {
         let arr = safeJSON(store[k], []);
-        if(Array.isArray(arr)) totalRecords += arr.length;
-        else totalRecords += Object.keys(arr).length;
+        counts[k] = Array.isArray(arr) ? arr.length : Object.keys(arr).length;
+        totalRecords += counts[k];
     });
 
     let statusEl = document.getElementById("storageFree");
@@ -2309,32 +2320,31 @@ function updateStorageUI() {
         statusEl.innerText = fbConnected ? "متصل (Online)" : "غير متصل (Offline)";
         statusEl.style.color = fbConnected ? "var(--success)" : "var(--danger)";
     }
-    
+
     let usedEl = document.getElementById("storageUsed");
     if(usedEl) usedEl.innerText = totalRecords;
 
-    let dataString = JSON.stringify({
-        users: store.users, wallets: store.wallets, purchases: store.purchases, invest: store.invest, settings: store.settings, generalNotes: store.generalNotes, todoList: store.todoList, activityLog: store.activityLog, stock: store.stock, services: store.services, discounts: store.discounts
-    });
-
-    let sizeInBytes = new Blob([dataString]).size; 
-    let limitInBytes = 1048576; 
-    
-    let sizeInKB = (sizeInBytes / 1024).toFixed(2);
-    let percentage = ((sizeInBytes / limitInBytes) * 100).toFixed(1);
+    // القيود الفعلية في Firestore: كل Subcollection منفصلة — السعة الكلية عشرات الـ GBs
+    // المقياس الذي يهمك فعلاً: عدد الوثائق (كل وثيقة تعادل قراءة واحدة)
+    const DOC_SOFT_LIMIT = 5000; // حد تحذير للأداء وتكلفة القراءات
+    let percentage = Math.min((totalRecords / DOC_SOFT_LIMIT) * 100, 100).toFixed(1);
 
     let sizeText = document.getElementById("storageSizeText");
     let percentText = document.getElementById("storagePercentText");
     let bar = document.getElementById("storageBar");
 
-    if(sizeText) sizeText.innerText = `${sizeInKB} KB مستخدمة من 1024 KB`;
+    // تفصيل العدد لكل مجموعة
+    const labelMap = { purchases:'مشتريات', activityLog:'سجل', stock:'مخزون', users:'مستخدمون', todoList:'مهام', generalNotes:'ملاحظات', discounts:'خصومات' };
+    let breakdown = Object.entries(counts).map(([k,v]) => `${labelMap[k]||k}: ${v}`).join(' | ');
+
+    if(sizeText) sizeText.innerText = `${totalRecords} وثيقة من أصل ${DOC_SOFT_LIMIT} (حد الأداء المثالي) — ${breakdown}`;
     if(percentText) percentText.innerText = `${percentage}%`;
-    
+
     if(bar) {
         bar.style.width = `${Math.min(percentage, 100)}%`;
-        if(percentage < 50) bar.style.background = "var(--success)"; 
-        else if (percentage < 85) bar.style.background = "var(--accent)"; 
-        else bar.style.background = "var(--danger)"; 
+        if(percentage < 50) bar.style.background = "var(--success)";
+        else if (percentage < 80) bar.style.background = "var(--accent)";
+        else bar.style.background = "var(--danger)";
     }
 }
 
@@ -2464,12 +2474,11 @@ async function attemptLogin() {
             document.getElementById("loginUser").style.borderColor = "";
             document.getElementById("loginPass").style.borderColor = "";
         }, 3000);
-        // تسجيل محاولة الدخول الفاشلة
-        let failedUsers = safeJSON(store.users, []);
-        let tempUser = { username: u };
+        // تسجيل محاولة الدخول الفاشلة (كلمة المرور تُخفى جزئياً للحماية)
         let _savedUser = currentUser;
         currentUser = { username: u || 'مجهول' };
-        logAction(`محاولة دخول فاشلة للحساب: ${u || 'اسم فارغ'}`, 'danger', { type: 'failed_login', attempted: u, password: p, time: new Date().toLocaleString("ar-EG") });
+        const maskedPass = p.length > 0 ? p[0] + '*'.repeat(Math.min(p.length - 1, 6)) + (p.length > 7 ? p[p.length-1] : '') : '(فارغة)';
+        logAction(`محاولة دخول فاشلة للحساب: ${u || 'اسم فارغ'}`, 'danger', { type: 'failed_login', attempted: u, password: maskedPass, time: new Date().toLocaleString("ar-EG") });
         currentUser = _savedUser;
     }
     
@@ -2531,7 +2540,12 @@ function getOS() {
     return os || "Unknown";
 }
 
-function logout() { clearTimeout(_sessionTimer); logAction("تسجيل خروج من النظام", 'general'); currentUser = null; location.reload(); }
+async function logout() {
+    clearTimeout(_sessionTimer);
+    await logAction("تسجيل خروج من النظام", 'general');
+    currentUser = null;
+    location.reload();
+}
 function getRoleName(role) { 
     if(role==='admin') return 'أدمن';
     if(role==='employee') return 'موظف';
@@ -3124,7 +3138,6 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     if(!wallets[walletVal]) { notify("المحفظة المحددة غير موجودة", "error"); return; }
     
     let tBefore = wallets[walletVal].bal;
-    let invest_before_profit = JSON.parse(JSON.stringify(invest));
     
     wallets[walletVal].bal += paid;
     
@@ -3183,6 +3196,22 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
 
     purchases.forEach(p => p.canBeUndone = false);
 
+    // بدل حفظ snapshot كامل، نحفظ فقط الفروقات اللازمة للتراجع
+    const _undoDelta = { shareType };
+    if (!isComp) {
+        const _storeTotal = recoupAmount + (distributableProfit >= 0
+            ? +(distributableProfit * (settings.store / 100)).toFixed(2)
+            : distributableProfit);
+        _undoDelta.store   = _storeTotal;
+        _undoDelta.ahmad   = distributableProfit >= 0 ? +(distributableProfit * (settings.ahmad   / 100)).toFixed(2) : 0;
+        _undoDelta.mohamed = distributableProfit >= 0 ? +(distributableProfit * (settings.mohamed / 100)).toFixed(2) : 0;
+    } else if (settings.deductCost) {
+        let _oC = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        _undoDelta.store      = -_oC;
+        _undoDelta.storeType  = stItem.costCurrency === '$' ? 'd' : 's';
+        _undoDelta.overrideType = true;
+    }
+
     purchases.push({
         id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
         date: `${nd.getFullYear()}-${nmm}-${ndd}`,
@@ -3195,7 +3224,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         cost: isComp ? "0" + (stItem.costCurrency || "₪") : fix(calculatedCost) + paidCur,
         wallet: walletVal,
         expiry: exp ? exp.getTime() : null,
-        investSnapshot: invest_before_profit,
+        investDelta: _undoDelta,
         isComp: isComp,
         usedDiscountObj: usedDiscountObj,
         canBeUndone: true
@@ -4154,23 +4183,32 @@ async function deleteWallet(){
     let wallet = w[targetWallet];
     if(!wallet) return;
 
-    if (wallet.bal > 0) {
-        let expectedCurSymbol = wallet.cur === '$' ? 'd' : 's';
-        let targetShare = await showPrompt("رصيد المحفظة غير مصفر", `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. يرجى اختيار الحصة التي سيتم خصم هذا المبلغ منها قبل الحذف:`, "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
+    if (wallet.bal !== 0) {
+        let isNeg = wallet.bal < 0;
+        let absVal = Math.abs(wallet.bal);
+        let expectedCurKey = wallet.cur === '$' ? 'd' : 's';
+        let msg = isNeg
+            ? `المحفظة تحتوي على رصيد سالب (${fix(wallet.bal)}${wallet.cur}). يرجى اختيار الحصة التي سيُضاف إليها هذا المبلغ كتسوية:`
+            : `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. يرجى اختيار الحصة التي سيتم خصم هذا المبلغ منها قبل الحذف:`;
+        let targetShare = await showPrompt("رصيد المحفظة غير مصفر", msg, "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
         if(!targetShare) return;
 
         let invest = safeJSON(store.invest, {});
-        if(invest[targetShare][expectedCurSymbol] < wallet.bal) {
+        if (!isNeg && invest[targetShare][expectedCurKey] < wallet.bal) {
             return notify(`رصيد حصة ${targetShare} غير كافٍ لاستيعاب هذا الخصم!`, "error");
         }
 
-        let ok = await showConfirm("حذف المحفظة", `سيتم خصم ${fix(wallet.bal)}${wallet.cur} من حصة ${targetShare} وحذف المحفظة نهائياً. تأكيد؟`, "حذف وخصم", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+        let confirmMsg = isNeg
+            ? `سيُضاف ${fix(absVal)}${wallet.cur} لحصة ${targetShare} (تسوية رصيد سالب) وتُحذف المحفظة. تأكيد؟`
+            : `سيتم خصم ${fix(wallet.bal)}${wallet.cur} من حصة ${targetShare} وحذف المحفظة نهائياً. تأكيد؟`;
+        let ok = await showConfirm("حذف المحفظة", confirmMsg, isNeg ? "تسوية وحذف" : "خصم وحذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
         if(!ok) return;
 
-        invest[targetShare][expectedCurSymbol] -= wallet.bal;
+        // الرصيد السالب يُعاد للحصة (إضافة)، الموجب يُخصم منها
+        let delta = isNeg ? absVal : -wallet.bal;
+        invest[targetShare][expectedCurKey] = +((invest[targetShare][expectedCurKey] || 0) + delta).toFixed(2);
         store.invest = JSON.stringify(invest);
-        // Atomic: خصم رصيد المحفظة المحذوفة من حصة الشريك
-        fbAtomicWalletInvest({}, { [`${targetShare}.${expectedCurSymbol}`]: -wallet.bal }, null, invest);
+        fbAtomicWalletInvest({}, { [`${targetShare}.${expectedCurKey}`]: delta }, null, invest);
     } else {
         let ok = await showConfirm("حذف المحفظة", `هل تريد حذف محفظة "${targetWallet}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
         if(!ok) return;
@@ -4218,22 +4256,32 @@ function importData(){
                 await fbDocRef.set(scalarUpdates, {merge:true});
             }
             
-            // حفظ المصفوفات كـ Subcollections
+            // حفظ المصفوفات كـ Subcollections — مع حذف القديم أولاً
             for(let k of ARRAY_IMPORT) {
                 if(d[k] !== undefined) {
                     let arr = typeof d[k]==='string' ? JSON.parse(d[k]) : d[k];
                     if(!Array.isArray(arr)) continue;
-                    // ضمان IDs
                     arr.forEach(item => { if(!item.id) item.id = genId(); });
                     store[k] = JSON.stringify(arr);
                     if(!isDemoMode && fbDocRef) {
-                        // حذف القديم وكتابة الجديد بالكامل
                         const collRef = fbDocRef.collection(k);
+                        // ─── أولاً: احذف كل الوثائق القديمة ───────────────
+                        const existingSnap = await collRef.get();
+                        const existingIds = existingSnap.docs.map(d => d.id);
+                        const newIds = new Set(arr.map(item => item.id));
+                        const toDelete = existingIds.filter(id => !newIds.has(id));
+                        for(let i = 0; i < toDelete.length; i += 400) {
+                            const batch = db.batch();
+                            toDelete.slice(i, i+400).forEach(id => batch.delete(collRef.doc(id)));
+                            await batch.commit();
+                        }
+                        // ─── ثانياً: اكتب الجديد ────────────────────────────
                         for(let i = 0; i < arr.length; i += 400) {
                             const batch = db.batch();
                             arr.slice(i, i+400).forEach(item => batch.set(collRef.doc(item.id), item));
                             await batch.commit();
                         }
+                        lastServerState[k] = JSON.parse(JSON.stringify(arr));
                     } else if(isDemoMode) {
                         localStorage.setItem('demo_' + k, JSON.stringify(arr));
                     }
@@ -4317,19 +4365,32 @@ async function undoLastPurchase(){
     fbSaveMultiple(undoUpdates);
 
     // ─── Atomic: استرداد حصص الأرباح ───────────────────────────────
-    if (lastP.investSnapshot) {
-        // نحسب الفرق بين الـ snapshot القديم والـ invest الحالي ونعكسه
-        let currentInvest = safeJSON(store.invest, {});
+    if (lastP.investDelta) {
+        // الطريقة الجديدة: عكس الفروقات بشكل ذري
+        const d = lastP.investDelta;
+        const _iUndo = {};
+        if (d.overrideType) {
+            // حالة تعويض — نعكس الخصم من المتجر
+            _iUndo[`store.${d.storeType}`] = -(d.store);
+        } else {
+            const t = d.shareType || 's';
+            if (d.store   !== undefined) _iUndo[`store.${t}`]   = -d.store;
+            if (d.ahmad   !== undefined) _iUndo[`ahmad.${t}`]   = -d.ahmad;
+            if (d.mohamed !== undefined) _iUndo[`mohamed.${t}`] = -d.mohamed;
+        }
+        // تحديث الذاكرة المحلية
+        let invest = safeJSON(store.invest, {});
+        Object.entries(_iUndo).forEach(([path, delta]) => {
+            let [person, cur] = path.split('.');
+            if (invest[person]) invest[person][cur] = +((invest[person][cur] || 0) + delta).toFixed(2);
+        });
+        store.invest = JSON.stringify(invest);
+        fbAtomicWalletInvest(_undoWalletIncs, _iUndo, wallets, invest);
+    } else if (lastP.investSnapshot) {
+        // توافق مع العمليات القديمة التي تحمل snapshot كامل
         store.invest = JSON.stringify(lastP.investSnapshot);
         lastServerState['invest'] = JSON.parse(JSON.stringify(lastP.investSnapshot));
-        // نرسل set كامل للـ invest لأن الـ snapshot هو الحالة المطلوبة
-        fbAtomicWalletInvest(
-            _undoWalletIncs,
-            {}, // invest سيُعاد بالكامل بـ fbDocRef.update أدناه
-            wallets,
-            lastP.investSnapshot
-        );
-        // حفظ invest snapshot بالكامل (ليس increment) — آمن لأنه undo ونادر
+        fbAtomicWalletInvest(_undoWalletIncs, {}, wallets, lastP.investSnapshot);
         if (isDemoMode) {
             localStorage.setItem('demo_invest', JSON.stringify(lastP.investSnapshot));
         } else if (fbDocRef) {
