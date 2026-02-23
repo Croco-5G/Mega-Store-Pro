@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>Mega Store | Business Management</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -808,9 +808,9 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchLogsTab('financial', this)">💰 حركات مالية وتفصيلية</button>
-            <button class="tab-btn" onclick="switchLogsTab('danger', this)">🔴 حركات مهمة أو خطرة</button>
-            <button class="tab-btn" onclick="switchLogsTab('general', this)">📋 حركات عامة</button>
+            <button class="tab-btn active" onclick="switchLogsTab('financial', this)">حركات مالية وتفصيلية</button>
+            <button class="tab-btn" onclick="switchLogsTab('danger', this)">حركات مهمة أو خطرة</button>
+            <button class="tab-btn" onclick="switchLogsTab('general', this)">حركات عامة</button>
         </div>
         
         <div class="input-group" style="margin-bottom:20px;">
@@ -2682,56 +2682,14 @@ function refreshLogs() {
     let paginated = filtered.slice((currentPage.logs - 1) * ITEMS_PER_PAGE, currentPage.logs * ITEMS_PER_PAGE);
 
     let rows = "";
-    paginated.forEach((log, i) => {
-        const uid = `log_${log.id || i}`;
-        let typeIcon = '';
-        if(currentLogsTab === 'financial') typeIcon = '<span style="color:var(--success); margin-left:5px;">💰</span>';
-        else if(currentLogsTab === 'danger') typeIcon = '<span style="color:var(--danger); margin-left:5px;">🔴</span>';
-        else typeIcon = '<span style="color:var(--primary); margin-left:5px;">📋</span>';
-
+    paginated.forEach((log) => {
         let detailsBtn = "";
         if(log.details && !isViewer) {
-            detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick="toggleLogDetails('${uid}')"><i class="fas fa-chevron-down" id="icon_${uid}"></i></button>`;
+            detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px" onclick='showModalDetails(${JSON.stringify(log.details)})'><i class="fas fa-eye"></i></button>`;
         } else {
             detailsBtn = `<span style="color:var(--text-muted); font-size:12px;">-</span>`;
         }
-
-        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${typeIcon}${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
-
-        if(log.details && !isViewer) {
-            let detailRows = Object.entries(log.details).map(([k,v]) => {
-                if(v === null || v === undefined || v === '') return '';
-                let displayKey = {
-                    type:'النوع', customer:'العميل', sub:'الخدمة', paid:'المدفوع', costVal:'التكلفة',
-                    toName:'المحفظة', tBefore:'الرصيد قبل', tAfter:'الرصيد بعد', isComp:'تعويض',
-                    appliedDiscountPct:'نسبة الخصم', wallet:'المحفظة', reason:'السبب', before:'قبل',
-                    after:'بعد', diff:'الفارق', syncedShare:'الحصة المرتبطة', person:'الشريك',
-                    currency:'العملة', syncedWallet:'المحفظة المرتبطة', from:'من', to:'إلى',
-                    amount:'المبلغ', fee:'العمولة', result:'الصافي', fromCur:'عملة المصدر',
-                    toCur:'عملة الهدف', item:'العنصر', cost:'التكلفة', wBefore:'المحفظة قبل',
-                    wAfter:'المحفظة بعد', deducted:'المخصوم', attempted:'المستخدم المُدخل',
-                    code:'الكود', search:'البحث', count:'العدد', fromDate:'من تاريخ', toDate:'إلى تاريخ',
-                    shareBefore:'الحصة قبل', shareAfter:'الحصة بعد', walletBefore:'المحفظة قبل',
-                    walletAfter:'المحفظة بعد', deductedFromWallet:'المخصوم من المحفظة',
-                    walletName:'المحفظة', netAmount:'المبلغ الصافي',
-                    service: 'الخدمة'
-                }[k] || k;
-                let displayVal = typeof v === 'boolean' ? (v ? 'نعم' : 'لا') : 
-                                 typeof v === 'object' ? JSON.stringify(v).substring(0, 80) + (JSON.stringify(v).length > 80 ? '...' : '') : 
-                                 String(v).substring(0, 120);
-                if(displayVal === 'null' || displayVal === '') return '';
-                return `<div style="display:flex; gap:10px; padding:4px 0; border-bottom:1px dashed var(--border-color); flex-wrap:wrap;"><span style="color:var(--text-muted); min-width:120px; font-weight:700;">${displayKey}:</span><span style="color:var(--text-main);">${esc(String(displayVal))}</span></div>`;
-            }).filter(Boolean).join('');
-
-            rows += `<tr id="${uid}" style="display:none; background:var(--bg-input);">
-                <td colspan="4" style="padding:15px 20px;">
-                    <div style="background:var(--bg-card); border-radius:10px; padding:15px; border:1px solid var(--border-color); font-size:13px;">
-                        <div style="font-weight:800; margin-bottom:10px; color:var(--primary);">📋 تفاصيل الحركة</div>
-                        ${detailRows || '<span style="color:var(--text-muted);">لا توجد تفاصيل إضافية</span>'}
-                    </div>
-                </td>
-            </tr>`;
-        }
+        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
     });
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
