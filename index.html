@@ -4757,7 +4757,7 @@ async function undoLastPurchase(){
         fbAtomicWalletInvest(_undoWalletIncs, {}, wallets, wallets);
     }
     
-    logAction("تراجع عن عملية شراء (واسترداد رتبة الـ VIP إن لزم)", 'financial', { type: 'undo', data: lastP, deducted: lastP.paid });
+    logAction("تراجع عن عملية شراء", 'financial', { type: 'undo', data: lastP, deducted: lastP.paid });
     
     currentPage.history = 1;
     loadPurchaseStock();
@@ -5466,6 +5466,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
