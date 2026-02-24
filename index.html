@@ -3420,15 +3420,13 @@ function addPurchase(){
     let fractionalCostOriginal = originalCost / totalProfiles;
     let calculatedCost = 0;
     
-    if (!isComp) {
-        if (paidCur === originalCostCur) {
-            calculatedCost = fractionalCostOriginal;
-        } else {
-            if (paidCur === '$' && originalCostCur === '₪') {
-                calculatedCost = fractionalCostOriginal / rate;
-            } else if (paidCur === '₪' && originalCostCur === '$') {
-                calculatedCost = fractionalCostOriginal * rate;
-            }
+    if (paidCur === originalCostCur) {
+        calculatedCost = fractionalCostOriginal;
+    } else {
+        if (paidCur === '$' && originalCostCur === '₪') {
+            calculatedCost = fractionalCostOriginal / rate;
+        } else if (paidCur === '₪' && originalCostCur === '$') {
+            calculatedCost = fractionalCostOriginal * rate;
         }
     }
     
@@ -3578,7 +3576,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: isComp ? "0" + (stItem.costCurrency || "₪") : fix(calculatedCost) + paidCur,
+        cost: fix(calculatedCost) + paidCur,
         wallet: walletVal,
         expiry: exp ? exp.getTime() : null,
         investDelta: _undoDelta,
@@ -3611,7 +3609,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     fbSaveMultiple({ stock: stockList, purchases: purchases, vipCustomers: vips });
     
     logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, 'financial', {
-        type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur, costVal: isComp ? "0" : fix(calculatedCost) + paidCur, isFirstProfile: !isComp, toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal, appliedDiscountPct: appliedDiscountPct, isComp: isComp
+        type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur, costVal: fix(calculatedCost) + paidCur, isFirstProfile: !isComp, toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal, appliedDiscountPct: appliedDiscountPct, isComp: isComp
     });
 
     if (usedDiscountObj) {
@@ -5468,6 +5466,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
