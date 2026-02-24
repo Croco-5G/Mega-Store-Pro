@@ -831,7 +831,7 @@
     </div>
 <div id="vip" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px">
-            <h3 style="margin-bottom:0"><i class="fas fa-star" style="color:var(--primary)"></i> العملاء المميزين (VIP)</h3>
+<h3 style="margin-bottom:0; display:flex; align-items:center; gap:10px;"><i class="fas fa-star" style="color:var(--primary)"></i> العملاء المميزين (VIP) <span id="vipTotalCountBadge" class="badge badge-info" style="font-size:12px;">العدد: 0</span></h3>
             <div style="display:flex; gap:10px;">
                 <button class="btn" style="background:#a855f7; color:white" onclick="openVipInfoModal()"><i class="fas fa-exclamation-circle"></i> تفاصيل الرتب</button>
                 <button id="btnAddVip" class="btn btn-success hidden" onclick="openAddVipModal()"><i class="fas fa-plus"></i> إضافة رتبة</button>
@@ -1055,10 +1055,10 @@
     <div id="modify" class="card hidden">
         
         <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
-            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (1MB Limit)</h3>
+            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (Firebase)</h3>
             <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;">
-                    <span><i class="fas fa-database"></i> السجلات: <span id="storageUsed" style="color:var(--primary)">0</span></span>
+                    <span><i class="fas fa-database"></i> الحجم: <span id="storageUsed" style="color:var(--primary)" dir="ltr">0.00 KB</span></span>
                     <span id="storageFree">جاري الفحص..</span>
                 </div>
                 
@@ -1072,7 +1072,7 @@
                 </div>
                 
                 <p style="font-size:11px; color:var(--text-muted); margin:0;">
-                    تنبيه: الحد الأقصى للمستند هو 1 ميجابايت. عند الوصول لـ 90% قم بمسح السجلات القديمة.
+                    تنبيه: الحد الأقصى المسموح هو 1 ميجابايت (1024 كيلوبايت). إذا وصل المؤشر للون الأحمر، قم بتصدير الأرشيف ومسح السجلات القديمة.
                 </p>
             </div>
         </div>
@@ -1522,7 +1522,9 @@ function refreshVip() {
             <td style="text-align:center;">${delBtn}</td>
         </tr>`;
     });
-    tbody.innerHTML = rows || `<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>لا يوجد عملاء بعد</td></tr>`;
+    tbody.innerHTML = rows || `<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>لا يوجد عملاء بعد</td></tr>`;// تحديث عدد العملاء الإجمالي في العنوان
+    let countBadge = document.getElementById("vipTotalCountBadge");
+    if(countBadge) countBadge.innerText = `إجمالي العملاء: ${Object.keys(vips).length}`;
 }
 
 async function deleteVip(phone) {
@@ -2024,7 +2026,7 @@ function _startSyncTimer() {
     updateSyncStatus("جاري الحفظ...", "loading");
     clearTimeout(_pendingWritesTimer);
     _pendingWritesTimer = setTimeout(() => {
-        updateSyncStatus("تأخر في الاتصال، تحقق من الإنترنت", "error");
+        updateSyncStatus("تأخر في الاتصال، جاري المحاولة...", "retrying");
     }, 10000);
 }
 
@@ -2541,6 +2543,9 @@ function updateSyncStatus(msg, type="loading") {
     } else if (type==="error") {
         el.innerHTML = `<i class="fas fa-exclamation-circle" style="color:var(--danger)"></i> <span style="color:var(--danger)">${msg}</span>`;
         el.style.borderColor = "var(--danger)";
+    } else if (type==="retrying") {
+        el.innerHTML = `<i class="fas fa-circle-notch fa-spin" style="color:#d97706"></i> <span style="color:#d97706">${msg}</span>`;
+        el.style.borderColor = "#d97706";
     } else if (type==="warning") {
         el.innerHTML = `<i class="fas fa-cloud-upload-alt" style="color:#d97706"></i> <span style="color:#d97706">${msg}</span>`;
         el.style.borderColor = "#d97706";
@@ -2625,13 +2630,20 @@ function init(){
 }
 
 function updateStorageUI() {
-    const counts = {};
-    let totalRecords = 0;
-    ["purchases","activityLog","stock","users","todoList","generalNotes","discounts"].forEach(k => {
-        let arr = safeJSON(store[k], []);
-        counts[k] = Array.isArray(arr) ? arr.length : Object.keys(arr).length;
-        totalRecords += counts[k];
+    let totalBytes = 0;
+    // حساب دقيق جداً لحجم البيانات الفعلي المخزن في النظام
+    const STORE_KEYS_ALL = ["wallets", "settings", "invest", "services", "vipCustomers", "purchases", "stock", "users", "activityLog", "todoList", "generalNotes", "discounts"];
+    
+    STORE_KEYS_ALL.forEach(k => {
+        if(store[k]) {
+            // استخدام Blob يعطينا الحجم الفعلي بالبايتات بدقة متناهية
+            totalBytes += new Blob([store[k]]).size;
+        }
     });
+
+    let totalKB = (totalBytes / 1024).toFixed(2);
+    const MAX_KB = 1024; // 1 ميجابايت (حد فايربيز للمستند الواحد)
+    let percentage = Math.min((totalBytes / (MAX_KB * 1024)) * 100, 100).toFixed(1);
 
     let statusEl = document.getElementById("storageFree");
     if(statusEl) {
@@ -2640,26 +2652,17 @@ function updateStorageUI() {
     }
 
     let usedEl = document.getElementById("storageUsed");
-    if(usedEl) usedEl.innerText = totalRecords;
-
-    // القيود الفعلية في Firestore: كل Subcollection منفصلة — السعة الكلية عشرات الـ GBs
-    // المقياس الذي يهمك فعلاً: عدد الوثائق (كل وثيقة تعادل قراءة واحدة)
-    const DOC_SOFT_LIMIT = 5000; // حد تحذير للأداء وتكلفة القراءات
-    let percentage = Math.min((totalRecords / DOC_SOFT_LIMIT) * 100, 100).toFixed(1);
+    if(usedEl) usedEl.innerText = totalKB + " KB";
 
     let sizeText = document.getElementById("storageSizeText");
     let percentText = document.getElementById("storagePercentText");
     let bar = document.getElementById("storageBar");
 
-    // تفصيل العدد لكل مجموعة
-    const labelMap = { purchases:'مشتريات', activityLog:'سجل', stock:'مخزون', users:'مستخدمون', todoList:'مهام', generalNotes:'ملاحظات', discounts:'خصومات' };
-    let breakdown = Object.entries(counts).map(([k,v]) => `${labelMap[k]||k}: ${v}`).join(' | ');
-
-    if(sizeText) sizeText.innerText = `${totalRecords} وثيقة من أصل ${DOC_SOFT_LIMIT} (حد الأداء المثالي) — ${breakdown}`;
+    if(sizeText) sizeText.innerText = `${totalKB} KB / ${MAX_KB} KB`;
     if(percentText) percentText.innerText = `${percentage}%`;
 
     if(bar) {
-        bar.style.width = `${Math.min(percentage, 100)}%`;
+        bar.style.width = `${percentage}%`;
         if(percentage < 50) bar.style.background = "var(--success)";
         else if (percentage < 80) bar.style.background = "var(--accent)";
         else bar.style.background = "var(--danger)";
@@ -5464,6 +5467,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
