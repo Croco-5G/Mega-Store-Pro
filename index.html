@@ -514,11 +514,11 @@
         </div>
         
         <div class="custom-input">
-            <input id="loginUser" placeholder="اسم المستخدم" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';">
+            <input id="loginUser" placeholder="اسم المستخدم" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';" onkeydown="if(event.key === 'Enter') attemptLogin()">
             <i class="fas fa-user"></i>
         </div>
         <div class="custom-input">
-            <input id="loginPass" type="password" placeholder="كلمة المرور" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';">
+            <input id="loginPass" type="password" placeholder="كلمة المرور" oninput="document.getElementById('loginError').style.display='none'; this.style.borderColor='';" onkeydown="if(event.key === 'Enter') attemptLogin()">
             <i class="fas fa-lock"></i>
         </div>
         
@@ -5466,6 +5466,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
