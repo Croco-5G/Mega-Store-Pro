@@ -1460,7 +1460,7 @@ function processVipDowngrades() {
         let customer = vips[phone];
         if (customer.rankIndex > 0) {
             let daysPassed = Math.floor((now - customer.lastPurchaseTime) / (1000 * 60 * 60 * 24));
-            let drops = Math.floor(daysPassed / 20);
+            let drops = Math.floor(daysPassed / 40);
             if (drops > 0) {
                 for (let i = 0; i < drops && customer.rankIndex > 0; i++) {
                     let currentRank = VIP_RANKS[customer.rankIndex];
@@ -1473,7 +1473,7 @@ function processVipDowngrades() {
                     
                     customer.target = customer.count + diff;
                     customer.rankIndex--;
-                    customer.lastPurchaseTime += (20 * 86400000); 
+                    customer.lastPurchaseTime += (40 * 86400000); 
                 }
                 updated = true;
             }
@@ -1508,7 +1508,7 @@ function refreshVip() {
         let countDisplay = c.rankIndex < 4 ? `${c.count} / ${c.target}` : `${c.count} (ماكس)`;
         
         let daysPassed = Math.floor((now - c.lastPurchaseTime) / (1000 * 60 * 60 * 24));
-        let daysLeft = Math.max(0, 20 - daysPassed);
+        let daysLeft = Math.max(0, 40 - daysPassed);
         let timeText = c.rankIndex > 0 ? `${daysLeft} يوم` : '-';
         
         let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px" onclick="deleteVip('${c.phone}')"><i class="fas fa-trash"></i></button>` : '-';
@@ -5464,6 +5464,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
