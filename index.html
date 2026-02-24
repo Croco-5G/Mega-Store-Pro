@@ -184,7 +184,7 @@
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
             gap: 20px; 
             margin-bottom: 30px;
-            margin-top: 45px;
+            margin-top: 40px;
         }
         .stat-card { 
             background: var(--bg-card); 
@@ -391,13 +391,13 @@
             .stats-grid { grid-template-columns: 1fr; }
             .card { padding: 20px; }
             .dialog-box { padding: 25px; }
-            #syncStatus { top: 20px; left: 15px; }
+            #syncStatus { top: 10px; left: 15px; }
         }
 
         /* --- OTHER COMPONENTS --- */
         @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
         #notification { position: fixed; bottom: 30px; left: 30px; padding: 16px 25px; border-radius: 16px; color: white; font-weight: 700; z-index: 6000; display: none; animation: slideIn 0.3s ease-out; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.3); align-items: center; gap: 10px; }
-        #syncStatus { position: fixed; top: 25px; left: 30px; padding: 8px 16px; border-radius: 50px; font-size: 13px; font-weight: 700; z-index: 1001; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 8px; transition: all 0.3s; cursor: pointer; }
+        #syncStatus { position: fixed; top: 10px; left: 30px; padding: 8px 16px; border-radius: 50px; font-size: 13px; font-weight: 700; z-index: 1001; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: 0 5px 15px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 8px; transition: all 0.3s; cursor: pointer; }
         .theme-switch-container { display: flex; justify-content: center; align-items: center; padding-bottom: 10px; gap: 10px; font-size: 14px; color: #94a3b8; }
         .theme-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .theme-switch input { display: none; }
@@ -5468,6 +5468,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
