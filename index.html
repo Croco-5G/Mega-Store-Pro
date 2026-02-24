@@ -1557,9 +1557,17 @@ function showVipUpgradeModal(customerObj, rankObj, phone) {
         document.getElementById("vipModalTarget").innerHTML = `وصل العميل لأعلى رتبة ممكنة (ماسي).`;
     }
 
+    let remainingMsg = "";
+    if (customerObj.rankIndex < 4) {
+        remainingMsg = `\nمتبقي على وصولك للرتبة الأعلى:\n${customerObj.target - customerObj.count} عملية شراء.`;
+    } else {
+        remainingMsg = `\nمبروك! وصلت لأعلى رتبة في متجرنا.`;
+    }
+
+    let msg = `مرحبا ${esc(customerObj.name)}\nارتفعت رتبتك وصرت بالنسبة إلنا (${rankObj.name})\nبسبب شرائك من متجرنا (${customerObj.count}) مرات\n\nمميزات الرتبة أنك في كل عملية شراء هتاخد:\n1- نسبة حصولك على كود خصم صارت أعلى بنسبة (+${rankObj.chance}%).\n2- نسبة الخصم صارت أعلى بنسبة (+${rankObj.discount}%).\n3- مدة صلاحية الكود صارت أطول (+${rankObj.days}) أيام.\n4- بتقدر تستعمل كود الخصم (${rankObj.uses}) مرات.\n${remainingMsg}`;
+
     let cleanPhone = (phone || '').replace(/\D/g, '');
     let waBtn = document.getElementById("vipWhatsAppBtn");
-    let msg = `مرحباً ${esc(customerObj.name)} \nبسبب شرائك المستمر من متجرنا، ارتفعت رتبتك وصرت بالنسبة إلنا "${rankObj.name}"!\n\nبتقدر تستمتع بمميزات الرتبة في عملياتك الجاية:\n- فرصة أكبر لكود خصم بزيادة ${rankObj.chance}%\n- الخصم صار أعلى بزيادة ${rankObj.discount}%\n- صلاحية أكوادك زادت ${rankObj.days} أيام\n- بتقدر تستخدم الكود ${rankObj.uses} مرات\n\nشكراً لثقتك فينا `;
     
     if (!cleanPhone) {
         waBtn.style.display = "none";
@@ -3518,7 +3526,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     let vipCustomerObj = null;
 
     if (customerPhoneVal && !isComp) {
-        vipCustomerObj = vips[customerPhoneVal] || { name: customerVal, count: 0, rankIndex: 0, target: 1, lastPurchaseTime: nd.getTime() };
+        vipCustomerObj = vips[customerPhoneVal] || { name: customerVal, count: 0, rankIndex: 0, target: 3, lastPurchaseTime: nd.getTime() };
         vipPrevState = JSON.parse(JSON.stringify(vipCustomerObj)); 
         
         vipCustomerObj.count++;
@@ -3674,14 +3682,7 @@ function showCouponModal(coupon, phone, onCloseCallback = null) {
     document.getElementById("couponModalDays").textContent = `صالح لمدة ${coupon.days} يوم (مسموح بـ ${coupon.maxUses} استعمالات)`;
     document.getElementById("couponModalQuestion").textContent = `حصل العميل "${coupon.customer}" على كود خصم، هل تود إخباره؟`;
 
-    let remainingMsg = "";
-    if (customerObj.rankIndex < 4) {
-        remainingMsg = `\nمتبقي على وصولك للرتبة الأعلى:\n${customerObj.target - customerObj.count} عملية شراء.`;
-    } else {
-        remainingMsg = `\nمبروك! وصلت لأعلى رتبة في متجرنا.`;
-    }
-
-    let msg = `مرحبا ${esc(customerObj.name)}\nارتفعت رتبتك وصرت بالنسبة إلنا (${rankObj.name})\nبسبب شرائك من متجرنا (${customerObj.count}) مرات\n\nمميزات الرتبة أنك في كل عملية شراء هتاخد:\n1- نسبة حصولك على كود خصم صارت أعلى بنسبة (+${rankObj.chance}%).\n2- نسبة الخصم صارت أعلى بنسبة (+${rankObj.discount}%).\n3- مدة صلاحية الكود صارت أطول (+${rankObj.days}) أيام.\n4- بتقدر تستعمل كود الخصم (${rankObj.uses}) مرات.\n${remainingMsg}`;
+    let msg = `مرحباً ${coupon.customer}\nحصلت على كود خصم ${coupon.percentage}% على أي خدمة بتختارها من خدماتنا\nصلاحية كود الخصم: ${coupon.days} يوم\nمرات الاستخدام المسموحة: ${coupon.maxUses} مرات\nكود الخصم: ${coupon.code}`;
     let cleanPhone = (phone || '').replace(/\D/g, '');
     let waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
     let waBtn = document.getElementById("couponWhatsAppBtn");
@@ -5463,6 +5464,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
