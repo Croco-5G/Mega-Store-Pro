@@ -2333,11 +2333,25 @@ function initFirebase() {
 
     // ── 3. معالجة الاتصال / الانقطاع ─────────────────────────
     // ── 3. معالجة الاتصال / الانقطاع ─────────────────────────
+    // ── 3. معالجة الاتصال / الانقطاع ─────────────────────────
+    const updateLoaderOffline = () => {
+        let loadText = document.getElementById("loadingText");
+        let loadSubText = document.getElementById("loadingSubText");
+        let loaderScreen = document.getElementById("systemLoadingScreen");
+        if (loadText && loaderScreen && loaderScreen.style.opacity !== '0') {
+            loadText.innerHTML = '<i class="fas fa-wifi"></i> لا يوجد اتصال بالإنترنت!';
+            loadText.style.color = 'var(--danger)';
+            loadSubText.innerHTML = 'الموقع يحاول الاتصال حالياً. سيكتمل التحميل ويفتح النظام تلقائياً فور عودة الإنترنت.';
+        }
+    };
+
+    // فحص الإنترنت فور فتح الصفحة
+    if (!navigator.onLine) updateLoaderOffline();
+
     window.addEventListener('online', () => {
         fbConnected = false;
         updateSyncStatus("جاري استعادة الاتصال...", "loading");
         
-        // تحديث شاشة التحميل إذا كانت لا تزال ظاهرة
         let loadText = document.getElementById("loadingText");
         let loadSubText = document.getElementById("loadingSubText");
         let loaderScreen = document.getElementById("systemLoadingScreen");
@@ -2355,16 +2369,7 @@ function initFirebase() {
         clearTimeout(_pendingWritesTimer);
         updateSyncStatus("غير متصل (البيانات محفوظة)", "warning");
         updateStorageUI();
-        
-        // تحديث شاشة التحميل إذا كانت لا تزال ظاهرة
-        let loadText = document.getElementById("loadingText");
-        let loadSubText = document.getElementById("loadingSubText");
-        let loaderScreen = document.getElementById("systemLoadingScreen");
-        if (loadText && loaderScreen && loaderScreen.style.opacity !== '0') {
-            loadText.innerHTML = '<i class="fas fa-wifi"></i> انقطع الاتصال بالإنترنت!';
-            loadText.style.color = 'var(--danger)';
-            loadSubText.innerHTML = 'الموقع يحاول الاتصال حالياً. سيكتمل التحميل تلقائياً فور عودة الإنترنت، يرجى عدم إغلاق الصفحة.';
-        }
+        updateLoaderOffline();
     });
 }
 
@@ -5515,6 +5520,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
