@@ -408,13 +408,11 @@
             .grid-2 { grid-template-columns: 1fr; gap: 15px; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
             
-            /* جعل الأزرار بعرض الشاشة ليسهل الضغط عليها */
-            /* تعديل الأزرار لتأخذ حجم النص وتتراصف بجانب بعضها */
             .btn { 
                 width: auto; 
                 padding: 10px 16px; 
                 font-size: 14px;
-                flex: 1;
+                flex: none;
                 min-width: fit-content;
                 white-space: nowrap;
             }
@@ -963,7 +961,7 @@
     <div id="expiring" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <h3 style="margin-bottom:0"><i class="fas fa-hourglass-half" style="color:var(--accent)"></i> تنتهي قريباً</h3>
-            <button id="btnHideExpired" class="btn btn-danger" onclick="deleteExpired()" style="font-size:13px;"><i class="fas fa-eye-slash"></i> إخفاء المنتهي</button>
+            <button id="btnHideExpired" class="btn btn-danger" onclick="deleteExpired()" style="font-size:12px; padding: 8px 12px; width: fit-content; flex: none;"><i class="fas fa-eye-slash"></i> إخفاء المنتهي</button>
         </div>
         <div class="table-container">
             <table>
@@ -977,7 +975,7 @@
     <div id="stock" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <h3 style="margin-bottom:0"><i class="fas fa-cubes" style="color:var(--primary)"></i> المخزون</h3>
-            <button id="btnAddStock" class="btn btn-primary" onclick="openAddStockModal()"><i class="fas fa-plus"></i> إضافة</button>
+            <button id="btnAddStock" class="btn btn-primary" onclick="openAddStockModal()" style="width: fit-content; flex: none; padding: 8px 15px;"><i class="fas fa-plus"></i> إضافة</button>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
@@ -1026,10 +1024,12 @@
     <div id="history" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:10px">
             <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
-            <div style="display:flex; gap:8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px;">
-                <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
-                <button class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
-                <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
+            <div style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
+                <div style="display: flex; gap: 8px; flex: 1;">
+                    <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()" style="flex: 1;"><i class="fas fa-undo"></i> تراجع</button>
+                    <button class="btn btn-success" onclick="exportHistoryCSV()" style="flex: 1; font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير</button>
+                </div>
+                <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()" style="width: 100%; flex: none;"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
             </div>
         </div>
         <div class="input-group" style="margin-bottom:20px;">
@@ -5566,6 +5566,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
