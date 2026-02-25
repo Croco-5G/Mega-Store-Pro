@@ -188,14 +188,15 @@
         }
         .stat-card { 
             background: var(--bg-card); 
-            padding: 24px; 
+            padding: 20px; 
             border-radius: var(--radius-lg); 
             display: flex; 
             align-items: center; 
-            gap: 18px; 
+            gap: 15px; 
             box-shadow: var(--card-shadow); 
             border: 1px solid var(--border-color); 
             transition: transform 0.2s;
+            flex-wrap: wrap; /* يسمح للنص بالنزول لسطر جديد لو ضاقت الشاشة */
         }
         .stat-card:hover { transform: translateY(-3px); }
         .stat-icon { 
@@ -385,13 +386,52 @@
             .sidebar { transform: translateX(100%); right: 0; }
             .sidebar.active { transform: translateX(0); }
             .sidebar-overlay.active { display: block; }
-            .main-content { margin-right: 0; padding: 80px 15px 30px 15px; }
+            
+            /* تقليل الحواف الجانبية لزيادة مساحة عرض الجداول */
+            .main-content { 
+                margin-right: 0; 
+                padding: 75px 10px 20px 10px; 
+            }
+            
             .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+            
+            /* تحسين شكل الكروت في الشاشات الصغيرة */
+            .card { 
+                padding: 15px; 
+                margin-bottom: 20px; 
+                border-radius: var(--radius-lg);
+            }
+            
+            /* تصغير العناوين لتوفير مساحة */
+            h3 { font-size: 18px !important; }
+            
             .grid-2 { grid-template-columns: 1fr; gap: 15px; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .card { padding: 20px; }
-            .dialog-box { padding: 25px; }
-            #syncStatus { top: 10px; left: 15px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            
+            /* جعل الأزرار بعرض الشاشة ليسهل الضغط عليها */
+            .btn { 
+                width: 100%; 
+                padding: 14px; 
+                font-size: 15px;
+            }
+            
+            #syncStatus { top: 10px; left: 10px; font-size: 11px; padding: 6px 12px; }
+
+            /* تحسين مرونة الجداول عند السحب الجانبي */
+            .table-container {
+                margin: 0 -5px;
+                border-radius: 8px;
+            }
+            table { min-width: 600px; }
+            th, td { padding: 12px 8px; font-size: 13px; }
+            
+            /* ترتيب عناصر التصفية تحت بعضها في الجوال */
+            #history .flex-wrap {
+                flex-direction: column;
+            }
+            #history .input-group {
+                width: 100%;
+            }
         }
 
         /* --- OTHER COMPONENTS --- */
@@ -5520,5 +5560,6 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
