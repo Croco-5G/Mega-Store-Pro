@@ -489,6 +489,10 @@
 </head>
 
 <body class="locked">
+    <div id="systemLoadingScreen" class="login-overlay" style="z-index: 4000; flex-direction: column; transition: opacity 0.5s;">
+        <div style="width: 60px; height: 60px; border: 5px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 25px;"></div>
+        <h2 style="color:white; font-weight:800; letter-spacing: 1px; margin:0;">جاري تحميل النظام...</h2>
+    </div>
 
 <div id="demoBanner" title="وضع تجريبي"></div>
 
@@ -841,7 +845,7 @@
         </div>
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
-                <input id="vipSearch" onkeyup="refreshVip()" placeholder="بحث برقم الجوال أو اسم العميل..." style="padding-right: 40px;">
+                <input id="vipSearch" onkeyup="currentPage.vip=1; refreshVip()" placeholder="بحث برقم الجوال أو اسم العميل..." style="padding-right: 40px;">
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
@@ -851,6 +855,7 @@
                 <tbody id="vipBody"></tbody>
             </table>
         </div>
+        <div id="vipPagination" class="pagination"></div>
     </div>
     <div id="security" class="card hidden">
         <h3><i class="fas fa-user-shield" style="color:var(--primary)"></i> إدارة الأمان والمستخدمين</h3>
@@ -1434,7 +1439,7 @@ let currentUser = null;
 let isDemoMode = false;
 let currentStockTab = 'active';
 let currentLogsTab = 'financial';
-let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1 };
+let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1, vip: 1 };
 const ITEMS_PER_PAGE = 50;
 const VIP_RANKS = [
     { id: 'normal',   name: 'زبون عادي',    min: 1,  color: '#94a3b8', chance: 0,  discount: 0,  days: 0,  uses: 1, icon: '<i class="fas fa-user"></i>' },
@@ -1490,16 +1495,22 @@ function refreshVip() {
 
     let list = Object.keys(vips).map(phone => ({ phone: phone, ...vips[phone] }));
     list = list.filter(c => !search || c.phone.includes(search) || (c.name && c.name.toLowerCase().includes(search)));
+    
+    // الترتيب: حسب الشراء الأكبر، ثم برقم الجوال
     list.sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;
         return a.phone.localeCompare(b.phone);
     });
 
+    // تفعيل الصفحات
+    renderPagination(list.length, 'vip', refreshVip, 'vipPagination');
+    let paginated = list.slice((currentPage.vip - 1) * ITEMS_PER_PAGE, currentPage.vip * ITEMS_PER_PAGE);
+
     let tbody = document.getElementById("vipBody");
     let rows = "";
     let now = Date.now();
 
-    list.forEach(c => {
+    paginated.forEach(c => {
         let rank = VIP_RANKS[c.rankIndex];
         let displayPhone = isViewer ? maskPhone(c.phone) : c.phone;
         let countDisplay = c.rankIndex < 4 ? `${c.count} / ${c.target}` : `${c.count} (ماكس)`;
@@ -1519,7 +1530,8 @@ function refreshVip() {
             <td style="text-align:center;">${delBtn}</td>
         </tr>`;
     });
-    tbody.innerHTML = rows || `<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>لا يوجد عملاء بعد</td></tr>`;// تحديث عدد العملاء الإجمالي في العنوان
+    tbody.innerHTML = rows || `<tr><td colspan='6' style='text-align:center; padding:20px; color:var(--text-muted)'>لا يوجد عملاء بعد</td></tr>`;
+    
     let countBadge = document.getElementById("vipTotalCountBadge");
     if(countBadge) countBadge.innerText = `إجمالي العملاء: ${Object.keys(vips).length}`;
 }
@@ -2236,6 +2248,7 @@ function initFirebase() {
             // إظهار بطاقة تسجيل الدخول بعد جاهزية البيانات
             if (document.getElementById("loginLayer").style.display !== "none") {
                 document.getElementById("loginCard").style.display = "";
+                hideSystemLoading();
             }
         },
         (error) => {
@@ -2581,7 +2594,13 @@ function logAction(actionDescription, type='general', details=null) {
     }
     return savePromise || Promise.resolve();
 }
-
+function hideSystemLoading() {
+    let loader = document.getElementById("systemLoadingScreen");
+    if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => { loader.style.display = 'none'; }, 500); // إخفاء بعد تأثير التلاشي
+    }
+}
 function init(){
     if(!store.users) store.users = JSON.stringify([DEFAULT_USER]);
     if(!store.wallets){
@@ -2619,6 +2638,7 @@ function init(){
             if(saved) store[k] = saved;
         });
         updateSyncStatus("وضع تجريبي (غير متصل)", "warning");
+        hideSystemLoading();
     } else {
         initFirebase();
     }
@@ -5459,6 +5479,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
