@@ -409,10 +409,14 @@
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
             
             /* جعل الأزرار بعرض الشاشة ليسهل الضغط عليها */
+            /* تعديل الأزرار لتأخذ حجم النص وتتراصف بجانب بعضها */
             .btn { 
-                width: 100%; 
-                padding: 14px; 
-                font-size: 15px;
+                width: auto; 
+                padding: 10px 16px; 
+                font-size: 14px;
+                flex: 1;
+                min-width: fit-content;
+                white-space: nowrap;
             }
             
             #syncStatus { top: 10px; left: 10px; font-size: 11px; padding: 6px 12px; }
@@ -1022,7 +1026,7 @@
     <div id="history" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:10px">
             <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
-            <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <div style="display:flex; gap:8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px;">
                 <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
                 <button class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
                 <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
@@ -1034,22 +1038,24 @@
                 <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
             </div>
         </div>
-        <div style="display:flex; align-items:flex-end; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
-            <div class="input-group" style="margin-bottom:0; flex:1; min-width:140px;">
-                <label>من تاريخ</label>
+        <div style="display:flex; align-items: flex-end; gap:8px; margin-bottom:20px;">
+            <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-muted); margin-bottom:4px; display:block;">من تاريخ</label>
                 <div style="position:relative;">
-                    <input type="text" id="historyFromDate" placeholder="YYYY-MM-DD" readonly style="padding-right:42px; cursor:pointer;">
-                    <i class="fas fa-calendar-alt" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"></i>
+                    <input type="text" id="historyFromDate" placeholder="من.." readonly style="padding: 10px 35px 10px 5px; font-size:12px; height:42px; cursor:pointer;">
+                    <i class="fas fa-calendar-alt" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); pointer-events:none;"></i>
                 </div>
             </div>
-            <div class="input-group" style="margin-bottom:0; flex:1; min-width:140px;">
-                <label>إلى تاريخ</label>
+            <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-muted); margin-bottom:4px; display:block;">إلى تاريخ</label>
                 <div style="position:relative;">
-                    <input type="text" id="historyToDate" placeholder="YYYY-MM-DD" readonly style="padding-right:42px; cursor:pointer;">
-                    <i class="fas fa-calendar-alt" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none;"></i>
+                    <input type="text" id="historyToDate" placeholder="إلى.." readonly style="padding: 10px 35px 10px 5px; font-size:12px; height:42px; cursor:pointer;">
+                    <i class="fas fa-calendar-alt" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); pointer-events:none;"></i>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="clearDateFilter()" style="height:48px; width:48px; padding:0; display:flex; justify-content:center; align-items:center; flex-shrink:0; margin-bottom:0;" title="مسح الفلتر"><i class="fas fa-undo" style="margin:0;"></i></button>
+            <button class="btn btn-primary" onclick="clearDateFilter()" style="width:42px; height:42px; padding:0; display:flex; justify-content:center; align-items:center; flex:none; margin-bottom:0;" title="مسح الفلتر">
+                <i class="fas fa-undo"></i>
+            </button>
         </div>
         <div class="table-container">
             <table>
@@ -5560,6 +5566,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
