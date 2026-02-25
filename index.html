@@ -786,7 +786,7 @@
         </div>
         <div class="grid-2">
             <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)" dir="ltr" style="text-align:right;"></div>
-            <div class="input-group"><label>المبلغ المدفوع من العميل</label><div style="display:flex; gap:10px"><input type="number" id="paidAmount" placeholder="0.00"><select id="paidCurrency" style="width:100px"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select></div></div>
+            <div class="input-group"><label>المبلغ المدفوع من العميل</label><div style="display:flex; gap:10px"><input type="number" id="paidAmount" placeholder="0.00" style="flex: 1;"><select id="paidCurrency" style="width:110px; flex-shrink: 0;"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select></div></div>
         </div>
         <div class="grid-2">
             <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
@@ -809,11 +809,12 @@
     </div>
 
     <div id="discounts" class="card hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px">
-            <h3 style="margin-bottom:0"><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> الخصومات الفعالة</h3>
-            <div style="display:flex; gap:10px;">
-                <button id="btnGenerateCoupon" class="btn btn-success hidden" onclick="openManualCouponModal()"><i class="fas fa-plus"></i> توليد كوبون</button>
-                <button id="btnDeleteAllDiscounts" class="btn btn-danger hidden" onclick="deleteAllDiscounts()"><i class="fas fa-trash-alt"></i> مسح الكل</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:15px">
+            <h3 style="margin-bottom:0; display:flex; align-items:center; gap:10px; flex-wrap: wrap;"><i class="fas fa-star" style="color:var(--primary)"></i> العملاء المميزين (VIP) <span id="vipTotalCountBadge" class="badge badge-info" style="font-size:12px;">العدد: 0</span></h3>
+            <div style="display:flex; gap:10px; flex-wrap: wrap; flex: 1; min-width: 250px;">
+                <button class="btn" style="background:#a855f7; color:white; flex: 1; min-width: 120px;" onclick="openVipInfoModal()"><i class="fas fa-exclamation-circle"></i> تفاصيل الرتب</button>
+                <button id="btnAddVip" class="btn btn-success hidden" style="flex: 1; min-width: 120px;" onclick="openAddVipModal()"><i class="fas fa-plus"></i> إضافة رتبة</button>
+                <button id="btnDeleteAllVip" class="btn btn-danger hidden" style="flex: 1; min-width: 120px;" onclick="deleteAllVips()"><i class="fas fa-trash-alt"></i> مسح الكل</button>
             </div>
         </div>
         <div class="input-group" style="margin-bottom:20px;">
@@ -1210,10 +1211,10 @@
 
         <div id="sec-manage-wallets">
             <h3><i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة محفظة جديدة</h3>
-            <div class="inner-box" style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:40px">
-                <input id="newWalletName" placeholder="اسم المحفظة" style="flex:2">
-                <select id="newWalletCurrency" style="width:120px"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
-                <button class="btn btn-primary" onclick="addNewWallet()">إنشاء</button>
+            <div class="inner-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:40px">
+                <input id="newWalletName" placeholder="اسم المحفظة" style="flex: 1; min-width: 150px;">
+                <select id="newWalletCurrency" style="width:110px; flex-shrink: 0;"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
+                <button class="btn btn-primary" onclick="addNewWallet()" style="flex-shrink: 0;">إنشاء</button>
             </div>
         </div>
 
@@ -5459,6 +5460,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
