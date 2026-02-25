@@ -2644,6 +2644,26 @@ function init(){
     }
     
     updateStorageUI();
+
+    // --- حماية من تعليق شاشة التحميل عند انقطاع النت ---
+    setTimeout(() => {
+        let loader = document.getElementById("systemLoadingScreen");
+        // إذا مرت 10 ثوانٍ وما زالت شاشة التحميل ظاهرة
+        if (loader && loader.style.opacity !== '0') {
+            hideSystemLoading(); // أخفِ شاشة التحميل
+            document.getElementById("loginCard").style.display = ""; // أظهر بطاقة الدخول
+            
+            // أظهر رسالة تنبيه للمستخدم
+            let errEl = document.getElementById("loginError");
+            if (errEl) {
+                errEl.innerHTML = '<i class="fas fa-wifi"></i> تأخر الاتصال بالسيرفر! يرجى التحقق من جودة الإنترنت عندك.';
+                errEl.style.display = 'block';
+                errEl.style.background = 'rgba(239,68,68,0.12)';
+                errEl.style.color = '#ef4444';
+                errEl.style.border = '1.5px solid rgba(239,68,68,0.35)';
+            }
+        }
+    }, 10000); // 10000 ملي ثانية = 10 ثوانٍ (يمكنك زيادتها لو أحببت)
 }
 
 function updateStorageUI() {
@@ -5479,6 +5499,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
