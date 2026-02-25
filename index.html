@@ -489,8 +489,7 @@
 </head>
 
 <body class="locked">
-    <div id="systemLoadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-sidebar); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.6s ease, visibility 0.6s ease;">
-    <div style="position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; margin-bottom: 30px;">
+    <div id="systemLoadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at top right, #4338ca, #1e1b4b); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.6s ease, visibility 0.6s ease;">
         <div style="position: absolute; width: 100%; height: 100%; border: 4px solid rgba(99, 102, 241, 0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
         <div style="position: absolute; width: 70%; height: 70%; border: 4px solid rgba(168, 85, 247, 0.1); border-bottom-color: #a855f7; border-radius: 50%; animation: spin 1.5s linear infinite reverse;"></div>
         <i class="fas fa-rocket" style="font-size: 28px; color: white; animation: breathe 2s ease-in-out infinite;"></i>
@@ -2349,6 +2348,24 @@ function initFirebase() {
     // فحص الإنترنت فور فتح الصفحة
     if (!navigator.onLine) updateLoaderOffline();
 
+    // ── 3. معالجة الاتصال / الانقطاع ─────────────────────────
+    const updateLoaderOffline = () => {
+        let loadText = document.getElementById("loadingText");
+        let loadSubText = document.getElementById("loadingSubText");
+        let loaderScreen = document.getElementById("systemLoadingScreen");
+        if (loadText && loaderScreen && loaderScreen.style.opacity !== '0') {
+            loadText.innerHTML = '<i class="fas fa-wifi"></i> لا يوجد اتصال بالإنترنت!';
+            loadText.style.color = '#ef4444'; // لون أحمر
+            if(loadSubText) {
+                loadSubText.innerHTML = 'الموقع يحاول الاتصال حالياً. سيكتمل التحميل ويفتح النظام تلقائياً فور عودة الإنترنت.';
+                loadSubText.style.color = 'rgba(255,255,255,0.7)';
+            }
+        }
+    };
+
+    // فحص الإنترنت فور فتح الصفحة
+    if (!navigator.onLine) updateLoaderOffline();
+
     window.addEventListener('online', () => {
         fbConnected = false;
         updateSyncStatus("جاري استعادة الاتصال...", "loading");
@@ -2356,10 +2373,14 @@ function initFirebase() {
         let loadText = document.getElementById("loadingText");
         let loadSubText = document.getElementById("loadingSubText");
         let loaderScreen = document.getElementById("systemLoadingScreen");
+
         if (loadText && loaderScreen && loaderScreen.style.opacity !== '0') {
-            loadText.innerHTML = '<i class="fas fa-check-circle"></i> عاد الاتصال، جاري المزامنة...';
-            loadText.style.color = 'var(--success)';
-            loadSubText.innerHTML = 'ننتظر استجابة قاعدة البيانات لجلب الملفات الناقصة.';
+            loadText.innerHTML = '<i class="fas fa-check-circle"></i> عاد الاتصال، جاري تحميل النظام...';
+            loadText.style.color = '#10b981'; // لون أخضر
+            if(loadSubText) {
+                loadSubText.innerHTML = 'ننتظر استجابة قاعدة البيانات لجلب الملفات وتجهيز مساحة العمل.';
+                loadSubText.style.color = 'rgba(255,255,255,0.7)';
+            }
         }
         
         fbDocRef.get({ source: 'server' }).catch(() => {});
@@ -5521,6 +5542,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
