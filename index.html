@@ -1034,30 +1034,26 @@
             <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
         </div>
         </div>
-        <div class="input-group" style="margin-bottom:20px;">
-            <div style="position:relative;">
-                <input id="historySearch" onkeyup="currentPage.history=1; filterHistory()" placeholder="بحث باسم العميل أو الخدمة..." style="padding-right: 40px;">
-                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
-            </div>
-        </div>
-        <div style="display:flex; align-items: flex-end; gap:8px; margin-bottom:20px;">
-            <div style="flex:1;">
-                <label style="font-size:11px; color:var(--text-muted); margin-bottom:4px; display:block;">من تاريخ</label>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:flex-end;">
+            <div style="flex: 2; min-width: 250px;">
                 <div style="position:relative;">
-                    <input type="text" id="historyFromDate" placeholder="من.." readonly style="padding: 10px 35px 10px 5px; font-size:12px; height:42px; cursor:pointer;">
-                    <i class="fas fa-calendar-alt" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); pointer-events:none;"></i>
+                    <input id="historySearch" onkeyup="currentPage.history=1; filterHistory()" placeholder="بحث باسم العميل، الخدمة..." style="padding-right: 40px; height:42px; margin:0; width:100%; border-radius:var(--radius-md);">
+                    <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
                 </div>
             </div>
-            <div style="flex:1;">
-                <label style="font-size:11px; color:var(--text-muted); margin-bottom:4px; display:block;">إلى تاريخ</label>
-                <div style="position:relative;">
-                    <input type="text" id="historyToDate" placeholder="إلى.." readonly style="padding: 10px 35px 10px 5px; font-size:12px; height:42px; cursor:pointer;">
-                    <i class="fas fa-calendar-alt" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); pointer-events:none;"></i>
+            <div style="display:flex; gap:8px; flex: 1; min-width: 300px; max-width: 450px; align-items:flex-end;">
+                <div style="flex:1; position:relative;">
+                    <input type="text" id="historyFromDate" placeholder="من تاريخ.." readonly style="padding: 10px 30px 10px 5px; font-size:12px; height:42px; cursor:pointer; margin:0; width:100%; border-radius:var(--radius-md);">
+                    <i class="fas fa-calendar-alt" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); pointer-events:none;"></i>
                 </div>
+                <div style="flex:1; position:relative;">
+                    <input type="text" id="historyToDate" placeholder="إلى تاريخ.." readonly style="padding: 10px 30px 10px 5px; font-size:12px; height:42px; cursor:pointer; margin:0; width:100%; border-radius:var(--radius-md);">
+                    <i class="fas fa-calendar-alt" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:12px; color:var(--text-muted); pointer-events:none;"></i>
+                </div>
+                <button class="btn btn-primary" onclick="clearDateFilter()" style="width:42px; height:42px; padding:0; display:flex; justify-content:center; align-items:center; flex:none; margin:0; border-radius:var(--radius-md);" title="مسح الفلتر">
+                    <i class="fas fa-undo"></i>
+                </button>
             </div>
-            <button class="btn btn-primary" onclick="clearDateFilter()" style="width:42px; height:42px; padding:0; display:flex; justify-content:center; align-items:center; flex:none; margin-bottom:0;" title="مسح الفلتر">
-                <i class="fas fa-undo"></i>
-            </button>
         </div>
         <div class="table-container">
             <table>
@@ -2990,10 +2986,6 @@ function getRoleName(role) {
 function applyRBAC() {
     const role = currentUser.role;
     
-    // --- إخفاء العناوين والخطوط كوضع افتراضي للجميع ---
-    document.querySelectorAll(".admin-only, .editor-only").forEach(el => el.classList.add("hidden"));
-    
-    // --- فلتر حماية ذكي يمنع تعطل النظام إذا كان العنصر غير موجود ---
     const safeToggle = (id, action) => {
         let el = document.getElementById(id);
         if(el) {
@@ -3002,6 +2994,7 @@ function applyRBAC() {
         }
     };
 
+    // 1. إخفاء العناصر كافتراضي
     safeToggle("btnSecurity", "add");
     safeToggle("btnBackup", "add");
     safeToggle("btnLogs", "add");
@@ -3035,9 +3028,8 @@ function applyRBAC() {
     let settings = safeJSON(store.settings, {});
     let logsVis = settings.logsVis || 'all';
 
+    // 2. توزيع الصلاحيات
     if (role === 'admin') {
-        document.querySelectorAll(".admin-only, .editor-only").forEach(el => el.classList.remove("hidden"));
-        
         safeToggle("btnSecurity", "remove");
         safeToggle("btnBackup", "remove");
         safeToggle("btnLogs", "remove"); 
@@ -3070,8 +3062,6 @@ function applyRBAC() {
         safeToggle("btnDeleteAllVip", "remove");
     } 
     else if (role === 'employee') {
-        document.querySelectorAll(".editor-only").forEach(el => el.classList.remove("hidden"));
-        
         if(tfRes) tfRes.readOnly = true;
 
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
@@ -3104,10 +3094,8 @@ function applyRBAC() {
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
 
-        // حماية كود المفكرة من التسبب بإيرور
         let gnText = document.querySelector("#generalNotes textarea");
         if(gnText) gnText.style.display = "none";
-        
         let gnBtn = document.querySelector("#generalNotes button");
         if(gnBtn) gnBtn.style.display = "none";
 
@@ -3127,15 +3115,48 @@ function applyRBAC() {
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
         
-        // حماية كود المفكرة من التسبب بإيرور
         let gnText = document.querySelector("#generalNotes textarea");
         if(gnText) gnText.style.display = "none";
-        
         let gnBtn = document.querySelector("#generalNotes button");
         if(gnBtn) gnBtn.style.display = "none";
 
         let btnHistory = document.getElementById('btnHistory');
         if(btnHistory) showPage('history', btnHistory);
+    }
+
+    // ========================================================
+    // 3. نظام العناوين الذكي (Dashboard Smart Headers)
+    // ========================================================
+    let modifySection = document.getElementById("modify");
+    if (modifySection) {
+        let allH2 = modifySection.querySelectorAll("h2");
+        allH2.forEach(h2 => {
+            // إزالة أي قيود يدوية سابقة
+            h2.classList.remove("admin-only", "editor-only", "hidden");
+            
+            let hasVisibleBox = false;
+            let sibling = h2.nextElementSibling;
+            let hrElement = null;
+            
+            // الفحص أسفل العنوان وحتى نصل للعنوان التالي
+            while (sibling && sibling.tagName !== "H2") {
+                if (sibling.tagName === "HR") {
+                    hrElement = sibling;
+                    hrElement.classList.remove("admin-only", "editor-only", "hidden");
+                }
+                // إذا كان العنصر قسماً (DIV) وكان مرئياً (لا يحتوي على hidden)
+                if (sibling.tagName === "DIV" && !sibling.classList.contains("hidden")) {
+                    hasVisibleBox = true;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+            
+            // إذا لم يجد أي قسم مرئي.. أخفِ العنوان والخط الفاصل!
+            if (!hasVisibleBox) {
+                h2.classList.add("hidden");
+                if (hrElement) hrElement.classList.add("hidden");
+            }
+        });
     }
 }
 function renderUsersTable() {
@@ -5626,6 +5647,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
