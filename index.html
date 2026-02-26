@@ -1112,99 +1112,10 @@
 
     <div id="modify" class="card hidden">
         
-        <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
-            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (Firebase)</h3>
-            <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;">
-                    <span><i class="fas fa-database"></i> الحجم: <span id="storageUsed" style="color:var(--primary)" dir="ltr">0.00 KB</span></span>
-                    <span id="storageFree">جاري الفحص..</span>
-                </div>
-                
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);">
-                    <span id="storageSizeText">0 KB / 1024 KB</span>
-                    <span id="storagePercentText">0%</span>
-                </div>
-
-                <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;">
-                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition: width 0.5s ease;"></div>
-                </div>
-                
-                <p style="font-size:11px; color:var(--text-muted); margin:0;">
-                    تنبيه: الحد الأقصى المسموح هو 1 ميجابايت (1024 كيلوبايت). إذا وصل المؤشر للون الأحمر، قم بتصدير الأرشيف ومسح السجلات القديمة.
-                </p>
-            </div>
-        </div>
-
-        <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 25px; border-radius: var(--radius-lg); margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="color: white; margin-bottom: 5px; margin-top:0"><i class="fas fa-flask"></i> الوضع التجريبي (Sandbox)</h3>
-                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">يقوم بنسخ بياناتك الحقيقية الحالية لتقوم بالتجربة عليها بأمان دون التأثير على السحابة.</p>
-                </div>
-                <label class="theme-switch" style="width: 60px; height: 30px;">
-                    <input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-        </div>
-
-        <h3><i class="fas fa-key" style="color:var(--primary)"></i> تغيير كلمة المرور</h3>
-        <div class="inner-box" style="margin-bottom:40px">
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="flex:1">
-                <button class="btn btn-primary" onclick="changeMyPassword()">تحديث</button>
-            </div>
-        </div>
-
-        <div id="sec-discount-settings">
-            <h3><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> إعدادات أكواد الخصم</h3>
-            <div class="inner-box" style="margin-bottom:40px;">
-                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="setDiscountEnabled" style="width: 20px; height: 20px; margin:0;">
-                    <label for="setDiscountEnabled" style="margin-bottom: 0;">تفعيل نظام إنتاج أكواد الخصم التلقائي؟</label>
-                </div>
-                <div class="grid-2">
-                    <div class="input-group">
-                        <label>نسبة الحصول على كود (%)</label>
-                        <input type="number" id="setDiscountChance" placeholder="مثال: 25">
-                    </div>
-                    <div class="input-group">
-                        <label>نسبة الخصم الناتجة (%)</label>
-                        <div style="display:flex; gap:10px">
-                            <input type="number" id="setDiscountMin" placeholder="الحد الأدنى (10)">
-                            <input type="number" id="setDiscountMax" placeholder="الحد الأقصى (20)">
-                        </div>
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="input-group">
-                        <label>مدة الصلاحية (بالأيام)</label>
-                        <div style="display:flex; gap:10px">
-                            <input type="number" id="setValidityMin" placeholder="الحد الأدنى (15)">
-                            <input type="number" id="setValidityMax" placeholder="الحد الأقصى (45)">
-                        </div>
-                    </div>
-                    <div class="input-group" style="display:flex; align-items:flex-end;">
-                        <button class="btn btn-primary" style="width:100%; height:48px;" onclick="saveDiscountSettings()">حفظ إعدادات الخصم</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="sec-manage-services">
-            <h3><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
-            <div class="inner-box" style="margin-bottom:40px">
-                <div style="display:flex; gap:10px; margin-bottom:15px">
-                    <input id="newServiceName" placeholder="اسم الخدمة (مثلاً: ChatGPT)">
-                    <button class="btn btn-primary" onclick="addService()">إضافة</button>
-                </div>
-                <div id="servicesList" style="display:flex; flex-wrap:wrap; gap:10px"></div>
-            </div>
-        </div>
-
+        <h2 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:10px; margin-top:0;"><i class="fas fa-bolt"></i> العمليات المالية المتقدمة</h2>
+        
         <div id="sec-manual-wallet">
-            <h3 style="margin-top:0"><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> التحويل بين المحافظ</h3>
-            
+            <h3 style="margin-top:20px"><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> التحويل بين المحافظ</h3>
             <div class="inner-box" style="margin-bottom:40px">
                 <div class="grid-2">
                     <div class="input-group"><label>من (المصدر)</label><select id="tfFromWallet"></select></div>
@@ -1246,7 +1157,7 @@
 
         <div id="sec-set-profit-share">
             <h3><i class="fas fa-sliders-h" style="color:var(--primary)"></i> تعديل الحصص يدوياً</h3>
-            <div class="inner-box" style="margin-bottom:40px; border-style:dashed!important;">
+            <div class="inner-box" style="margin-bottom:20px; border-style:dashed!important;">
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end">
                     <div class="input-group" style="flex:1; min-width:150px">
                         <label>الشريك</label>
@@ -1265,35 +1176,59 @@
             </div>
         </div>
 
-        <div id="sec-manage-wallets">
-            <h3><i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة محفظة جديدة</h3>
-            <div class="inner-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:40px">
-                <input id="newWalletName" placeholder="اسم المحفظة" style="flex: 1; min-width: 150px;">
-                <select id="newWalletCurrency" style="width:110px; flex-shrink: 0;"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
-                <button class="btn btn-primary" onclick="addNewWallet()" style="width: 100%; height: 48px; margin-top: 5px;">إنشاء</button>
+        <hr style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 style="color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:10px;"><i class="fas fa-store"></i> إعدادات المتجر والعمل الأساسية</h2>
+
+        <div id="sec-manage-services">
+            <h3 style="margin-top:20px"><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
+            <div class="inner-box" style="margin-bottom:40px">
+                <div style="display:flex; gap:10px; margin-bottom:15px">
+                    <input id="newServiceName" placeholder="اسم الخدمة (مثلاً: ChatGPT)">
+                    <button class="btn btn-primary" onclick="addService()">إضافة</button>
+                </div>
+                <div id="servicesList" style="display:flex; flex-wrap:wrap; gap:10px"></div>
             </div>
         </div>
 
-        <div id="sec-rename-wallet">
-            <h3><i class="fas fa-edit" style="color:var(--primary)"></i> إدارة المحفظة (تعديل)</h3>
-            <div class="inner-box" style="margin-bottom:40px">
-                <div class="input-group"><label>اختر المحفظة</label><select id="renameWalletSelect" onchange="fillWalletEditData()"></select></div>
+        <div id="sec-discount-settings">
+            <h3><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> إعدادات أكواد الخصم</h3>
+            <div class="inner-box" style="margin-bottom:40px;">
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="setDiscountEnabled" style="width: 20px; height: 20px; margin:0;">
+                    <label for="setDiscountEnabled" style="margin-bottom: 0;">تفعيل نظام إنتاج أكواد الخصم التلقائي؟</label>
+                </div>
                 <div class="grid-2">
-                    <div class="input-group"><label>الاسم الجديد</label><input id="renameWalletInput" placeholder="الاسم"></div>
-                    <div class="input-group"><label>العملة</label><select id="renameWalletCur"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select></div>
+                    <div class="input-group">
+                        <label>نسبة الحصول على كود (%)</label>
+                        <input type="number" id="setDiscountChance" placeholder="مثال: 25">
+                    </div>
+                    <div class="input-group">
+                        <label>نسبة الخصم الناتجة (%)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="setDiscountMin" placeholder="الحد الأدنى (10)">
+                            <input type="number" id="setDiscountMax" placeholder="الحد الأقصى (20)">
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>الحالة</label>
-                    <select id="renameWalletStatus"><option value="true">نشط (Active)</option><option value="false">غير نشط (Inactive)</option></select>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>مدة الصلاحية (بالأيام)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="setValidityMin" placeholder="الحد الأدنى (15)">
+                            <input type="number" id="setValidityMax" placeholder="الحد الأقصى (45)">
+                        </div>
+                    </div>
+                    <div class="input-group" style="display:flex; align-items:flex-end;">
+                        <button class="btn btn-primary" style="width:100%; height:48px;" onclick="saveDiscountSettings()">حفظ إعدادات الخصم</button>
+                    </div>
                 </div>
-                <button class="btn btn-danger" style="width:100%; margin-bottom:10px" onclick="deleteWallet()"><i class="fas fa-trash-alt"></i> حذف المحفظة</button>
-                <button class="btn btn-warning" style="width:100%" onclick="updateWalletData()">حفظ التعديلات</button>
             </div>
         </div>
 
         <div id="sec-profit-settings">
             <h3><i class="fas fa-percent" style="color:var(--primary)"></i> إعدادات النسب</h3>
-            <div class="inner-box" style="margin-bottom:40px;">
+            <div class="inner-box" style="margin-bottom:20px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 15px;">
                     <div class="input-group"><label>أحمد (%)</label><input type="number" id="setAhmadProp" placeholder="35"></div>
                     <div class="input-group"><label>محمد (%)</label><input type="number" id="setMohamedProp" placeholder="35"></div>
@@ -1314,7 +1249,89 @@
             </div>
         </div>
 
-        <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px;">
+        <hr style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 style="color:var(--info); border-bottom:2px solid var(--info); padding-bottom:10px;"><i class="fas fa-wallet"></i> إدارة وهيكلة المحافظ</h2>
+
+        <div id="sec-rename-wallet">
+            <h3 style="margin-top:20px"><i class="fas fa-edit" style="color:var(--primary)"></i> إدارة المحفظة (تعديل)</h3>
+            <div class="inner-box" style="margin-bottom:40px">
+                <div class="input-group"><label>اختر المحفظة</label><select id="renameWalletSelect" onchange="fillWalletEditData()"></select></div>
+                <div class="grid-2">
+                    <div class="input-group"><label>الاسم الجديد</label><input id="renameWalletInput" placeholder="الاسم"></div>
+                    <div class="input-group"><label>العملة</label><select id="renameWalletCur"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select></div>
+                </div>
+                <div class="input-group">
+                    <label>الحالة</label>
+                    <select id="renameWalletStatus"><option value="true">نشط (Active)</option><option value="false">غير نشط (Inactive)</option></select>
+                </div>
+                <button class="btn btn-danger" style="width:100%; margin-bottom:10px" onclick="deleteWallet()"><i class="fas fa-trash-alt"></i> حذف المحفظة</button>
+                <button class="btn btn-warning" style="width:100%" onclick="updateWalletData()">حفظ التعديلات</button>
+            </div>
+        </div>
+
+        <div id="sec-manage-wallets">
+            <h3><i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة محفظة جديدة</h3>
+            <div class="inner-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px">
+                <input id="newWalletName" placeholder="اسم المحفظة" style="flex: 1; min-width: 150px;">
+                <select id="newWalletCurrency" style="width:110px; flex-shrink: 0;"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
+                <button class="btn btn-primary" onclick="addNewWallet()" style="flex-shrink: 0;">إنشاء</button>
+            </div>
+        </div>
+
+        <hr style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 style="color:var(--text-main); border-bottom:2px solid var(--text-main); padding-bottom:10px;"><i class="fas fa-cogs"></i> إعدادات الحساب والنظام</h2>
+
+        <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 40px; margin-top:20px;">
+            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (Firebase)</h3>
+            <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;">
+                    <span><i class="fas fa-database"></i> الحجم: <span id="storageUsed" style="color:var(--primary)" dir="ltr">0.00 KB</span></span>
+                    <span id="storageFree">جاري الفحص..</span>
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);">
+                    <span id="storageSizeText">0 KB / 1024 KB</span>
+                    <span id="storagePercentText">0%</span>
+                </div>
+
+                <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;">
+                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition: width 0.5s ease;"></div>
+                </div>
+                
+                <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                    تنبيه: الحد الأقصى المسموح هو 1 ميجابايت (1024 كيلوبايت). إذا وصل المؤشر للون الأحمر، قم بتصدير الأرشيف ومسح السجلات القديمة.
+                </p>
+            </div>
+        </div>
+
+        <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 25px; border-radius: var(--radius-lg); margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="color: white; margin-bottom: 5px; margin-top:0"><i class="fas fa-flask"></i> الوضع التجريبي (Sandbox)</h3>
+                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">يقوم بنسخ بياناتك الحقيقية الحالية لتجرب عليها بأمان دون التأثير على السحابة.</p>
+                </div>
+                <label class="theme-switch" style="width: 60px; height: 30px;">
+                    <input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <h3><i class="fas fa-key" style="color:var(--primary)"></i> تغيير كلمة المرور</h3>
+        <div class="inner-box" style="margin-bottom:20px">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="flex:1">
+                <button class="btn btn-primary" onclick="changeMyPassword()">تحديث</button>
+            </div>
+        </div>
+
+        <hr style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 style="color:var(--yellow-text); border-bottom:2px solid var(--yellow-border); padding-bottom:10px;"><i class="fas fa-tools"></i> الأدوات المساعدة</h2>
+
+        <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px; margin-top:20px;">
             <h3 style="color: var(--yellow-text); margin-top:0"><i class="fas fa-tasks"></i> المهام (To-Do)</h3>
             <div id="todoInputArea" style="display:flex; gap:10px; margin-bottom:20px">
                 <input id="todoInput" placeholder="اكتب المهمة..." style="background:white; border-color:var(--yellow-border)">
@@ -1322,8 +1339,8 @@
             </div>
             <div id="todoBox"></div>
         </div>
-    </div>
 
+    </div>
     <div id="generalNotes" class="card hidden">
         <h3><i class="fas fa-pen-fancy" style="color:var(--primary)"></i> المفكرة</h3>
         <div style="display:flex; gap:15px; flex-direction: column;">
@@ -5593,6 +5610,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
