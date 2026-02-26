@@ -2990,6 +2990,9 @@ function getRoleName(role) {
 function applyRBAC() {
     const role = currentUser.role;
     
+    // --- إضافة جديدة: إخفاء العناوين والخطوط كوضع افتراضي للجميع ---
+    document.querySelectorAll(".admin-only, .editor-only").forEach(el => el.classList.add("hidden"));
+    
     document.getElementById("btnSecurity").classList.add("hidden");
     document.getElementById("btnBackup").classList.add("hidden");
     document.getElementById("btnLogs").classList.add("hidden");
@@ -3024,6 +3027,9 @@ function applyRBAC() {
     let logsVis = settings.logsVis || 'all';
 
     if (role === 'admin') {
+        // --- إضافة جديدة: إظهار كافة العناوين للمدير ---
+        document.querySelectorAll(".admin-only, .editor-only").forEach(el => el.classList.remove("hidden"));
+        
         document.getElementById("btnSecurity").classList.remove("hidden");
         document.getElementById("btnBackup").classList.remove("hidden");
         document.getElementById("btnLogs").classList.remove("hidden"); 
@@ -3056,6 +3062,9 @@ function applyRBAC() {
         document.getElementById("btnDeleteAllVip").classList.remove("hidden");
     } 
     else if (role === 'employee') {
+        // --- إضافة جديدة: إظهار عناوين المتجر فقط للموظف ---
+        document.querySelectorAll(".editor-only").forEach(el => el.classList.remove("hidden"));
+        
         if(tfRes) tfRes.readOnly = true;
 
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
@@ -3113,7 +3122,6 @@ function applyRBAC() {
         showPage('history', document.getElementById('btnHistory'));
     }
 }
-
 function renderUsersTable() {
     if(!currentUser || currentUser.role !== 'admin') return;
     const users = safeJSON(store.users, []);
@@ -5602,6 +5610,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
