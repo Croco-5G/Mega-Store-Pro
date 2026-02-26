@@ -2990,35 +2990,44 @@ function getRoleName(role) {
 function applyRBAC() {
     const role = currentUser.role;
     
-    // --- إضافة جديدة: إخفاء العناوين والخطوط كوضع افتراضي للجميع ---
+    // --- إخفاء العناوين والخطوط كوضع افتراضي للجميع ---
     document.querySelectorAll(".admin-only, .editor-only").forEach(el => el.classList.add("hidden"));
     
-    document.getElementById("btnSecurity").classList.add("hidden");
-    document.getElementById("btnBackup").classList.add("hidden");
-    document.getElementById("btnLogs").classList.add("hidden");
-    document.getElementById("demo-mode-section").classList.add("hidden");
-    document.getElementById("btnInvestment").classList.add("hidden"); 
-    
-    document.getElementById("sec-manual-wallet").classList.add("hidden");
-    document.getElementById("sec-set-wallet-balance").classList.add("hidden");
-    document.getElementById("sec-set-profit-share").classList.add("hidden");
-    document.getElementById("sec-manage-wallets").classList.add("hidden");
-    document.getElementById("sec-rename-wallet").classList.add("hidden");
-    document.getElementById("sec-profit-settings").classList.add("hidden");
-    document.getElementById("sec-discount-settings").classList.add("hidden");
-    document.getElementById("todoSection").classList.add("hidden");
-    document.getElementById("todoInputArea").classList.add("hidden");
-    document.getElementById("btnAddStock").classList.add("hidden");
-    document.getElementById("sec-manage-services").classList.add("hidden");
+    // --- فلتر حماية ذكي يمنع تعطل النظام إذا كان العنصر غير موجود ---
+    const safeToggle = (id, action) => {
+        let el = document.getElementById(id);
+        if(el) {
+            if(action === 'add') el.classList.add("hidden");
+            else el.classList.remove("hidden");
+        }
+    };
 
-    document.getElementById("btnSettings").classList.remove("hidden");
-    document.getElementById("btnClearLogs").classList.add("hidden");
-    document.getElementById("btnVisLogs").classList.add("hidden");
+    safeToggle("btnSecurity", "add");
+    safeToggle("btnBackup", "add");
+    safeToggle("btnLogs", "add");
+    safeToggle("demo-mode-section", "add");
+    safeToggle("btnInvestment", "add"); 
     
-    document.getElementById("btnDeleteAllDiscounts").classList.add("hidden");
-    document.getElementById("btnGenerateCoupon").classList.add("hidden");
-    document.getElementById("btnAddVip").classList.add("hidden");
-    document.getElementById("btnDeleteAllVip").classList.add("hidden");
+    safeToggle("sec-manual-wallet", "add");
+    safeToggle("sec-set-wallet-balance", "add");
+    safeToggle("sec-set-profit-share", "add");
+    safeToggle("sec-manage-wallets", "add");
+    safeToggle("sec-rename-wallet", "add");
+    safeToggle("sec-profit-settings", "add");
+    safeToggle("sec-discount-settings", "add");
+    safeToggle("todoSection", "add");
+    safeToggle("todoInputArea", "add");
+    safeToggle("btnAddStock", "add");
+    safeToggle("sec-manage-services", "add");
+
+    safeToggle("btnSettings", "remove");
+    safeToggle("btnClearLogs", "add");
+    safeToggle("btnVisLogs", "add");
+    
+    safeToggle("btnDeleteAllDiscounts", "add");
+    safeToggle("btnGenerateCoupon", "add");
+    safeToggle("btnAddVip", "add");
+    safeToggle("btnDeleteAllVip", "add");
 
     let tfRes = document.getElementById("tfResult");
     if(tfRes) tfRes.readOnly = false;
@@ -3027,99 +3036,106 @@ function applyRBAC() {
     let logsVis = settings.logsVis || 'all';
 
     if (role === 'admin') {
-        // --- إضافة جديدة: إظهار كافة العناوين للمدير ---
         document.querySelectorAll(".admin-only, .editor-only").forEach(el => el.classList.remove("hidden"));
         
-        document.getElementById("btnSecurity").classList.remove("hidden");
-        document.getElementById("btnBackup").classList.remove("hidden");
-        document.getElementById("btnLogs").classList.remove("hidden"); 
-        document.getElementById("btnClearLogs").classList.remove("hidden"); 
-        document.getElementById("btnVisLogs").classList.remove("hidden"); 
-        document.getElementById("demo-mode-section").classList.remove("hidden");
-        document.getElementById("btnInvestment").classList.remove("hidden");
+        safeToggle("btnSecurity", "remove");
+        safeToggle("btnBackup", "remove");
+        safeToggle("btnLogs", "remove"); 
+        safeToggle("btnClearLogs", "remove"); 
+        safeToggle("btnVisLogs", "remove"); 
+        safeToggle("demo-mode-section", "remove");
+        safeToggle("btnInvestment", "remove");
         
-        document.getElementById("sec-manual-wallet").classList.remove("hidden");
-        document.getElementById("sec-set-wallet-balance").classList.remove("hidden");
-        document.getElementById("sec-set-profit-share").classList.remove("hidden");
-        document.getElementById("sec-manage-wallets").classList.remove("hidden");
-        document.getElementById("sec-rename-wallet").classList.remove("hidden");
-        document.getElementById("sec-profit-settings").classList.remove("hidden");
-        document.getElementById("sec-discount-settings").classList.remove("hidden");
-        document.getElementById("sec-manage-services").classList.remove("hidden");
+        safeToggle("sec-manual-wallet", "remove");
+        safeToggle("sec-set-wallet-balance", "remove");
+        safeToggle("sec-set-profit-share", "remove");
+        safeToggle("sec-manage-wallets", "remove");
+        safeToggle("sec-rename-wallet", "remove");
+        safeToggle("sec-profit-settings", "remove");
+        safeToggle("sec-discount-settings", "remove");
+        safeToggle("sec-manage-services", "remove");
         
-        document.getElementById("todoSection").classList.remove("hidden");
-        document.getElementById("todoInputArea").classList.remove("hidden");
-        document.getElementById("btnAddStock").classList.remove("hidden");
+        safeToggle("todoSection", "remove");
+        safeToggle("todoInputArea", "remove");
+        safeToggle("btnAddStock", "remove");
         
-        document.getElementById("btnStock").classList.remove("hidden");
-        document.getElementById("btnUndo").classList.remove("hidden");
-        document.getElementById("btnClearHistory").classList.remove("hidden");
-        document.getElementById("btnHideExpired").classList.remove("hidden");
+        safeToggle("btnStock", "remove");
+        safeToggle("btnUndo", "remove");
+        safeToggle("btnClearHistory", "remove");
+        safeToggle("btnHideExpired", "remove");
         
-        document.getElementById("btnDeleteAllDiscounts").classList.remove("hidden");
-        document.getElementById("btnGenerateCoupon").classList.remove("hidden");
-        document.getElementById("btnAddVip").classList.remove("hidden");
-        document.getElementById("btnDeleteAllVip").classList.remove("hidden");
+        safeToggle("btnDeleteAllDiscounts", "remove");
+        safeToggle("btnGenerateCoupon", "remove");
+        safeToggle("btnAddVip", "remove");
+        safeToggle("btnDeleteAllVip", "remove");
     } 
     else if (role === 'employee') {
-        // --- إضافة جديدة: إظهار عناوين المتجر فقط للموظف ---
         document.querySelectorAll(".editor-only").forEach(el => el.classList.remove("hidden"));
         
         if(tfRes) tfRes.readOnly = true;
 
         if(logsVis !== 'no_employee' && logsVis !== 'admin_only') {
-            document.getElementById("btnLogs").classList.remove("hidden");
+            safeToggle("btnLogs", "remove");
         }
         
-        document.getElementById("sec-manual-wallet").classList.remove("hidden");
+        safeToggle("sec-manual-wallet", "remove");
+        safeToggle("todoSection", "remove");
+        safeToggle("todoInputArea", "remove");
+        safeToggle("sec-manage-services", "remove"); 
         
-        document.getElementById("todoSection").classList.remove("hidden");
-        document.getElementById("todoInputArea").classList.remove("hidden");
-        document.getElementById("sec-manage-services").classList.remove("hidden"); 
-        
-        document.getElementById("btnStock").classList.remove("hidden");
-        document.getElementById("btnUndo").classList.remove("hidden");
-        document.getElementById("btnHideExpired").classList.remove("hidden");
-        document.getElementById("btnClearHistory").classList.add("hidden");
+        safeToggle("btnStock", "remove");
+        safeToggle("btnUndo", "remove");
+        safeToggle("btnHideExpired", "remove");
+        safeToggle("btnClearHistory", "add");
     }
     else if (role === 'viewer_plus') {
         if(tfRes) tfRes.readOnly = true;
         if(logsVis !== 'no_viewer' && logsVis !== 'admin_only') {
-            document.getElementById("btnLogs").classList.remove("hidden");
+            safeToggle("btnLogs", "remove");
         }
-        document.getElementById("btnPurchase").classList.add("hidden");
+        safeToggle("btnPurchase", "add");
         
-        document.getElementById("todoSection").classList.remove("hidden");
-        document.getElementById("todoInputArea").classList.add("hidden");
-        document.getElementById("sec-manage-services").classList.remove("hidden");
+        safeToggle("todoSection", "remove");
+        safeToggle("todoInputArea", "add");
+        safeToggle("sec-manage-services", "remove");
         
-        document.getElementById("btnUndo").classList.add("hidden");
-        document.getElementById("btnClearHistory").classList.add("hidden");
-        document.getElementById("btnHideExpired").classList.add("hidden");
-        document.getElementById("btnStock").classList.add("hidden"); 
+        safeToggle("btnUndo", "add");
+        safeToggle("btnClearHistory", "add");
+        safeToggle("btnHideExpired", "add");
+        safeToggle("btnStock", "add"); 
 
-        document.querySelector("#generalNotes textarea").style.display = "none";
-        document.querySelector("#generalNotes button").style.display = "none";
+        // حماية كود المفكرة من التسبب بإيرور
+        let gnText = document.querySelector("#generalNotes textarea");
+        if(gnText) gnText.style.display = "none";
+        
+        let gnBtn = document.querySelector("#generalNotes button");
+        if(gnBtn) gnBtn.style.display = "none";
 
-        showPage('history', document.getElementById('btnHistory'));
+        let btnHistory = document.getElementById('btnHistory');
+        if(btnHistory) showPage('history', btnHistory);
     }
     else if (role === 'viewer') {
         if(tfRes) tfRes.readOnly = true;
         if(logsVis !== 'no_viewer' && logsVis !== 'admin_only') {
-            document.getElementById("btnLogs").classList.remove("hidden");
+            safeToggle("btnLogs", "remove");
         }
-        document.getElementById("btnPurchase").classList.add("hidden");
-        document.getElementById("sec-manage-services").classList.remove("hidden");
+        safeToggle("btnPurchase", "add");
+        safeToggle("sec-manage-services", "remove");
         
-        document.getElementById("btnUndo").classList.add("hidden");
-        document.getElementById("btnClearHistory").classList.add("hidden");
-        document.getElementById("btnHideExpired").classList.add("hidden");
-        document.getElementById("btnStock").classList.add("hidden"); 
+        safeToggle("btnUndo", "add");
+        safeToggle("btnClearHistory", "add");
+        safeToggle("btnHideExpired", "add");
+        safeToggle("btnStock", "add"); 
         
-        document.querySelector("#generalNotes textarea").style.display = "none";
-        document.querySelector("#generalNotes button").style.display = "none";
+        // حماية كود المفكرة من التسبب بإيرور
+        let gnText = document.querySelector("#generalNotes textarea");
+        if(gnText) gnText.style.display = "none";
+        
+        let gnBtn = document.querySelector("#generalNotes button");
+        if(gnBtn) gnBtn.style.display = "none";
 
-        showPage('history', document.getElementById('btnHistory'));
+        let btnHistory = document.getElementById('btnHistory');
+        if(btnHistory) showPage('history', btnHistory);
     }
 }
 function renderUsersTable() {
@@ -5610,6 +5626,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
