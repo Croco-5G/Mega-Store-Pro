@@ -1034,22 +1034,30 @@
             <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
         </div>
         </div>
-        <div style="display: flex; flex-wrap: nowrap; gap: 8px; margin-bottom: 20px; align-items: center; width: 100%; overflow-x: auto; padding-bottom: 4px;">
-            <div style="flex: 2; min-width: 140px; position: relative;">
+        <div style="margin-bottom: 25px; display: flex; flex-direction: column; gap: 10px;">
+            
+            <div style="position: relative; width: 100%;">
                 <input id="historySearch" onkeyup="currentPage.history=1; filterHistory()" placeholder="بحث باسم العميل، الخدمة..." style="padding-right: 35px; height: 42px; width: 100%; margin: 0; border-radius: var(--radius-md);">
                 <i class="fas fa-search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
             </div>
-            <div style="flex: 1; min-width: 90px; position: relative;">
-                <input type="text" id="historyFromDate" placeholder="من تاريخ.." readonly style="padding: 10px 25px 10px 5px; font-size: 12px; height: 42px; cursor: pointer; width: 100%; margin: 0; border-radius: var(--radius-md);">
-                <i class="fas fa-calendar-alt" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none;"></i>
+            
+            <div style="display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; width: 100%;">
+                
+                <div style="flex: 1; position: relative; min-width: 0;">
+                    <input type="text" id="historyFromDate" placeholder="من تاريخ.." readonly style="padding: 10px 25px 10px 5px; font-size: 12px; height: 42px; cursor: pointer; width: 100%; margin: 0; border-radius: var(--radius-md);">
+                    <i class="fas fa-calendar-alt" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none;"></i>
+                </div>
+                
+                <div style="flex: 1; position: relative; min-width: 0;">
+                    <input type="text" id="historyToDate" placeholder="إلى تاريخ.." readonly style="padding: 10px 25px 10px 5px; font-size: 12px; height: 42px; cursor: pointer; width: 100%; margin: 0; border-radius: var(--radius-md);">
+                    <i class="fas fa-calendar-alt" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none;"></i>
+                </div>
+                
+                <button class="btn btn-primary" onclick="clearDateFilter()" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex: none; margin: 0; border-radius: var(--radius-md);" title="مسح الفلتر">
+                    <i class="fas fa-undo"></i>
+                </button>
+                
             </div>
-            <div style="flex: 1; min-width: 90px; position: relative;">
-                <input type="text" id="historyToDate" placeholder="إلى تاريخ.." readonly style="padding: 10px 25px 10px 5px; font-size: 12px; height: 42px; cursor: pointer; width: 100%; margin: 0; border-radius: var(--radius-md);">
-                <i class="fas fa-calendar-alt" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none;"></i>
-            </div>
-            <button class="btn btn-primary" onclick="clearDateFilter()" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex: none; margin: 0; border-radius: var(--radius-md);" title="مسح الفلتر">
-                <i class="fas fa-undo"></i>
-            </button>
         </div>
         <div class="table-container">
             <table>
@@ -5643,6 +5651,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
