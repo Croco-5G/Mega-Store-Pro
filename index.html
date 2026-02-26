@@ -383,6 +383,10 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
         @media (max-width: 768px) {
+            /* ترتيب أزرار الأرشيف المالي في الجوال فقط */
+            .history-actions-row #btnUndo, 
+            .history-actions-row .btn-success { flex: 1; }
+            .history-actions-row #btnClearHistory { width: 100% !important; flex: none; margin-top: 5px; }
             .sidebar { transform: translateX(100%); right: 0; }
             .sidebar.active { transform: translateX(0); }
             .sidebar-overlay.active { display: block; }
@@ -1024,13 +1028,11 @@
     <div id="history" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:10px">
             <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
-            <div style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
-                <div style="display: flex; gap: 8px; flex: 1;">
-                    <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()" style="flex: 1;"><i class="fas fa-undo"></i> تراجع</button>
-                    <button class="btn btn-success" onclick="exportHistoryCSV()" style="flex: 1; font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير</button>
-                </div>
-                <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()" style="width: 100%; flex: none;"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
-            </div>
+        <div class="history-actions-row" style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
+            <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
+            <button class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+            <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
+        </div>
         </div>
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
@@ -5566,6 +5568,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
