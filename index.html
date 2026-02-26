@@ -4143,10 +4143,28 @@ function refreshInvestment(){
 }
 function refreshAnalytics() {
     let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5; // قراءة السعر من الإعدادات
+
     if (myProfitChart) myProfitChart.destroy();
     
     if(currentUser && currentUser.role !== 'viewer') {
-        myProfitChart = new Chart(document.getElementById('profitChart').getContext('2d'), { type: 'doughnut', data: { labels: ['أحمد', 'محمد', 'المتجر'], datasets: [{ data: [invest.ahmad.d*3.5+invest.ahmad.s, invest.mohamed.d*3.5+invest.mohamed.s, invest.store.d*3.5+invest.store.s], backgroundColor: ['#10b981', '#f59e0b', '#6366f1'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        myProfitChart = new Chart(document.getElementById('profitChart').getContext('2d'), { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['أحمد', 'محمد', 'المتجر'], 
+                datasets: [{ 
+                    data: [
+                        invest.ahmad.d * rate + invest.ahmad.s, 
+                        invest.mohamed.d * rate + invest.mohamed.s, 
+                        invest.store.d * rate + invest.store.s
+                    ], 
+                    backgroundColor: ['#10b981', '#f59e0b', '#6366f1'], 
+                    borderWidth: 0 
+                }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: false } 
+        });
     }
     
     let months = {}, labels = [], data = [];
@@ -4384,7 +4402,10 @@ function confirmTransfer() {
     let rate = parseFloat(document.getElementById("tfRate").value) || 1;
     let result = parseFloat(document.getElementById("tfResult").value);
 
-    if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
+    if(!from || !to) return notify("يرجى تحديد المحافظ بشكل صحيح", "error");
+    if(isNaN(amount) || amount <= 0) return notify("مبلغ التحويل يجب أن يكون أكبر من الصفر", "error");
+    if(fee < 0) return notify("العمولة لا يمكن أن تكون قيمة سالبة", "error");
+    if(rate <= 0) return notify("سعر الصرف يجب أن يكون أكبر من الصفر", "error");
     if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
@@ -4441,7 +4462,10 @@ function executeTransfer() {
     let rate = parseFloat(document.getElementById("tfRate").value) || 1;
     let result = parseFloat(document.getElementById("tfResult").value); 
 
-    if(!amount || !from || !to) return notify("يرجى تعبئة البيانات", "error");
+    if(!from || !to) return notify("يرجى تحديد المحافظ بشكل صحيح", "error");
+    if(isNaN(amount) || amount <= 0) return notify("مبلغ التحويل يجب أن يكون أكبر من الصفر", "error");
+    if(fee < 0) return notify("العمولة لا يمكن أن تكون قيمة سالبة", "error");
+    if(rate <= 0) return notify("سعر الصرف يجب أن يكون أكبر من الصفر", "error");
     if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
     if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
@@ -5433,6 +5457,7 @@ function initDatePickers() {
             months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
         },
         disableMobile: true,
+        static: true, // <-- هذا هو الحل السحري اللي بيربط التقويم بالحقل مباشرة
         onChange: () => { currentPage.history = 1; filterHistory(); }
     };
     if (document.getElementById("historyFromDate")) fpFrom = flatpickr("#historyFromDate", commonCfg);
@@ -5568,6 +5593,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
