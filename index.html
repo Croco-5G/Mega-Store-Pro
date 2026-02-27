@@ -1031,7 +1031,7 @@
             <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
         <div class="history-actions-row" style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
             <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
-            <button class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+            <button id="btnExportCSV" class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
             <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
         </div>
         </div>
@@ -3026,6 +3026,8 @@ function applyRBAC() {
     safeToggle("todoInputArea", "add");
     safeToggle("btnAddStock", "add");
     safeToggle("sec-manage-services", "add");
+    
+    safeToggle("btnExportCSV", "add"); // <--- تم إخفاء زر التصدير كافتراضي
 
     safeToggle("btnSettings", "remove");
     safeToggle("btnClearLogs", "add");
@@ -3068,6 +3070,7 @@ function applyRBAC() {
         safeToggle("btnStock", "remove");
         safeToggle("btnUndo", "remove");
         safeToggle("btnClearHistory", "remove");
+        safeToggle("btnExportCSV", "remove"); // <--- إظهار للأدمن
         safeToggle("btnHideExpired", "remove");
         
         safeToggle("btnDeleteAllDiscounts", "remove");
@@ -3089,6 +3092,7 @@ function applyRBAC() {
         
         safeToggle("btnStock", "remove");
         safeToggle("btnUndo", "remove");
+        safeToggle("btnExportCSV", "remove"); // <--- إظهار للموظف
         safeToggle("btnHideExpired", "remove");
         safeToggle("btnClearHistory", "add");
     }
@@ -3105,6 +3109,7 @@ function applyRBAC() {
         
         safeToggle("btnUndo", "add");
         safeToggle("btnClearHistory", "add");
+        safeToggle("btnExportCSV", "add"); // <--- إخفاء عن المشاهد
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
 
@@ -3126,6 +3131,7 @@ function applyRBAC() {
         
         safeToggle("btnUndo", "add");
         safeToggle("btnClearHistory", "add");
+        safeToggle("btnExportCSV", "add"); // <--- إخفاء عن المشاهد
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
         
@@ -3737,6 +3743,9 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         _undoDelta.overrideType = true;
     }
 
+    // حساب التكلفة الأصلية بالعملة التي تم شراء المخزون بها
+    let originalCostDisplay = fix((parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1)) + (stItem.costCurrency || '₪');
+
     purchases.push({
         id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
         date: `${nd.getFullYear()}-${nmm}-${nddStr}`,
@@ -3746,7 +3755,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         stockId: stItem.id,
         duration: duration,
         paid: paid+paidCur,
-        cost: fix(calculatedCost) + paidCur,
+        cost: originalCostDisplay, // حفظ التكلفة بعملتها الأصلية في الأرشيف
         wallet: walletVal,
         expiry: exp ? exp.getTime() : null,
         investDelta: _undoDelta,
@@ -3779,7 +3788,7 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
     fbSaveMultiple({ stock: stockList, purchases: purchases, vipCustomers: vips });
     
     logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, 'financial', {
-        type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur, costVal: fix(calculatedCost) + paidCur, isFirstProfile: !isComp, toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal, appliedDiscountPct: appliedDiscountPct, isComp: isComp
+        type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur, costVal: originalCostDisplay, isFirstProfile: !isComp, toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal, appliedDiscountPct: appliedDiscountPct, isComp: isComp
     });
 
     if (usedDiscountObj) {
@@ -5661,6 +5670,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
