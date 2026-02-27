@@ -2770,6 +2770,21 @@ function clearAdDates() {
     if(fpAdEnd)   fpAdEnd.clear();
 }
 
+function initAdDatePickers() {
+    const adLocale = {
+        firstDayOfWeek: 0,
+        weekdays: { shorthand: ['أح','اث','ثل','أر','خم','جم','سب'], longhand: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] },
+        months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
+    };
+    const adCfg = { dateFormat: "Y-m-d", locale: adLocale, disableMobile: true };
+    if(fpAdStart) { fpAdStart.destroy(); fpAdStart = null; }
+    if(fpAdEnd)   { fpAdEnd.destroy();   fpAdEnd   = null; }
+    let elStart = document.getElementById("newAdStart");
+    let elEnd   = document.getElementById("newAdEnd");
+    if(elStart) fpAdStart = flatpickr(elStart, adCfg);
+    if(elEnd)   fpAdEnd   = flatpickr(elEnd,   adCfg);
+}
+
 function deleteAdCampaign(id) {
     let campaigns = getAdCampaigns().filter(c => c.id !== id);
     saveAdCampaigns(campaigns);
@@ -3989,7 +4004,7 @@ function showPage(id, btn){
     if(id === 'security') renderUsersTable();
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
-    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); renderAdsCampaignsList(); }
+    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); renderAdsCampaignsList(); initAdDatePickers(); }
 }
 
 function toggleSidebar() {
@@ -6158,7 +6173,6 @@ function initDatePickers() {
             months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
         },
         disableMobile: true,
-        static: true,
     };
     if (document.getElementById("newAdStart")) fpAdStart = flatpickr("#newAdStart", adCfg);
     if (document.getElementById("newAdEnd"))   fpAdEnd   = flatpickr("#newAdEnd",   adCfg);
