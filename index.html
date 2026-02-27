@@ -2776,9 +2776,29 @@ function initAdDatePickers() {
         weekdays: { shorthand: ['أح','اث','ثل','أر','خم','جم','سب'], longhand: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] },
         months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
     };
-    const adCfg = { dateFormat: "Y-m-d", locale: adLocale, disableMobile: true };
-    if(fpAdStart) { fpAdStart.destroy(); fpAdStart = null; }
-    if(fpAdEnd)   { fpAdEnd.destroy();   fpAdEnd   = null; }
+    // appendTo: document.body → يرسم الكاليندر على الـ body مباشرة
+    // بيحل مشكلة الكاليندر المخفي جوا overflow:hidden أو container مخفي
+    const adCfg = {
+        dateFormat: "Y-m-d",
+        locale: adLocale,
+        disableMobile: true,
+        appendTo: document.body,
+        positionElement: null,
+        onReady(_, __, fp) {
+            // نعيد حساب الموضع عند الفتح عشان يكون صح
+            fp.calendarContainer.style.zIndex = "99999";
+        },
+        onOpen(_, __, fp) {
+            // احسب موضع الـ input وضع الكاليندر تحته بالضبط
+            const rect = fp.input.getBoundingClientRect();
+            fp.calendarContainer.style.position = "fixed";
+            fp.calendarContainer.style.top  = (rect.bottom + 4) + "px";
+            fp.calendarContainer.style.left = rect.left + "px";
+            fp.calendarContainer.style.right = "auto";
+        }
+    };
+    if(fpAdStart) { try { fpAdStart.destroy(); } catch(e){} fpAdStart = null; }
+    if(fpAdEnd)   { try { fpAdEnd.destroy();   } catch(e){} fpAdEnd   = null; }
     let elStart = document.getElementById("newAdStart");
     let elEnd   = document.getElementById("newAdEnd");
     if(elStart) fpAdStart = flatpickr(elStart, adCfg);
