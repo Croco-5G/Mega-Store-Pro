@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MegaStore | System</title>
+    <title>Mega Store | System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -1050,7 +1050,7 @@
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6; margin-left:2px;"></span> تعيين يدوي
                 </label>
             </div>
-            <div class="chart-wrapper" style="height:350px; position:relative;"><canvas id="budgetChart"></canvas></div>
+            <div id="budgetChartWrapper" style="position:relative; width:100%; height:350px; min-height:200px; overflow:hidden;"><canvas id="budgetChart" style="position:absolute; top:0; left:0; width:100%!important; height:100%!important;"></canvas></div>
         </div>
 
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
@@ -2668,46 +2668,57 @@ function removeBudgetEvent(id) {
 }
 
 let myBudgetChart = null;
+let _budgetResizeObserver = null;
+
+// ─── إعادة رسم الـ chart بشكل آمن عند تغيير حجم الـ container ───
+function _initBudgetResizeObserver() {
+    let wrapper = document.getElementById('budgetChartWrapper');
+    if (!wrapper) return;
+    if (_budgetResizeObserver) { _budgetResizeObserver.disconnect(); _budgetResizeObserver = null; }
+    _budgetResizeObserver = new ResizeObserver(() => {
+        if (myBudgetChart) {
+            // نعيد رسم الـ canvas بالحجم الصحيح
+            requestAnimationFrame(() => {
+                if (myBudgetChart) myBudgetChart.resize();
+            });
+        }
+    });
+    _budgetResizeObserver.observe(wrapper);
+}
 
 function renderBudgetChart() {
     let history = safeJSON(store.budgetHistory, []);
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
 
-    // تصفية الشهر الحالي
     let now = new Date();
     let curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     let monthHistory = history.filter(x => x.date && x.date.startsWith(curMonth));
 
-    // تطبيق فلاتر النقاط
+    // فلاتر النقاط
     let showTypes = {};
     ['purchase','stock_buy','transfer','withdrawal','set_wallet'].forEach(t => {
         let el = document.getElementById('bf_' + t);
         showTypes[t] = el ? el.checked : true;
     });
 
-    // بناء نقاط المنحنى: نبدأ من أول يوم بالشهر
-    let daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-    
-    // نقطة البداية: الرصيد قبل أول حدث في الشهر
+    // رصيد بداية الشهر
     let sortedEvents = monthHistory.slice().sort((a,b) => a.ts - b.ts);
-    
-    // الحصول على رصيد بداية الشهر
     let allHistory = history.slice().sort((a,b) => a.ts - b.ts);
     let startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     let startBalance = 0;
-    // أحدث حدث قبل بداية الشهر
     let prevEvent = allHistory.filter(x => x.ts < startOfMonth).pop();
     if(prevEvent) startBalance = prevEvent.totalUSD;
-    else if(sortedEvents.length > 0) startBalance = sortedEvents[0].totalUSD - sortedEvents[0].deltaUSD;
+    else if(sortedEvents.length > 0) startBalance = sortedEvents[0].totalUSD - (sortedEvents[0].deltaUSD || 0);
     else startBalance = getTotalBalanceUSD();
 
-    // إنشاء نقاط البيانات
+    // ─── بناء النقاط ─────────────────────────────────────────────
+    // عند كثرة العمليات (>200)، نجمّع بالساعة بدل كل عملية
+    const MAX_RAW_POINTS = 200;
     let chartPoints = [];
     let eventsByDay = {};
 
-    // نقطة بداية الشهر
-    chartPoints.push({ x: 1, y: startBalance, events: [], isStart: true });
+    chartPoints.push({ x: '1', y: parseFloat(startBalance.toFixed(2)), isStart: true });
 
     sortedEvents.forEach(ev => {
         let day = parseInt(ev.date.split('-')[2]);
@@ -2715,89 +2726,119 @@ function renderBudgetChart() {
         eventsByDay[day].push(ev);
     });
 
-    // نقاط لكل يوم فيه أحداث
-    let currentY = startBalance;
+    // إذا كانت الأحداث كثيرة جداً، نجمّع آخر حدث بكل ساعة فقط
+    let usedEvents = sortedEvents;
+    if(sortedEvents.length > MAX_RAW_POINTS) {
+        let aggregated = {};
+        sortedEvents.forEach(ev => {
+            let h = new Date(ev.ts).getHours();
+            let key = `${ev.date}_${h}`;
+            aggregated[key] = ev; // آخر حدث في كل ساعة
+        });
+        usedEvents = Object.values(aggregated).sort((a,b) => a.ts - b.ts);
+        // أعد بناء eventsByDay
+        eventsByDay = {};
+        usedEvents.forEach(ev => {
+            let day = parseInt(ev.date.split('-')[2]);
+            if(!eventsByDay[day]) eventsByDay[day] = [];
+            eventsByDay[day].push(ev);
+        });
+    }
+
     for(let d = 1; d <= now.getDate(); d++) {
         if(eventsByDay[d]) {
             eventsByDay[d].forEach(ev => {
-                currentY = ev.totalUSD;
-                chartPoints.push({ x: d, y: ev.totalUSD, event: ev });
+                chartPoints.push({ x: `${d}`, y: parseFloat(ev.totalUSD.toFixed(2)), event: ev });
             });
         }
     }
 
-    // إذا اليوم الحالي بدون أحداث، أضف نقطة للرصيد الحالي
-    let todayEvents = eventsByDay[now.getDate()] || [];
-    if(todayEvents.length === 0) {
-        chartPoints.push({ x: now.getDate(), y: getTotalBalanceUSD(), events: [], isToday: true });
+    // نقطة اليوم الحالي إذا لم تكن هناك أحداث اليوم
+    let todayDay = now.getDate();
+    let hasTodayPoint = chartPoints.some(p => parseInt(p.x) === todayDay && !p.isStart);
+    if(!hasTodayPoint) {
+        chartPoints.push({ x: `${todayDay}`, y: parseFloat(getTotalBalanceUSD().toFixed(2)), isToday: true });
     }
 
-    // بناء بيانات Chart.js
-    let labels = chartPoints.map(p => `${p.x}`);
-    let dataValues = chartPoints.map(p => parseFloat(p.y.toFixed(2)));
+    // ─── بيانات الرسم ─────────────────────────────────────────────
+    let labels = chartPoints.map(p => p.x);
+    let dataValues = chartPoints.map(p => p.y);
 
-    // ألوان نقاط حسب النوع
     const typeColors = {
-        purchase: '#10b981',
-        stock_buy: '#a855f7',
-        transfer: '#f59e0b',
-        withdrawal: '#ef4444',
-        set_wallet: '#3b82f6'
+        purchase: '#10b981', stock_buy: '#a855f7',
+        transfer: '#f59e0b', withdrawal: '#ef4444', set_wallet: '#3b82f6'
     };
 
     let pointColors = chartPoints.map(p => {
         if(p.isStart || p.isToday) return '#94a3b8';
-        if(p.event) return typeColors[p.event.type] || '#6366f1';
-        return '#94a3b8';
+        return typeColors[p.event?.type] || '#6366f1';
     });
-
     let pointRadii = chartPoints.map(p => {
-        if(p.isStart || p.isToday) return 4;
+        if(p.isStart || p.isToday) return 5;
         if(p.event && showTypes[p.event.type]) return 8;
         if(p.event && !showTypes[p.event.type]) return 0;
-        return 4;
+        return 5;
     });
+    let pointHoverRadii = chartPoints.map(p => p.event ? 12 : 6);
 
-    // تحديد إجمالي الرصيد الحالي
-    let wallets = safeJSON(store.wallets, {});
-    let totalUSD = 0, totalSHK = 0;
-    Object.values(wallets).forEach(w => {
-        if(w.cur === '$') totalUSD += (w.bal||0);
-        else totalSHK += (w.bal||0);
+    // ─── عرض الإجمالي ─────────────────────────────────────────────
+    let wallets2 = safeJSON(store.wallets, {});
+    let tUSD = 0, tSHK = 0;
+    Object.values(wallets2).forEach(w => {
+        if(w.cur === '$') tUSD += (w.bal||0);
+        else tSHK += (w.bal||0);
     });
-    let totalInUSD2 = totalUSD + totalSHK / rate;
-    let totalInSHK2 = totalUSD * rate + totalSHK;
-    let budgetTotalEl = document.getElementById('budgetTotalDisplay');
-    if(budgetTotalEl) budgetTotalEl.textContent = `إجمالي: ${fix(totalInUSD2)}$ | ${fix(totalInSHK2)}₪`;
+    let el = document.getElementById('budgetTotalDisplay');
+    if(el) el.textContent = `إجمالي: ${fix(tUSD + tSHK/rate)}$ | ${fix(tUSD*rate + tSHK)}₪`;
 
-    if(myBudgetChart) { myBudgetChart.destroy(); myBudgetChart = null; }
-    let ctx = document.getElementById('budgetChart');
-    if(!ctx) return;
+    // ─── إنشاء/تحديث الـ Chart ───────────────────────────────────
+    // دائماً destroy الـ chart قبل إعادة إنشائه لمنع خلل الـ canvas
+    if(myBudgetChart) {
+        myBudgetChart.destroy();
+        myBudgetChart = null;
+    }
 
-    myBudgetChart = new Chart(ctx.getContext('2d'), {
+    let canvas = document.getElementById('budgetChart');
+    if(!canvas) return;
+
+    // إعادة تعيين أبعاد الـ canvas يدوياً قبل إنشاء Chart جديد
+    let wrapper = document.getElementById('budgetChartWrapper');
+    if(wrapper) {
+        canvas.width  = wrapper.offsetWidth  || wrapper.clientWidth  || 600;
+        canvas.height = wrapper.offsetHeight || wrapper.clientHeight || 350;
+    }
+
+    // تعطيل الـ animation عند البيانات الكبيرة لتحسين الأداء
+    let useAnimation = dataValues.length <= 100;
+
+    myBudgetChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
                 label: 'الميزانية ($)',
                 data: dataValues,
                 borderColor: '#6366f1',
-                backgroundColor: 'rgba(99,102,241,0.08)',
+                backgroundColor: 'rgba(99,102,241,0.07)',
                 fill: true,
-                tension: 0.3,
+                tension: 0.35,
                 pointBackgroundColor: pointColors,
                 pointRadius: pointRadii,
-                pointHoverRadius: 10,
+                pointHoverRadius: pointHoverRadii,
                 pointHoverBorderWidth: 3,
-                pointBorderColor: '#ffffff',
+                pointBorderColor: '#fff',
                 pointBorderWidth: 2,
+                borderWidth: 2.5,
                 segment: {
                     borderColor: ctx2 => {
-                        let p0y = ctx2.p0.parsed.y;
-                        let p1y = ctx2.p1.parsed.y;
+                        let p0y = ctx2.p0.parsed.y, p1y = ctx2.p1.parsed.y;
                         if(p1y > p0y) return '#10b981';
                         if(p1y < p0y) return '#ef4444';
-                        return '#6366f1';
+                        return '#94a3b8';
+                    },
+                    borderWidth: ctx2 => {
+                        let p0y = ctx2.p0.parsed.y, p1y = ctx2.p1.parsed.y;
+                        return (p0y === p1y) ? 1.5 : 2.5;
                     }
                 }
             }]
@@ -2805,19 +2846,28 @@ function renderBudgetChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'point', intersect: true },
+            animation: useAnimation ? { duration: 400 } : false,
+            interaction: { mode: 'nearest', intersect: false, axis: 'x' },
             onClick: (evt, elements) => {
                 if(elements.length > 0) {
                     let idx = elements[0].index;
                     let pt = chartPoints[idx];
-                    if(pt && pt.event) openBudgetEventModal(pt.event);
+                    if(pt?.event) openBudgetEventModal(pt.event);
                 }
             },
             onHover: (evt, elements) => {
-                evt.native.target.style.cursor = elements.length > 0 && chartPoints[elements[0]?.index]?.event ? 'pointer' : 'default';
+                if(evt.native?.target) {
+                    let hasEvent = elements.length > 0 && chartPoints[elements[0]?.index]?.event;
+                    evt.native.target.style.cursor = hasEvent ? 'pointer' : 'default';
+                }
             },
             plugins: {
                 tooltip: {
+                    rtl: true,
+                    bodyFont: { family: 'Tajawal', size: 13 },
+                    titleFont: { family: 'Tajawal', size: 13, weight: 'bold' },
+                    padding: 12,
+                    boxPadding: 4,
                     callbacks: {
                         title: (items) => {
                             let idx = items[0].dataIndex;
@@ -2829,18 +2879,17 @@ function renderBudgetChart() {
                         label: (item) => {
                             let idx = item.dataIndex;
                             let pt = chartPoints[idx];
-                            let val = `الرصيد: ${fix(item.raw)}$`;
+                            let val = `  الرصيد: ${fix(item.raw)}$`;
                             if(pt?.event?.deltaUSD !== undefined) {
                                 let d = pt.event.deltaUSD;
-                                val += `  (${d >= 0 ? '+' : ''}${fix(d)}$)`;
+                                let sign = d >= 0 ? '▲ +' : '▼ ';
+                                val += `\n  ${sign}${fix(d)}$`;
                             }
                             return val;
                         },
                         afterLabel: (item) => {
-                            let idx = item.dataIndex;
-                            let pt = chartPoints[idx];
-                            if(pt?.event) return '← اضغط لرؤية التفاصيل';
-                            return '';
+                            let pt = chartPoints[item.dataIndex];
+                            return pt?.event ? '  ← اضغط لرؤية التفاصيل' : '';
                         }
                     }
                 },
@@ -2849,17 +2898,20 @@ function renderBudgetChart() {
             scales: {
                 x: {
                     title: { display: true, text: 'اليوم', color: '#94a3b8', font: { family: 'Tajawal', size: 12 } },
-                    ticks: { color: '#94a3b8', font: { family: 'Tajawal' } },
-                    grid: { color: 'rgba(148,163,184,0.1)' }
+                    ticks: { color: '#94a3b8', font: { family: 'Tajawal', size: 11 }, maxRotation: 0 },
+                    grid: { color: 'rgba(148,163,184,0.08)' }
                 },
                 y: {
                     title: { display: true, text: 'الرصيد ($)', color: '#94a3b8', font: { family: 'Tajawal', size: 12 } },
-                    ticks: { color: '#94a3b8', font: { family: 'Tajawal' } },
-                    grid: { color: 'rgba(148,163,184,0.1)' }
+                    ticks: { color: '#94a3b8', font: { family: 'Tajawal', size: 11 } },
+                    grid: { color: 'rgba(148,163,184,0.08)' }
                 }
             }
         }
     });
+
+    // تفعيل الـ ResizeObserver
+    _initBudgetResizeObserver();
 }
 
 function openBudgetEventModal(ev) {
@@ -3671,6 +3723,12 @@ function toggleSidebar() {
     let sidebar = document.getElementById("mySidebar"), overlay = document.querySelector(".sidebar-overlay"), btnIcon = document.querySelector("#menuBtn i");
     sidebar.classList.toggle("active"); overlay.classList.toggle("active");
     if(sidebar.classList.contains("active")){ btnIcon.classList.remove("fa-bars"); btnIcon.classList.add("fa-times"); } else { btnIcon.classList.remove("fa-times"); btnIcon.classList.add("fa-bars"); }
+    // إعادة حجم الـ charts بعد انتهاء أنيميشن الـ sidebar (300ms)
+    setTimeout(() => {
+        if(myBudgetChart) myBudgetChart.resize();
+        if(myProfitChart) myProfitChart.resize();
+        if(mySalesChart) mySalesChart.resize();
+    }, 320);
 }
 
 function toggleDarkMode() {
@@ -5940,34 +5998,24 @@ function resetSessionTimer() {
     document.addEventListener(ev, () => { if(currentUser) resetSessionTimer(); }, { passive: true })
 );
 
+// ─── إصلاح شامل عند تغيير حجم الشاشة ───────────────────────────
+let _globalResizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(_globalResizeTimer);
+    _globalResizeTimer = setTimeout(() => {
+        // إعادة رسم الـ budget chart بشكل كامل لأن Canvas يحتاج resize صريح
+        let analyticsCard = document.getElementById('analytics');
+        if(analyticsCard && !analyticsCard.classList.contains('hidden')) {
+            renderBudgetChart();
+        }
+        // باقي الـ charts تتعامل Chart.js معها تلقائياً عبر responsive:true
+        if(myBudgetChart) myBudgetChart.resize();
+        if(myProfitChart) myProfitChart.resize();
+        if(mySalesChart) mySalesChart.resize();
+    }, 150);
+});
+
 window.onload = init;
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
