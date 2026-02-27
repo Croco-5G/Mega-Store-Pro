@@ -1049,10 +1049,6 @@
                     <input type="checkbox" id="bf_set_wallet" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#3b82f6;">
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6; margin-left:2px;"></span> عمليات أخرى
                 </label>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_ads" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#a855f7;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#a855f7; margin-left:2px;"></span> فترات الإعلان
-                </label>
             </div>
             <div id="budgetChartWrapper" style="position:relative; width:100%; height:350px; min-height:200px; overflow:hidden;"><canvas id="budgetChart" style="position:absolute; top:0; left:0; width:100%!important; height:100%!important;"></canvas></div>
         </div>
@@ -1235,70 +1231,6 @@
             </div>
         </div>
 
-        <div id="sec-ads-settings">
-            <h3><i class="fas fa-bullhorn" style="color:#a855f7"></i> إدارة حملات الإعلان</h3>
-            <div class="inner-box" style="margin-bottom:40px; border-color:#a855f7!important;">
-                <div style="margin-bottom:18px; font-size:13px; color:var(--text-muted);">
-                    <i class="fas fa-info-circle" style="color:#a855f7"></i> تُظهر فترات الإعلان كمنطقة بنفسجية مظللة على مسار الميزانية.
-                </div>
-
-                <!-- قائمة الحملات الحالية -->
-                <div id="adsCampaignsList" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
-
-                <!-- إضافة حملة جديدة -->
-                <div style="background:var(--bg-card); border:1px dashed #a855f7; border-radius:12px; padding:16px;">
-                    <div style="font-size:13px; font-weight:700; color:#a855f7; margin-bottom:14px;"><i class="fas fa-plus-circle"></i> إضافة حملة إعلانية جديدة</div>
-
-                    <!-- صف 1: اسم + تكلفة + محفظة -->
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:12px;">
-                        <div class="input-group" style="margin-bottom:0;">
-                            <label>اسم الحملة</label>
-                            <input id="newAdName" placeholder="مثال: إعلان فيسبوك مارس">
-                        </div>
-                        <div class="input-group" style="margin-bottom:0;">
-                            <label>التكلفة</label>
-                            <input type="number" id="newAdCost" placeholder="0.00">
-                        </div>
-                        <div class="input-group" style="margin-bottom:0;">
-                            <label>خصم من المحفظة</label>
-                            <select id="newAdWallet">
-                                <option value="">بدون خصم</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- صف 2: تواريخ بتصميم السجل المالي -->
-                    <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px;">
-                        <div class="input-group" style="margin-bottom:0; flex:1; min-width:150px;">
-                            <label>تاريخ البداية</label>
-                            <div style="position:relative;">
-                                <input type="text" id="newAdStart" placeholder="من تاريخ.." readonly
-                                    style="padding: 10px 34px 10px 10px; font-size:13px; height:42px; cursor:pointer; width:100%; margin:0; border-radius:var(--radius-md);">
-                                <i class="fas fa-calendar-alt" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--text-muted); pointer-events:none;"></i>
-                            </div>
-                        </div>
-                        <div style="color:var(--text-muted); font-size:18px; padding-bottom:10px; flex-shrink:0; align-self:flex-end;">←</div>
-                        <div class="input-group" style="margin-bottom:0; flex:1; min-width:150px;">
-                            <label>تاريخ النهاية <span style="font-size:11px; font-weight:400; color:var(--text-muted);">(اتركه فارغاً إن كان نشطاً)</span></label>
-                            <div style="position:relative;">
-                                <input type="text" id="newAdEnd" placeholder="إلى تاريخ.." readonly
-                                    style="padding: 10px 34px 10px 10px; font-size:13px; height:42px; cursor:pointer; width:100%; margin:0; border-radius:var(--radius-md);">
-                                <i class="fas fa-calendar-alt" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--text-muted); pointer-events:none;"></i>
-                            </div>
-                        </div>
-                        <button class="btn" onclick="clearAdDates()" title="مسح التواريخ"
-                            style="width:42px; height:42px; padding:0; display:flex; justify-content:center; align-items:center; flex:none; margin:0; border-radius:var(--radius-md); background:var(--bg-input); color:var(--text-muted); align-self:flex-end;">
-                            <i class="fas fa-undo"></i>
-                        </button>
-                    </div>
-
-                    <button class="btn" style="background:#a855f7; color:white; width:100%; padding:11px;" onclick="addAdCampaign()">
-                        <i class="fas fa-plus"></i> إضافة الحملة
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <div id="sec-profit-settings">
             <h3><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> إعداد سعر الصرف</h3>
             <div class="inner-box" style="margin-bottom:20px;">
@@ -1394,6 +1326,7 @@
 
         <h2 style="color:var(--yellow-text); border-bottom:2px solid var(--yellow-border); padding-bottom:10px;"><i class="fas fa-tools"></i> الأدوات المساعدة</h2>
 
+        <!-- ─── قسم التاريخ الافتراضي (الوضع التجريبي فقط) ─── -->
         <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px; margin-top:20px;">
             <h3 style="color: var(--yellow-text); margin-top:0"><i class="fas fa-tasks"></i> المهام (To-Do)</h3>
             <div id="todoInputArea" style="display:flex; gap:10px; margin-bottom:20px">
@@ -1570,6 +1503,7 @@ let myProfitChart = null;
 let mySalesChart = null;
 let currentUser = null; 
 let isDemoMode = false;
+
 let currentStockTab = 'active';
 let currentLogsTab = 'financial';
 let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1, vip: 1 };
@@ -2701,164 +2635,6 @@ function row(label, value, colored=false, positive=true) {
 // ─────────────────────────────────────────────
 // حملات الإعلان — Ads Campaigns
 // ─────────────────────────────────────────────
-function getAdCampaigns() {
-    let s = safeJSON(store.settings, {});
-    return s.adCampaigns || [];
-}
-
-function saveAdCampaigns(list) {
-    let s = safeJSON(store.settings, {});
-    s.adCampaigns = list;
-    store.settings = JSON.stringify(s);
-    fbSave('settings', s);
-}
-
-function addAdCampaign() {
-    let name   = document.getElementById('newAdName').value.trim();
-    let start  = fpAdStart ? fpAdStart.input.value : document.getElementById('newAdStart').value;
-    let end    = fpAdEnd   ? fpAdEnd.input.value   : document.getElementById('newAdEnd').value;
-    let cost   = parseFloat(document.getElementById('newAdCost').value) || 0;
-    let walletName = document.getElementById('newAdWallet')?.value || '';
-
-    if(!name)  return notify('أدخل اسم الحملة', 'error');
-    if(!start) return notify('أدخل تاريخ البداية', 'error');
-
-    // خصم التكلفة من المحفظة
-    if(walletName && cost > 0) {
-        let w = safeJSON(store.wallets, {});
-        let wallet = w[walletName];
-        if(!wallet) return notify('المحفظة غير موجودة', 'error');
-        if(wallet.bal < cost) return notify(`رصيد المحفظة (${walletName}) غير كافٍ. الرصيد الحالي: ${fix(wallet.bal)} ${wallet.cur}`, 'error');
-        let settings = safeJSON(store.settings, {});
-        let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
-        let deltaUSD = wallet.cur === '$' ? -cost : -(cost / rate);
-        let wBefore = wallet.bal;
-        w[walletName].bal -= cost;
-        store.wallets = JSON.stringify(w);
-        fbAtomicWalletInvest({ [walletName]: -cost }, {}, w, {});
-        recordBudgetEvent('ad_spend', `تكلفة إعلان "${name}" من ${walletName}: ${cost}${wallet.cur}`, deltaUSD, {
-            type: 'ad_spend', walletName, amount: cost, currency: wallet.cur, walletBefore: wBefore, walletAfter: w[walletName].bal
-        });
-        logAction(`خصم تكلفة إعلان "${name}" من ${walletName}: ${cost}${wallet.cur}`, 'financial');
-        notify(`تم خصم ${fix(cost)} من ${walletName}`);
-    }
-
-    let campaigns = getAdCampaigns();
-    campaigns.push({
-        id: 'ad_' + Date.now(),
-        name,
-        start,
-        end: end || null,
-        cost,
-        walletName: walletName || null,
-        active: !end || end >= new Date().toISOString().slice(0,10)
-    });
-    saveAdCampaigns(campaigns);
-    logAction(`إضافة حملة إعلانية: ${name}`, 'general');
-    if(!(walletName && cost > 0)) notify('تمت إضافة الحملة');
-    renderAdsCampaignsList();
-    renderBudgetChart();
-    // مسح الحقول
-    document.getElementById('newAdName').value = '';
-    document.getElementById('newAdCost').value = '';
-    if(document.getElementById('newAdWallet')) document.getElementById('newAdWallet').value = '';
-    clearAdDates();
-}
-
-function clearAdDates() {
-    if(fpAdStart) fpAdStart.clear();
-    if(fpAdEnd)   fpAdEnd.clear();
-}
-
-function initAdDatePickers() {
-    const adLocale = {
-        firstDayOfWeek: 0,
-        weekdays: { shorthand: ['أح','اث','ثل','أر','خم','جم','سب'], longhand: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] },
-        months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
-    };
-    // appendTo: document.body → يرسم الكاليندر على الـ body مباشرة
-    // بيحل مشكلة الكاليندر المخفي جوا overflow:hidden أو container مخفي
-    const adCfg = {
-        dateFormat: "Y-m-d",
-        locale: adLocale,
-        disableMobile: true,
-        appendTo: document.body,
-        positionElement: null,
-        onReady(_, __, fp) {
-            // نعيد حساب الموضع عند الفتح عشان يكون صح
-            fp.calendarContainer.style.zIndex = "99999";
-        },
-        onOpen(_, __, fp) {
-            // احسب موضع الـ input وضع الكاليندر تحته بالضبط
-            const rect = fp.input.getBoundingClientRect();
-            fp.calendarContainer.style.position = "fixed";
-            fp.calendarContainer.style.top  = (rect.bottom + 4) + "px";
-            fp.calendarContainer.style.left = rect.left + "px";
-            fp.calendarContainer.style.right = "auto";
-        }
-    };
-    if(fpAdStart) { try { fpAdStart.destroy(); } catch(e){} fpAdStart = null; }
-    if(fpAdEnd)   { try { fpAdEnd.destroy();   } catch(e){} fpAdEnd   = null; }
-    let elStart = document.getElementById("newAdStart");
-    let elEnd   = document.getElementById("newAdEnd");
-    if(elStart) fpAdStart = flatpickr(elStart, adCfg);
-    if(elEnd)   fpAdEnd   = flatpickr(elEnd,   adCfg);
-}
-
-function deleteAdCampaign(id) {
-    let campaigns = getAdCampaigns().filter(c => c.id !== id);
-    saveAdCampaigns(campaigns);
-    notify('تم حذف الحملة');
-    renderAdsCampaignsList();
-    renderBudgetChart();
-}
-
-function toggleAdCampaign(id) {
-    let campaigns = getAdCampaigns();
-    let c = campaigns.find(x => x.id === id);
-    if(c) {
-        c.active = !c.active;
-        if(!c.active && !c.end) c.end = new Date().toISOString().slice(0,10);
-        if(c.active) c.end = null;
-    }
-    saveAdCampaigns(campaigns);
-    renderAdsCampaignsList();
-    renderBudgetChart();
-}
-
-function renderAdsCampaignsList() {
-    let box = document.getElementById('adsCampaignsList');
-    if(!box) return;
-    let campaigns = getAdCampaigns();
-    if(campaigns.length === 0) {
-        box.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">لا توجد حملات مسجّلة بعد.</div>`;
-        return;
-    }
-    box.innerHTML = campaigns.map(c => {
-        let isActive = c.active || (!c.end || c.end >= new Date().toISOString().slice(0,10));
-        let statusColor = isActive ? '#10b981' : '#94a3b8';
-        let statusText  = isActive ? 'نشطة' : 'منتهية';
-        return `
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
-                    background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:12px 16px;
-                    border-right:4px solid #a855f7;">
-            <div style="flex:1; min-width:160px;">
-                <div style="font-weight:800; font-size:14px;">${esc(c.name)}</div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
-                    ${c.start} → ${c.end || 'الآن'}
-                    ${c.cost > 0 ? ` • تكلفة: ${fix(c.cost)}$` : ''}
-                </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:12px; font-weight:700; color:${statusColor}; background:${statusColor}22; padding:3px 10px; border-radius:20px;">${statusText}</span>
-                <button class="btn" style="padding:5px 12px; font-size:12px; background:${isActive ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)'}; color:${isActive ? '#d97706' : '#10b981'};"
-                    onclick="toggleAdCampaign('${c.id}')">${isActive ? 'إيقاف مؤقت' : 'استمرار'}</button>
-                <button class="btn btn-danger" style="padding:5px 12px; font-size:12px;" onclick="deleteAdCampaign('${c.id}')"><i class="fas fa-trash-alt"></i></button>
-            </div>
-        </div>`;
-    }).join('');
-}
-
 function getTotalBalanceUSD() {
     let wallets = safeJSON(store.wallets, {});
     let settings = safeJSON(store.settings, {});
@@ -3020,82 +2796,6 @@ function renderBudgetChart() {
     let el = document.getElementById('budgetTotalDisplay');
     if(el) el.textContent = `إجمالي: ${fix(tUSD + tSHK/rate)}$ | ${fix(tUSD*rate + tSHK)}₪`;
 
-    // ─── حملات الإعلان ─────────────────────────────────────────────
-    let showAds = document.getElementById('bf_ads')?.checked !== false;
-    let adCampaigns = getAdCampaigns();
-    let todayStr = now.toISOString().slice(0, 10);
-
-    // حساب نطاق أيام الشهر لكل حملة
-    let monthStart = `${curMonth}-01`;
-    let monthEnd   = `${curMonth}-${String(new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()).padStart(2,'0')}`;
-    let adsInMonth = adCampaigns.filter(c => {
-        let cEnd = c.end || todayStr;
-        return c.start <= monthEnd && cEnd >= monthStart;
-    });
-
-    // plugin مخصص يرسم التظليل البنفسجي قبل رسم البيانات
-    const adsShadePlugin = {
-        id: 'adsShade',
-        beforeDraw(chart) {
-            if(!showAds || adsInMonth.length === 0) return;
-            let { ctx: c, chartArea, scales } = chart;
-            if(!chartArea) return;
-            let xScale = scales.x;
-            c.save();
-            adsInMonth.forEach(camp => {
-                let cStartDate = camp.start > monthStart ? camp.start : monthStart;
-                let cEndDate   = (camp.end && camp.end < monthEnd) ? camp.end : (camp.end ? camp.end : todayStr);
-                if(cEndDate > todayStr) cEndDate = todayStr;
-                if(cEndDate > monthEnd) cEndDate = monthEnd;
-
-                let startDay = parseInt(cStartDate.split('-')[2]);
-                let endDay   = parseInt(cEndDate.split('-')[2]);
-
-                // نحوّل اليوم لإحداثي X على الـ chart
-                let labelStartIdx = labels.findIndex(l => parseInt(l) >= startDay);
-                let labelEndIdx   = labels.findLastIndex ? labels.findLastIndex(l => parseInt(l) <= endDay)
-                                  : [...labels].reverse().findIndex(l => parseInt(l) <= endDay);
-                if(labelEndIdx < 0) labelEndIdx = labels.length - 1;
-                // findLastIndex polyfill
-                if(!labels.findLastIndex) labelEndIdx = labels.length - 1 - [...labels].reverse().findIndex(l => parseInt(l) <= endDay);
-
-                let x1 = labelStartIdx >= 0 ? xScale.getPixelForTick(labelStartIdx) : chartArea.left;
-                let x2 = xScale.getPixelForTick(labelEndIdx < 0 ? labels.length-1 : labelEndIdx);
-
-                // تظليل الفترة
-                c.fillStyle = 'rgba(168,85,247,0.10)';
-                c.fillRect(x1, chartArea.top, x2 - x1, chartArea.height);
-
-                // خطان عموديان
-                c.strokeStyle = 'rgba(168,85,247,0.85)';
-                c.lineWidth = 2;
-                c.setLineDash([6, 3]);
-                // خط البداية
-                c.beginPath(); c.moveTo(x1, chartArea.top); c.lineTo(x1, chartArea.bottom); c.stroke();
-                // خط النهاية
-                c.beginPath(); c.moveTo(x2, chartArea.top); c.lineTo(x2, chartArea.bottom); c.stroke();
-                c.setLineDash([]);
-
-                // تسمية الحملة فوق المنطقة
-                c.fillStyle = 'rgba(168,85,247,0.95)';
-                c.font = 'bold 11px Tajawal, sans-serif';
-                c.textAlign = 'center';
-                c.textBaseline = 'top';
-                let midX = (x1 + x2) / 2;
-                // خلفية صغيرة للنص
-                let textW = c.measureText(camp.name).width + 12;
-                c.fillStyle = 'rgba(168,85,247,0.18)';
-                c.beginPath();
-                c.roundRect ? c.roundRect(midX - textW/2, chartArea.top + 4, textW, 18, 4)
-                            : c.rect(midX - textW/2, chartArea.top + 4, textW, 18);
-                c.fill();
-                c.fillStyle = '#c084fc';
-                c.fillText(camp.name, midX, chartArea.top + 7);
-            });
-            c.restore();
-        }
-    };
-
     // ─── إنشاء/تحديث الـ Chart ───────────────────────────────────
     // دائماً destroy الـ chart قبل إعادة إنشائه لمنع خلل الـ canvas
     if(myBudgetChart) {
@@ -3118,7 +2818,7 @@ function renderBudgetChart() {
 
     myBudgetChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
-        plugins: [adsShadePlugin],
+        plugins: [],
         data: {
             labels,
             datasets: [{
@@ -3662,7 +3362,6 @@ function applyRBAC() {
     safeToggle("sec-rename-wallet", "add");
     safeToggle("sec-profit-settings", "add");
     safeToggle("sec-discount-settings", "add");
-    safeToggle("sec-ads-settings", "add");
     safeToggle("todoSection", "add");
     safeToggle("todoInputArea", "add");
     safeToggle("btnAddStock", "add");
@@ -3701,7 +3400,6 @@ function applyRBAC() {
         safeToggle("sec-rename-wallet", "remove");
         safeToggle("sec-profit-settings", "remove");
         safeToggle("sec-discount-settings", "remove");
-        safeToggle("sec-ads-settings", "remove");
         safeToggle("sec-manage-services", "remove");
         
         safeToggle("todoSection", "remove");
@@ -4024,7 +3722,7 @@ function showPage(id, btn){
     if(id === 'security') renderUsersTable();
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
-    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); renderAdsCampaignsList(); initAdDatePickers(); }
+    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
 }
 
 function toggleSidebar() {
@@ -4071,14 +3769,11 @@ function loadWallets(){
         document.getElementById("wallet"), document.getElementById("stWallet"), 
         document.getElementById("modWallet"), document.getElementById("renameWalletSelect"), 
         document.getElementById("tfFromWallet"), document.getElementById("tfToWallet"), 
-        document.getElementById("wWalletStore"), document.getElementById("newAdWallet")
+        document.getElementById("wWalletStore")
     ];
     selects.forEach(s => { 
         if(s) { 
-            let isAdWallet = s.id === 'newAdWallet';
-            s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' 
-                        : isAdWallet ? '<option value="">بدون خصم</option>' 
-                        : ""; 
+            s.innerHTML = s.id.startsWith("wWallet") ? '<option value="">اختر محفظة السحب</option>' : ""; 
             Object.keys(wallets).sort((a,b) => a.localeCompare(b, 'ar')).forEach(w=>{ 
                 let o=document.createElement("option"); 
                 o.value=w; o.text=w + ` (${wallets[w].cur})`; 
@@ -4640,7 +4335,7 @@ function refreshAll(){
             'stock': refreshStock,
             'discounts': refreshDiscounts,
             'vip': refreshVip,
-            'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); renderAdsCampaignsList(); }
+            'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
         };
     processVipDowngrades();
     updateDiscountBadge();
@@ -4820,6 +4515,12 @@ function refreshHistory(){
         let matchesFrom = !fromDate || (item.date && item.date >= fromDate);
         let matchesTo = !toDate || (item.date && item.date <= toDate);
         return matchesSearch && matchesFrom && matchesTo;
+    }).sort((a, b) => {
+        // فرز من الأحدث للأقدم حسب الـ id (يحتوي timestamp) أو التاريخ
+        let tsA = a.id ? parseInt(a.id.split('_')[1]) || 0 : 0;
+        let tsB = b.id ? parseInt(b.id.split('_')[1]) || 0 : 0;
+        if (tsB !== tsA) return tsB - tsA;
+        return (b.date || '').localeCompare(a.date || '');
     });
     
     renderPagination(filtered.length, 'history', refreshHistory, 'historyPagination');
@@ -6167,7 +5868,6 @@ function deleteService(idx) {
 // Flatpickr — تقويم مخصص
 // ─────────────────────────────────────────────
 let fpFrom = null, fpTo = null;
-let fpAdStart = null, fpAdEnd = null;
 
 function initDatePickers() {
     const commonCfg = {
@@ -6178,24 +5878,11 @@ function initDatePickers() {
             months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
         },
         disableMobile: true,
-        static: true, // <-- هذا هو الحل السحري اللي بيربط التقويم بالحقل مباشرة
+        static: true,
         onChange: () => { currentPage.history = 1; filterHistory(); }
     };
     if (document.getElementById("historyFromDate")) fpFrom = flatpickr("#historyFromDate", commonCfg);
     if (document.getElementById("historyToDate"))   fpTo   = flatpickr("#historyToDate",   commonCfg);
-
-    // تقاويم حملات الإعلان
-    const adCfg = {
-        dateFormat: "Y-m-d",
-        locale: {
-            firstDayOfWeek: 0,
-            weekdays: { shorthand: ['أح','اث','ثل','أر','خم','جم','سب'], longhand: ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'] },
-            months: { shorthand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'], longhand: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'] }
-        },
-        disableMobile: true,
-    };
-    if (document.getElementById("newAdStart")) fpAdStart = flatpickr("#newAdStart", adCfg);
-    if (document.getElementById("newAdEnd"))   fpAdEnd   = flatpickr("#newAdEnd",   adCfg);
 }
 
 function clearDateFilter() {
