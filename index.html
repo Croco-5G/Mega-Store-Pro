@@ -1031,11 +1031,11 @@
             <div id="budgetFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
                     <input type="checkbox" id="bf_purchase" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#10b981;"> 
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; margin-left:2px;"></span> عمليات البيع
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; margin-left:2px;"></span> بيع
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_stock_buy" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#a855f7;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#a855f7; margin-left:2px;"></span> شراء مخزون
+                    <input type="checkbox" id="bf_stock_buy" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f97316;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f97316; margin-left:2px;"></span> شراء
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
                     <input type="checkbox" id="bf_transfer" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f59e0b;">
@@ -1047,7 +1047,11 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
                     <input type="checkbox" id="bf_set_wallet" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#3b82f6;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6; margin-left:2px;"></span> تعيين يدوي
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6; margin-left:2px;"></span> عمليات أخرى
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
+                    <input type="checkbox" id="bf_ads" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#a855f7;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#a855f7; margin-left:2px;"></span> فترات الإعلان
                 </label>
             </div>
             <div id="budgetChartWrapper" style="position:relative; width:100%; height:350px; min-height:200px; overflow:hidden;"><canvas id="budgetChart" style="position:absolute; top:0; left:0; width:100%!important; height:100%!important;"></canvas></div>
@@ -1227,6 +1231,44 @@
                     <div class="input-group" style="display:flex; align-items:flex-end;">
                         <button class="btn btn-primary" style="width:100%; height:48px;" onclick="saveDiscountSettings()">حفظ إعدادات الخصم</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec-ads-settings">
+            <h3><i class="fas fa-bullhorn" style="color:#a855f7"></i> إدارة حملات الإعلان</h3>
+            <div class="inner-box" style="margin-bottom:40px; border-color:#a855f7!important;">
+                <div style="margin-bottom:18px; font-size:13px; color:var(--text-muted);">
+                    <i class="fas fa-info-circle" style="color:#a855f7"></i> تُظهر فترات الإعلان كمنطقة بنفسجية مظللة على مسار الميزانية.
+                </div>
+
+                <!-- قائمة الحملات الحالية -->
+                <div id="adsCampaignsList" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
+
+                <!-- إضافة حملة جديدة -->
+                <div style="background:var(--bg-card); border:1px dashed #a855f7; border-radius:12px; padding:16px;">
+                    <div style="font-size:13px; font-weight:700; color:#a855f7; margin-bottom:12px;"><i class="fas fa-plus-circle"></i> إضافة حملة إعلانية جديدة</div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; align-items:flex-end;">
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>اسم الحملة</label>
+                            <input id="newAdName" placeholder="مثال: إعلان فيسبوك مارس">
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>تاريخ البداية</label>
+                            <input type="date" id="newAdStart">
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>تاريخ النهاية (اتركه فارغاً إذا لا يزال نشطاً)</label>
+                            <input type="date" id="newAdEnd" placeholder="اختياري">
+                        </div>
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>التكلفة الإجمالية ($)</label>
+                            <input type="number" id="newAdCost" placeholder="0.00">
+                        </div>
+                    </div>
+                    <button class="btn" style="margin-top:14px; background:#a855f7; color:white; width:100%;" onclick="addAdCampaign()">
+                        <i class="fas fa-plus"></i> إضافة الحملة
+                    </button>
                 </div>
             </div>
         </div>
@@ -2630,6 +2672,105 @@ function row(label, value, colored=false, positive=true) {
 // ─────────────────────────────────────────────
 // Budget History — تتبع مسار الميزانية
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// حملات الإعلان — Ads Campaigns
+// ─────────────────────────────────────────────
+function getAdCampaigns() {
+    let s = safeJSON(store.settings, {});
+    return s.adCampaigns || [];
+}
+
+function saveAdCampaigns(list) {
+    let s = safeJSON(store.settings, {});
+    s.adCampaigns = list;
+    store.settings = JSON.stringify(s);
+    fbSave('settings', s);
+}
+
+function addAdCampaign() {
+    let name  = document.getElementById('newAdName').value.trim();
+    let start = document.getElementById('newAdStart').value;
+    let end   = document.getElementById('newAdEnd').value;
+    let cost  = parseFloat(document.getElementById('newAdCost').value) || 0;
+
+    if(!name)  return notify('أدخل اسم الحملة', 'error');
+    if(!start) return notify('أدخل تاريخ البداية', 'error');
+
+    let campaigns = getAdCampaigns();
+    campaigns.push({
+        id: 'ad_' + Date.now(),
+        name,
+        start,
+        end: end || null,
+        cost,
+        active: !end || end >= new Date().toISOString().slice(0,10)
+    });
+    saveAdCampaigns(campaigns);
+    logAction(`إضافة حملة إعلانية: ${name}`, 'general');
+    notify('تمت إضافة الحملة');
+    renderAdsCampaignsList();
+    renderBudgetChart();
+    // مسح الحقول
+    document.getElementById('newAdName').value = '';
+    document.getElementById('newAdStart').value = '';
+    document.getElementById('newAdEnd').value = '';
+    document.getElementById('newAdCost').value = '';
+}
+
+function deleteAdCampaign(id) {
+    let campaigns = getAdCampaigns().filter(c => c.id !== id);
+    saveAdCampaigns(campaigns);
+    notify('تم حذف الحملة');
+    renderAdsCampaignsList();
+    renderBudgetChart();
+}
+
+function toggleAdCampaign(id) {
+    let campaigns = getAdCampaigns();
+    let c = campaigns.find(x => x.id === id);
+    if(c) {
+        c.active = !c.active;
+        if(!c.active && !c.end) c.end = new Date().toISOString().slice(0,10);
+        if(c.active) c.end = null;
+    }
+    saveAdCampaigns(campaigns);
+    renderAdsCampaignsList();
+    renderBudgetChart();
+}
+
+function renderAdsCampaignsList() {
+    let box = document.getElementById('adsCampaignsList');
+    if(!box) return;
+    let campaigns = getAdCampaigns();
+    if(campaigns.length === 0) {
+        box.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:13px; padding:10px;">لا توجد حملات مسجّلة بعد.</div>`;
+        return;
+    }
+    box.innerHTML = campaigns.map(c => {
+        let isActive = c.active || (!c.end || c.end >= new Date().toISOString().slice(0,10));
+        let statusColor = isActive ? '#10b981' : '#94a3b8';
+        let statusText  = isActive ? 'نشطة' : 'منتهية';
+        return `
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+                    background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:12px 16px;
+                    border-right:4px solid #a855f7;">
+            <div style="flex:1; min-width:160px;">
+                <div style="font-weight:800; font-size:14px;">${esc(c.name)}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+                    ${c.start} → ${c.end || 'الآن'}
+                    ${c.cost > 0 ? ` • تكلفة: ${fix(c.cost)}$` : ''}
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:12px; font-weight:700; color:${statusColor}; background:${statusColor}22; padding:3px 10px; border-radius:20px;">${statusText}</span>
+                <button class="btn" style="padding:5px 12px; font-size:12px; background:${isActive ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)'}; color:${isActive ? '#d97706' : '#10b981'};"
+                    onclick="toggleAdCampaign('${c.id}')">${isActive ? 'إيقاف' : 'تفعيل'}</button>
+                <button class="btn btn-danger" style="padding:5px 12px; font-size:12px;" onclick="deleteAdCampaign('${c.id}')"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
 function getTotalBalanceUSD() {
     let wallets = safeJSON(store.wallets, {});
     let settings = safeJSON(store.settings, {});
@@ -2765,7 +2906,7 @@ function renderBudgetChart() {
     let dataValues = chartPoints.map(p => p.y);
 
     const typeColors = {
-        purchase: '#10b981', stock_buy: '#a855f7',
+        purchase: '#10b981', stock_buy: '#f97316',
         transfer: '#f59e0b', withdrawal: '#ef4444', set_wallet: '#3b82f6'
     };
 
@@ -2791,6 +2932,82 @@ function renderBudgetChart() {
     let el = document.getElementById('budgetTotalDisplay');
     if(el) el.textContent = `إجمالي: ${fix(tUSD + tSHK/rate)}$ | ${fix(tUSD*rate + tSHK)}₪`;
 
+    // ─── حملات الإعلان ─────────────────────────────────────────────
+    let showAds = document.getElementById('bf_ads')?.checked !== false;
+    let adCampaigns = getAdCampaigns();
+    let todayStr = now.toISOString().slice(0, 10);
+
+    // حساب نطاق أيام الشهر لكل حملة
+    let monthStart = `${curMonth}-01`;
+    let monthEnd   = `${curMonth}-${String(new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()).padStart(2,'0')}`;
+    let adsInMonth = adCampaigns.filter(c => {
+        let cEnd = c.end || todayStr;
+        return c.start <= monthEnd && cEnd >= monthStart;
+    });
+
+    // plugin مخصص يرسم التظليل البنفسجي قبل رسم البيانات
+    const adsShadePlugin = {
+        id: 'adsShade',
+        beforeDraw(chart) {
+            if(!showAds || adsInMonth.length === 0) return;
+            let { ctx: c, chartArea, scales } = chart;
+            if(!chartArea) return;
+            let xScale = scales.x;
+            c.save();
+            adsInMonth.forEach(camp => {
+                let cStartDate = camp.start > monthStart ? camp.start : monthStart;
+                let cEndDate   = (camp.end && camp.end < monthEnd) ? camp.end : (camp.end ? camp.end : todayStr);
+                if(cEndDate > todayStr) cEndDate = todayStr;
+                if(cEndDate > monthEnd) cEndDate = monthEnd;
+
+                let startDay = parseInt(cStartDate.split('-')[2]);
+                let endDay   = parseInt(cEndDate.split('-')[2]);
+
+                // نحوّل اليوم لإحداثي X على الـ chart
+                let labelStartIdx = labels.findIndex(l => parseInt(l) >= startDay);
+                let labelEndIdx   = labels.findLastIndex ? labels.findLastIndex(l => parseInt(l) <= endDay)
+                                  : [...labels].reverse().findIndex(l => parseInt(l) <= endDay);
+                if(labelEndIdx < 0) labelEndIdx = labels.length - 1;
+                // findLastIndex polyfill
+                if(!labels.findLastIndex) labelEndIdx = labels.length - 1 - [...labels].reverse().findIndex(l => parseInt(l) <= endDay);
+
+                let x1 = labelStartIdx >= 0 ? xScale.getPixelForIndex(labelStartIdx) : chartArea.left;
+                let x2 = xScale.getPixelForIndex(labelEndIdx < 0 ? labels.length-1 : labelEndIdx);
+
+                // تظليل الفترة
+                c.fillStyle = 'rgba(168,85,247,0.10)';
+                c.fillRect(x1, chartArea.top, x2 - x1, chartArea.height);
+
+                // خطان عموديان
+                c.strokeStyle = 'rgba(168,85,247,0.85)';
+                c.lineWidth = 2;
+                c.setLineDash([6, 3]);
+                // خط البداية
+                c.beginPath(); c.moveTo(x1, chartArea.top); c.lineTo(x1, chartArea.bottom); c.stroke();
+                // خط النهاية
+                c.beginPath(); c.moveTo(x2, chartArea.top); c.lineTo(x2, chartArea.bottom); c.stroke();
+                c.setLineDash([]);
+
+                // تسمية الحملة فوق المنطقة
+                c.fillStyle = 'rgba(168,85,247,0.95)';
+                c.font = 'bold 11px Tajawal, sans-serif';
+                c.textAlign = 'center';
+                c.textBaseline = 'top';
+                let midX = (x1 + x2) / 2;
+                // خلفية صغيرة للنص
+                let textW = c.measureText(camp.name).width + 12;
+                c.fillStyle = 'rgba(168,85,247,0.18)';
+                c.beginPath();
+                c.roundRect ? c.roundRect(midX - textW/2, chartArea.top + 4, textW, 18, 4)
+                            : c.rect(midX - textW/2, chartArea.top + 4, textW, 18);
+                c.fill();
+                c.fillStyle = '#c084fc';
+                c.fillText(camp.name, midX, chartArea.top + 7);
+            });
+            c.restore();
+        }
+    };
+
     // ─── إنشاء/تحديث الـ Chart ───────────────────────────────────
     // دائماً destroy الـ chart قبل إعادة إنشائه لمنع خلل الـ canvas
     if(myBudgetChart) {
@@ -2813,6 +3030,7 @@ function renderBudgetChart() {
 
     myBudgetChart = new Chart(canvas.getContext('2d'), {
         type: 'line',
+        plugins: [adsShadePlugin],
         data: {
             labels,
             datasets: [{
@@ -2917,7 +3135,7 @@ function renderBudgetChart() {
 function openBudgetEventModal(ev) {
     let typeLabels = {
         purchase: 'عملية بيع',
-        stock_buy: 'شراء مخزون',
+        stock_buy: 'شراء',
         transfer: 'تحويل بين محافظ',
         withdrawal: 'سحب أرباح',
         set_wallet: 'تعيين رصيد يدوي'
@@ -3356,6 +3574,7 @@ function applyRBAC() {
     safeToggle("sec-rename-wallet", "add");
     safeToggle("sec-profit-settings", "add");
     safeToggle("sec-discount-settings", "add");
+    safeToggle("sec-ads-settings", "add");
     safeToggle("todoSection", "add");
     safeToggle("todoInputArea", "add");
     safeToggle("btnAddStock", "add");
@@ -3394,6 +3613,7 @@ function applyRBAC() {
         safeToggle("sec-rename-wallet", "remove");
         safeToggle("sec-profit-settings", "remove");
         safeToggle("sec-discount-settings", "remove");
+        safeToggle("sec-ads-settings", "remove");
         safeToggle("sec-manage-services", "remove");
         
         safeToggle("todoSection", "remove");
@@ -3716,7 +3936,7 @@ function showPage(id, btn){
     if(id === 'security') renderUsersTable();
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
-    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
+    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); renderAdsCampaignsList(); }
 }
 
 function toggleSidebar() {
@@ -4329,7 +4549,7 @@ function refreshAll(){
             'stock': refreshStock,
             'discounts': refreshDiscounts,
             'vip': refreshVip,
-            'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
+            'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); renderAdsCampaignsList(); }
         };
     processVipDowngrades();
     updateDiscountBadge();
