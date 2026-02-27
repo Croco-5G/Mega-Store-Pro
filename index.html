@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mega Store | System</title>
+    <title>MegaStore | System</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3Cpath fill='%236366f1' d='M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E">
 
@@ -586,6 +586,16 @@
     </div>
 </div>
 
+<div id="budgetEventModal" class="modal-overlay hidden" onclick="closeBudgetEventModal(event)">
+    <div class="modal-content">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px; display:flex; align-items:center; gap:10px;">
+            <i class="fas fa-chart-line" style="color:var(--primary)"></i> تفاصيل حدث الميزانية
+        </h3>
+        <div id="budgetEventModalBody"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:20px" onclick="closeBudgetEventModal('force')">إغلاق</button>
+    </div>
+</div>
+
 <div id="detailsModal" class="modal-overlay hidden" onclick="closeModal(event)">
     <div class="modal-content">
         <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px; display:flex; align-items:center; gap:10px;">
@@ -798,7 +808,7 @@
         <button onclick="showPage('wallets', this)" id="btnWallets"><i class="fas fa-wallet"></i> المحافظ</button>
         <button onclick="showPage('history', this)" id="btnHistory"><i class="fas fa-history"></i> السجل المالي</button>
         <button onclick="showPage('analytics', this)" id="btnAnalytics"><i class="fas fa-chart-pie"></i> الإحصائيات</button>
-        <button onclick="showPage('investment', this)" id="btnInvestment"><i class="fas fa-money-bill-wave"></i> سحب الأرباح</button>
+        <button onclick="showPage('investment', this)" id="btnInvestment"><i class="fas fa-hand-holding-usd"></i> سحب الأرباح</button>
         <button onclick="showPage('generalNotes', this)" id="btnNotes"><i class="fas fa-sticky-note"></i> ملاحظات</button>
         <button onclick="showPage('security', this)" id="btnSecurity" class="hidden"><i class="fas fa-users-cog"></i> المستخدمين</button>
         <button onclick="showPage('logs', this)" id="btnLogs" class="hidden"><i class="fas fa-clipboard-list"></i> سجل النشاط</button>
@@ -811,124 +821,532 @@
 <div class="main-content">
     
     <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon icon-bg-primary"><i class="fas fa-dollar-sign"></i></div><div><label>إجمالي الدولار</label><div id="statDollar" style="font-size: 22px; font-weight: 800;">0.00 $</div></div></div>
-        <div class="stat-card"><div class="stat-icon icon-bg-success"><i class="fas fa-coins"></i></div><div><label>إجمالي الشيكل</label><div id="statShekel" style="font-size: 22px; font-weight: 800;">0.00 ₪</div></div></div>
-        <div class="stat-card"><div class="stat-icon icon-bg-warning"><i class="fas fa-shopping-bag"></i></div><div><label>عمليات اليوم</label><div id="statSales" style="font-size: 22px; font-weight: 800;">0</div></div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:rgba(168,85,247,0.15); color:#a855f7;"><i class="fas fa-calendar-alt"></i></div><div><label>مبيعات هذا الشهر</label><div id="statMonthSales" style="font-size: 22px; font-weight: 800;">0</div></div></div>
+        <div class="stat-card">
+            <div class="stat-icon icon-bg-primary"><i class="fas fa-dollar-sign"></i></div>
+            <div><label>إجمالي الدولار</label><div id="statDollar" style="font-size: 22px; font-weight: 800;">0.00 $</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon icon-bg-success"><i class="fas fa-coins"></i></div>
+            <div><label>إجمالي الشيكل</label><div id="statShekel" style="font-size: 22px; font-weight: 800;">0.00 ₪</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon icon-bg-warning"><i class="fas fa-shopping-bag"></i></div>
+            <div><label>عمليات اليوم</label><div id="statSales" style="font-size: 22px; font-weight: 800;">0</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(168,85,247,0.15); color:#a855f7;"><i class="fas fa-calendar-alt"></i></div>
+            <div><label>مبيعات هذا الشهر</label><div id="statMonthSales" style="font-size: 22px; font-weight: 800;">0</div></div>
+        </div>
     </div>
 
     <div id="notification"></div>
 
-    <div id="analytics" class="card hidden">
-        <h3><i class="fas fa-chart-bar" style="color:var(--primary)"></i> الإحصائيات التفصيلية</h3>
-        <div class="inner-box" style="margin-bottom: 30px; padding: 20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:15px; gap:10px;">
-                <h4 style="margin:0;"><i class="fas fa-route" style="color:var(--info)"></i> مؤشر السيولة المالية (هذا الشهر)</h4>
-                <div id="chartFilters" style="display:flex; gap:8px; flex-wrap:wrap; font-size:12px;">
-                    <button class="btn btn-primary" style="padding:6px 12px;" onclick="toggleChartFilter('purchase', this)"><i class="fas fa-cart-plus"></i> المبيعات</button>
-                    <button class="btn btn-primary" style="padding:6px 12px;" onclick="toggleChartFilter('stock_add', this)"><i class="fas fa-cubes"></i> المصاريف</button>
-                    <button class="btn btn-primary" style="padding:6px 12px;" onclick="toggleChartFilter('withdraw', this)"><i class="fas fa-money-bill-wave"></i> السحوبات</button>
-                    <button class="btn btn-primary" style="padding:6px 12px;" onclick="toggleChartFilter('other', this)"><i class="fas fa-exchange-alt"></i> أخرى</button>
+    <div id="purchase" class="card">
+        <h3><i class="fas fa-cart-plus" style="color:var(--primary)"></i> تسجيل اشتراك جديد</h3>
+        <div class="grid-2">
+            <div class="input-group"><label>نوع الاشتراك (المخزون)</label>
+                <select id="sub" onchange="syncPurchaseDuration()"><option value="">اختر من المخزون المتاح...</option></select>
+            </div>
+            <div class="input-group"><label>اسم العميل</label><input id="customer" placeholder="اسم العميل"></div>
+        </div>
+        <div class="grid-2">
+            <div class="input-group"><label>رقم جوال العميل (مع المقدمة)</label><input id="customerPhone" placeholder="+97xxxxxxxxxx" oninput="validatePhoneInput(this)" dir="ltr" style="text-align:right;"></div>
+            <div class="input-group"><label>المبلغ المدفوع من العميل</label><div style="display:flex; gap:10px"><input type="number" id="paidAmount" placeholder="0.00" style="flex: 1;"><select id="paidCurrency" style="width:110px; flex-shrink: 0;"><option value="₪">₪ شيكل</option><option value="$">$ دولار</option></select></div></div>
+        </div>
+        <div class="grid-2">
+            <div class="input-group"><label>يُودع في محفظة:</label><select id="wallet"></select></div>
+        </div>
+        
+        <div class="grid-2" style="margin-top:10px; padding-top:20px; border-top:1px dashed var(--border-color)">
+            <div class="input-group">
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 32px;">
+                    <input type="checkbox" id="isCompensation" style="width:20px; height:20px; margin:0; accent-color:var(--danger)">
+                    <label for="isCompensation" style="margin:0; color:var(--danger); font-weight:800; cursor:pointer">تسجيل كتعويض</label>
                 </div>
             </div>
-            <div style="width: 100%; height: 400px; position: relative;"><canvas id="timelineChart"></canvas></div>
+            <div class="input-group">
+                <label>كود الخصم (إن وجد)</label>
+                <input id="discountCodeInput" placeholder="أدخل الكود المكون من 9 أرقام" style="border-color:var(--accent)">
+            </div>
         </div>
+        <input type="hidden" id="subDuration" value="1">
+        <button class="btn btn-primary" id="btnSubmitPurchase" style="width:100%; margin-top:25px; padding: 16px; font-size:16px;" onclick="addPurchase()"><i class="fas fa-check-circle"></i> إتمام وحفظ</button>
+    </div>
+
+    <div id="discounts" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:15px">
+            <h3 style="margin-bottom:0; display:flex; align-items:center; gap:10px;"><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> أكواد الخصم</h3>
+            <div style="display:flex; gap:10px; flex-wrap: wrap; flex: 1; min-width: 250px; justify-content: flex-end;">
+                <button id="btnGenerateCoupon" class="btn btn-success hidden" style="flex: 1; min-width: 120px; max-width: 180px; height: 48px; white-space: nowrap;" onclick="openManualCouponModal()"><i class="fas fa-magic"></i> توليد كود</button>
+                <button id="btnDeleteAllDiscounts" class="btn btn-danger hidden" style="flex: 1; min-width: 120px; max-width: 180px; height: 48px; white-space: nowrap;" onclick="deleteAllDiscounts()"><i class="fas fa-trash-alt"></i> مسح الكل</button>
+            </div>
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="discountSearch" onkeyup="currentPage.discounts=1; refreshDiscounts()" placeholder="بحث بكود الخصم أو اسم العميل..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th style="text-align:center;">كود الخصم</th><th style="text-align:center;">العميل</th><th style="text-align:center;">نسبة الخصم</th><th style="text-align:center;">الاستعمالات</th><th style="text-align:center;">المتبقي</th><th style="text-align:center;">حذف</th></tr></thead>
+                <tbody id="discountsBody"></tbody>
+            </table>
+        </div>
+        <div id="discountsPagination" class="pagination"></div>
+    </div>
+<div id="vip" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:15px">
+            <h3 style="margin-bottom:0; display:flex; align-items:center; gap:10px; flex-wrap: wrap;"><i class="fas fa-star" style="color:var(--primary)"></i> العملاء المميزين (VIP) <span id="vipTotalCountBadge" class="badge badge-info" style="font-size:12px;">العدد: 0</span></h3>
+            <div style="display:flex; gap:10px; flex-wrap: wrap; flex: 1; min-width: 250px;">
+                <button class="btn" style="background:#a855f7; color:white; flex: 1; min-width: 120px;" onclick="openVipInfoModal()"><i class="fas fa-exclamation-circle"></i> تفاصيل الرتب</button>
+                <button id="btnAddVip" class="btn btn-success hidden" style="flex: 1; min-width: 120px;" onclick="openAddVipModal()"><i class="fas fa-plus"></i> إضافة رتبة</button>
+                <button id="btnDeleteAllVip" class="btn btn-danger hidden" style="flex: 1; min-width: 120px;" onclick="deleteAllVips()"><i class="fas fa-trash-alt"></i> مسح الكل</button>
+            </div>
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="vipSearch" onkeyup="currentPage.vip=1; refreshVip()" placeholder="بحث برقم الجوال أو اسم العميل..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th style="text-align:center;">العميل</th><th style="text-align:center;">رقم الجوال</th><th style="text-align:center;">الرتبة</th><th style="text-align:center;">عمليات الشراء</th><th style="text-align:center;">التراجع بعد</th><th style="text-align:center;">إجراء</th></tr></thead>
+                <tbody id="vipBody"></tbody>
+            </table>
+        </div>
+        <div id="vipPagination" class="pagination"></div>
+    </div>
+    <div id="security" class="card hidden">
+        <h3><i class="fas fa-user-shield" style="color:var(--primary)"></i> إدارة الأمان والمستخدمين</h3>
+        <div class="inner-box" style="margin-bottom:30px;">
+            <h4 style="margin-top:0"><i class="fas fa-user-plus"></i> إضافة مستخدم جديد</h4>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:15px;">
+                <input id="newUserName" placeholder="اسم المستخدم">
+                <input id="newUserPass" placeholder="كلمة المرور">
+                <select id="newUserRole">
+                    <option value="viewer">مشاهد عادي (مقيد)</option>
+                    <option value="viewer_plus">مشاهد متقدم</option>
+                    <option value="employee">موظف (Employee)</option>
+                    <option value="admin">أدمن (Admin)</option>
+                </select>
+                <button class="btn btn-primary" onclick="addNewUser()">إضافة</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>المستخدم</th><th>الصلاحية</th><th>الحالة</th><th>آخر دخول</th><th>الجهاز</th><th>تحكم</th></tr></thead>
+                <tbody id="usersTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="logs" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+            <h3><i class="fas fa-clipboard-list" style="color:var(--primary)"></i> سجل حركات الموقع</h3>
+            <div style="display:flex; gap:10px">
+                <button id="btnVisLogs" class="btn btn-warning hidden" onclick="window.changeLogsVis()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-eye"></i> الخصوصية</button>
+                <button id="btnClearLogs" class="btn btn-danger hidden" onclick="clearLogs()" style="padding: 8px 15px; font-size:13px"><i class="fas fa-trash-alt"></i> مسح السجل</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchLogsTab('financial', this)">حركات مالية وتفصيلية</button>
+            <button class="tab-btn" onclick="switchLogsTab('danger', this)">حركات مهمة أو خطرة</button>
+            <button class="tab-btn" onclick="switchLogsTab('general', this)">حركات عامة</button>
+        </div>
+        
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="logsSearch" onkeyup="currentPage.logs=1; refreshLogs()" placeholder="بحث في السجل..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead><tr><th style="width:180px">التاريخ</th><th style="width:150px">المستخدم</th><th>الحدث</th><th>تفاصيل</th></tr></thead>
+                <tbody id="logsTableBody"></tbody>
+            </table>
+        </div>
+        <div id="logsPagination" class="pagination"></div>
+    </div>
+
+    <div id="expiring" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h3 style="margin-bottom:0"><i class="fas fa-hourglass-half" style="color:var(--accent)"></i> تنتهي قريباً</h3>
+            <button id="btnHideExpired" class="btn btn-danger" onclick="deleteExpired()" style="width: auto; flex: none;"><i class="fas fa-eye-slash"></i> إخفاء المنتهي</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>الخدمة</th><th>العميل</th><th>رقم الجوال</th><th>ينتهي في</th><th>المتبقي</th><th>مراسلة</th></tr></thead>
+                <tbody id="expiringBody"></tbody>
+            </table>
+        </div>
+        <div id="expiringPagination" class="pagination"></div>
+    </div>
+
+    <div id="stock" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h3 style="margin-bottom:0"><i class="fas fa-cubes" style="color:var(--primary)"></i> المخزون</h3>
+            <button id="btnAddStock" class="btn btn-primary" onclick="openAddStockModal()" style="width: auto; flex: none;"><i class="fas fa-plus"></i> إضافة</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+            <div class="tabs" style="margin-bottom:0;">
+                <button class="tab-btn active" onclick="switchStockTab('active', this)">لم يتم بيعه (متاح)</button>
+                <button class="tab-btn" onclick="switchStockTab('sold', this)">تم بيعه</button>
+            </div>
+            <button id="btnDeleteAllSold" class="btn btn-danger hidden" onclick="deleteAllSoldStock()"><i class="fas fa-trash-alt"></i> مسح المباع</button>
+        </div>
+
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="stockSearch" onkeyup="currentPage.stock=1; filterStock()" placeholder="بحث في الجدول..." style="padding-right: 40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="stockTable">
+                <thead id="stockHead">
+                    </thead>
+                <tbody id="stockBody"></tbody>
+            </table>
+        </div>
+        <div id="stockPagination" class="pagination"></div>
+    </div>
+
+    <div id="analytics" class="card hidden">
+        <h3><i class="fas fa-chart-bar" style="color:var(--primary)"></i> الإحصائيات</h3>
+        
+        <!-- Budget Timeline Chart -->
+        <div class="inner-box" style="margin-bottom:30px; padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                <h4 style="margin:0; color:var(--text-main)"><i class="fas fa-chart-line" style="color:var(--primary)"></i> مسار الميزانية - الشهر الحالي</h4>
+                <div id="budgetTotalDisplay" style="font-size:14px; font-weight:800; color:var(--primary); background:rgba(99,102,241,0.1); padding:6px 14px; border-radius:20px;"></div>
+            </div>
+            <!-- فلاتر أنواع النقاط -->
+            <div id="budgetFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
+                    <input type="checkbox" id="bf_purchase" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#10b981;"> 
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; margin-left:2px;"></span> عمليات البيع
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
+                    <input type="checkbox" id="bf_stock_buy" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#a855f7;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#a855f7; margin-left:2px;"></span> شراء مخزون
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
+                    <input type="checkbox" id="bf_transfer" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f59e0b;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f59e0b; margin-left:2px;"></span> تحويلات
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
+                    <input type="checkbox" id="bf_withdrawal" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#ef4444;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef4444; margin-left:2px;"></span> سحب أرباح
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
+                    <input type="checkbox" id="bf_set_wallet" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#3b82f6;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6; margin-left:2px;"></span> تعيين يدوي
+                </label>
+            </div>
+            <div class="chart-wrapper" style="height:350px; position:relative;"><canvas id="budgetChart"></canvas></div>
+        </div>
+
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+            <div class="inner-box" style="padding: 20px;"><div class="chart-wrapper" style="height:300px"><canvas id="profitChart"></canvas></div></div>
             <div class="inner-box" style="padding: 20px;"><div class="chart-wrapper" style="height:300px"><canvas id="salesChart"></canvas></div></div>
         </div>
     </div>
 
+    <div id="wallets" class="card hidden">
+        <h3><i class="fas fa-wallet" style="color:var(--primary)"></i> أرصدة المحافظ</h3>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>المحفظة</th><th>العملة</th><th style="text-align:center">الرصيد</th><th>الحالة</th></tr></thead>
+                <tbody id="walletList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="history" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:10px">
+            <h3 style="margin:0"><i class="fas fa-list-ul" style="color:var(--primary)"></i> الأرشيف المالي</h3>
+        <div class="history-actions-row" style="display:flex; gap:8px; flex-wrap: wrap; margin-bottom: 10px;">
+            <button id="btnUndo" class="btn btn-primary" onclick="undoLastPurchase()"><i class="fas fa-undo"></i> تراجع</button>
+            <button id="btnExportCSV" class="btn btn-success" onclick="exportHistoryCSV()" style="font-size:13px; padding:10px 16px;"><i class="fas fa-file-csv"></i> تصدير CSV</button>
+            <button id="btnClearHistory" class="btn btn-danger" onclick="clearHistory()"><i class="fas fa-trash-alt"></i> مسح السجلات</button>
+        </div>
+        </div>
+        <div style="width: 100%; margin-bottom: 25px;">
+            
+            <div style="width: 100%; position: relative; margin-bottom: 12px;">
+                <input id="historySearch" onkeyup="currentPage.history=1; filterHistory()" placeholder="بحث باسم العميل، الخدمة..." style="padding-right: 35px; height: 42px; width: 100%; margin: 0; border-radius: var(--radius-md);">
+                <i class="fas fa-search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+            </div>
+            
+            <div style="display: flex; width: 100%; gap: 8px; flex-wrap: nowrap; align-items: center;">
+                
+                <div style="flex: 1 1 100%; position: relative;">
+                    <input type="text" id="historyFromDate" placeholder="من تاريخ.." readonly style="padding: 10px 25px 10px 5px; font-size: 12px; height: 42px; cursor: pointer; width: 100%; margin: 0; border-radius: var(--radius-md);">
+                    <i class="fas fa-calendar-alt" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none;"></i>
+                </div>
+                
+                <div style="flex: 1 1 100%; position: relative;">
+                    <input type="text" id="historyToDate" placeholder="إلى تاريخ.." readonly style="padding: 10px 25px 10px 5px; font-size: 12px; height: 42px; cursor: pointer; width: 100%; margin: 0; border-radius: var(--radius-md);">
+                    <i class="fas fa-calendar-alt" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none;"></i>
+                </div>
+                
+                <button class="btn btn-primary" onclick="clearDateFilter()" style="width: 42px; height: 42px; padding: 0; display: flex; justify-content: center; align-items: center; flex: none; margin: 0; border-radius: var(--radius-md);" title="مسح الفلتر">
+                    <i class="fas fa-undo"></i>
+                </button>
+                
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>التاريخ</th><th>العميل</th><th>الجوال</th><th>الخدمة</th><th>المدة</th><th>الدفع</th><th>التكلفة</th><th>المحفظة</th></tr></thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+        <div id="historyPagination" class="pagination"></div>
+    </div>
+
     <div id="investment" class="card hidden">
-        <h3><i class="fas fa-money-bill-wave" style="color:var(--primary)"></i> سحب الأرباح والسيولة</h3>
-        <div id="investBox" style="display:flex; justify-content:center; margin-bottom:20px;"></div>
-        <div class="inner-box" style="border-color:var(--danger)!important">
-            <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-money-check-alt"></i> طلب سحب أموال</h4>
-            <div style="margin-bottom:15px; font-size:13px; color:var(--text-muted);"><i class="fas fa-info-circle"></i> سيتم خصم المبلغ المكتوب من المحفظة التي تختارها وتحديث المنحنى المالي.</div>
-            <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-                <div class="input-group" style="flex:2; min-width:200px"><label>سحب من محفظة:</label><select id="wWalletStore"></select></div>
-                <div class="input-group" style="flex:1; min-width:100px"><label>المبلغ:</label><input id="withdrawStore" type="number" placeholder="0.00"></div>
-                <button class="btn btn-danger" style="height:48px; margin-bottom:18px" onclick="withdrawPartial()">تنفيذ السحب</button>
+        <h3><i class="fas fa-hand-holding-usd" style="color:var(--primary)"></i> سحب الأرباح</h3>
+        <div id="investBox" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;"></div>
+        
+        <div class="inner-box" style="margin-top:40px; border-color:var(--danger)!important">
+            <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-money-check-alt"></i> سحب الأرباح</h4>
+            <div style="margin-bottom:15px; font-size:13px; color:var(--text-muted);">
+                <i class="fas fa-info-circle"></i> سيتم خصم المبلغ تلقائياً من المحفظة المحددة.
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:20px">
+                
+                <div class="input-group">
+                    <label>سحب من المتجر</label>
+                    <div style="display:flex; flex-direction:column; gap:10px">
+                        <select id="wWalletStore" style="width:100%"></select>
+                        <input id="withdrawStore" type="number" placeholder="0.00">
+                        <button class="btn btn-danger" onclick="withdrawPartial('store')" style="width:100%">سحب</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
     <div id="modify" class="card hidden">
+        
         <h2 class="admin-only" style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:10px; margin-top:0;"><i class="fas fa-bolt"></i> العمليات المالية المتقدمة</h2>
+        
         <div id="sec-manual-wallet">
             <h3 style="margin-top:20px"><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> التحويل بين المحافظ</h3>
             <div class="inner-box" style="margin-bottom:40px">
-                <div class="grid-2"><div class="input-group"><label>من (المصدر)</label><select id="tfFromWallet"></select></div><div class="input-group"><label>إلى (المستلم)</label><select id="tfToWallet"></select></div></div>
-                <div class="grid-2"><div class="input-group"><label>المبلغ</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div><div class="input-group"><label>العمولة (تخصم من المصدر)</label><input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()"></div></div>
-                <div class="input-group"><label>سعر الصرف (1$ = ؟ ₪)</label><input type="number" id="tfRate" placeholder="مثلاً 3.50" value="1" oninput="calculateTransfer()"></div>
-                <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);"><label style="color:var(--yellow-text)">الصافي للمستلم:</label><input type="number" id="tfResult" placeholder="0.00" style="background:var(--bg-card); border:1px solid var(--yellow-border); font-weight:800; font-size:18px; color:var(--yellow-text); padding:8px 12px; border-radius:var(--radius-md); width:100%; box-sizing:border-box;"></div>
+                <div class="grid-2">
+                    <div class="input-group"><label>من (المصدر)</label><select id="tfFromWallet"></select></div>
+                    <div class="input-group"><label>إلى (المستلم)</label><select id="tfToWallet"></select></div>
+                </div>
+                
+                <div class="grid-2">
+                    <div class="input-group"><label>المبلغ</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div>
+                    <div class="input-group">
+                        <label>العمولة (تخصم من المصدر)</label>
+                        <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>سعر الصرف (1$ = ؟ ₪)</label>
+                    <input type="number" id="tfRate" placeholder="مثلاً 3.50" value="1" oninput="calculateTransfer()">
+                </div>
+
+                <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);">
+                    <label style="color:var(--yellow-text)">الصافي للمستلم:</label>
+                    <input type="number" id="tfResult" placeholder="0.00" style="background:var(--bg-card); border:1px solid var(--yellow-border); font-weight:800; font-size:18px; color:var(--yellow-text); padding:8px 12px; border-radius:var(--radius-md); width:100%; box-sizing:border-box;">
+                </div>
+
                 <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="confirmTransfer()">إتمام التحويل</button>
             </div>
         </div>
+
         <div id="sec-set-wallet-balance">
             <h3><i class="fas fa-edit" style="color:var(--primary)"></i> تعيين رصيد يدوي</h3>
-            <div class="inner-box" style="margin-bottom:20px; border-style:dashed!important;">
+            <div class="inner-box" style="margin-bottom:40px; border-style:dashed!important;">
                 <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                     <div class="input-group" style="flex:2; min-width:200px"><label>المحفظة</label><select id="modWallet"></select></div>
-                    <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد النهائي (الجديد)</label><input id="modAmount" type="number" placeholder="0.00"></div>
-                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ التعديل</button>
+                    <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد</label><input id="modAmount" type="number" placeholder="0.00"></div>
+                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ</button>
                 </div>
             </div>
         </div>
-        <hr class="editor-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
-        <h2 class="editor-only" style="color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:10px;"><i class="fas fa-store"></i> إعدادات المتجر الأساسية</h2>
+
+        <hr class="admin-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 class="editor-only" style="color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:10px;"><i class="fas fa-store"></i> إعدادات المتجر و العمل الأساسية</h2>
+
         <div id="sec-manage-services">
             <h3 style="margin-top:20px"><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
-            <div class="inner-box" style="margin-bottom:40px"><div style="display:flex; gap:10px; margin-bottom:15px"><input id="newServiceName" placeholder="اسم الخدمة (مثلاً: ChatGPT)"><button class="btn btn-primary" onclick="addService()">إضافة</button></div><div id="servicesList" style="display:flex; flex-wrap:wrap; gap:10px"></div></div>
+            <div class="inner-box" style="margin-bottom:40px">
+                <div style="display:flex; gap:10px; margin-bottom:15px">
+                    <input id="newServiceName" placeholder="اسم الخدمة (مثلاً: ChatGPT)">
+                    <button class="btn btn-primary" onclick="addService()">إضافة</button>
+                </div>
+                <div id="servicesList" style="display:flex; flex-wrap:wrap; gap:10px"></div>
+            </div>
         </div>
+
         <div id="sec-discount-settings">
             <h3><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> إعدادات أكواد الخصم</h3>
             <div class="inner-box" style="margin-bottom:40px;">
-                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;"><input type="checkbox" id="setDiscountEnabled" style="width: 20px; height: 20px; margin:0;"><label for="setDiscountEnabled" style="margin-bottom: 0;">تفعيل التوليد التلقائي؟</label></div>
-                <div class="grid-2"><div class="input-group"><label>نسبة الحصول على كود (%)</label><input type="number" id="setDiscountChance" placeholder="مثال: 25"></div><div class="input-group"><label>نسبة الخصم الناتجة (%)</label><div style="display:flex; gap:10px"><input type="number" id="setDiscountMin" placeholder="الأدنى (10)"><input type="number" id="setDiscountMax" placeholder="الأقصى (20)"></div></div></div>
-                <div class="grid-2"><div class="input-group"><label>مدة الصلاحية (أيام)</label><div style="display:flex; gap:10px"><input type="number" id="setValidityMin" placeholder="الأدنى (15)"><input type="number" id="setValidityMax" placeholder="الأقصى (45)"></div></div><div class="input-group" style="display:flex; align-items:flex-end;"><button class="btn btn-primary" style="width:100%; height:48px;" onclick="saveProfitSettings()">حفظ الإعدادات</button></div></div>
-            </div>
-        </div>
-        <div id="sec-profit-settings">
-            <h3><i class="fas fa-dollar-sign" style="color:var(--primary)"></i> إعداد سعر الصرف</h3>
-            <div class="inner-box" style="margin-bottom:20px;">
-                <div class="input-group">
-                    <label>سعر صرف الدولار (ضروري لتوحيد الميزانية ورسم المنحنى)</label>
-                    <div style="display:flex; align-items:center; gap:10px"><input type="number" id="setExchangeRate" placeholder="أدخل السعر (مثلاً 3.5)"><button class="btn btn-primary" onclick="saveProfitSettings()">حفظ</button></div>
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="setDiscountEnabled" style="width: 20px; height: 20px; margin:0;">
+                    <label for="setDiscountEnabled" style="margin-bottom: 0;">تفعيل نظام إنتاج أكواد الخصم التلقائي؟</label>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>نسبة الحصول على كود (%)</label>
+                        <input type="number" id="setDiscountChance" placeholder="مثال: 25">
+                    </div>
+                    <div class="input-group">
+                        <label>نسبة الخصم الناتجة (%)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="setDiscountMin" placeholder="الحد الأدنى (10)">
+                            <input type="number" id="setDiscountMax" placeholder="الحد الأقصى (20)">
+                        </div>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>مدة الصلاحية (بالأيام)</label>
+                        <div style="display:flex; gap:10px">
+                            <input type="number" id="setValidityMin" placeholder="الحد الأدنى (15)">
+                            <input type="number" id="setValidityMax" placeholder="الحد الأقصى (45)">
+                        </div>
+                    </div>
+                    <div class="input-group" style="display:flex; align-items:flex-end;">
+                        <button class="btn btn-primary" style="width:100%; height:48px;" onclick="saveDiscountSettings()">حفظ إعدادات الخصم</button>
+                    </div>
                 </div>
             </div>
         </div>
-        <hr class="admin-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
-        <h2 class="admin-only" style="color:var(--info); border-bottom:2px solid var(--info); padding-bottom:10px;"><i class="fas fa-wallet"></i> إدارة وهيكلة المحافظ</h2>
+
+        <div id="sec-profit-settings">
+            <h3><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> إعداد سعر الصرف</h3>
+            <div class="inner-box" style="margin-bottom:20px;">
+                <div class="input-group">
+                    <label>سعر صرف الدولار الثابت (1$ = ؟ ₪)</label>
+                    <div style="display:flex; align-items:center; gap:10px">
+                        <input type="number" id="setExchangeRate" placeholder="أدخل السعر (مثلاً 3.5)">
+                        <button class="btn btn-primary" onclick="saveProfitSettings()">حفظ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="editor-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 class="admin-only" style="color:var(--info); border-bottom:2px solid var(--info); padding-bottom:10px;"><i class="fas fa-wallet"></i> إدارة و هيكلة المحافظ</h2>
+
         <div id="sec-rename-wallet">
             <h3 style="margin-top:20px"><i class="fas fa-edit" style="color:var(--primary)"></i> إدارة المحفظة (تعديل)</h3>
             <div class="inner-box" style="margin-bottom:40px">
                 <div class="input-group"><label>اختر المحفظة</label><select id="renameWalletSelect" onchange="fillWalletEditData()"></select></div>
-                <div class="grid-2"><div class="input-group"><label>الاسم الجديد</label><input id="renameWalletInput" placeholder="الاسم"></div><div class="input-group"><label>العملة</label><select id="renameWalletCur"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select></div></div>
-                <div class="input-group"><label>الحالة</label><select id="renameWalletStatus"><option value="true">نشط (Active)</option><option value="false">غير نشط (Inactive)</option></select></div>
-                <button class="btn btn-danger" style="width:100%; margin-bottom:10px" onclick="deleteWallet()"><i class="fas fa-trash-alt"></i> حذف المحفظة</button><button class="btn btn-warning" style="width:100%" onclick="updateWalletData()">حفظ التعديلات</button>
+                <div class="grid-2">
+                    <div class="input-group"><label>الاسم الجديد</label><input id="renameWalletInput" placeholder="الاسم"></div>
+                    <div class="input-group"><label>العملة</label><select id="renameWalletCur"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select></div>
+                </div>
+                <div class="input-group">
+                    <label>الحالة</label>
+                    <select id="renameWalletStatus"><option value="true">نشط (Active)</option><option value="false">غير نشط (Inactive)</option></select>
+                </div>
+                <button class="btn btn-danger" style="width:100%; margin-bottom:10px" onclick="deleteWallet()"><i class="fas fa-trash-alt"></i> حذف المحفظة</button>
+                <button class="btn btn-warning" style="width:100%" onclick="updateWalletData()">حفظ التعديلات</button>
             </div>
         </div>
+
         <div id="sec-manage-wallets">
             <h3><i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة محفظة جديدة</h3>
-            <div class="inner-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px"><input id="newWalletName" placeholder="اسم المحفظة" style="flex: 1; min-width: 150px;"><select id="newWalletCurrency" style="width:110px; flex-shrink: 0;"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select><button class="btn btn-primary" onclick="addNewWallet()" style="flex-shrink: 0;">إنشاء</button></div>
+            <div class="inner-box" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px">
+                <input id="newWalletName" placeholder="اسم المحفظة" style="flex: 1; min-width: 150px;">
+                <select id="newWalletCurrency" style="width:110px; flex-shrink: 0;"><option value="$">$ دولار</option><option value="₪">₪ شيكل</option></select>
+                <button class="btn btn-primary" onclick="addNewWallet()" style="flex-shrink: 0;">إنشاء</button>
+            </div>
         </div>
+
         <hr class="admin-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
-        <h2 style="color:var(--text-main); border-bottom:2px solid var(--text-main); padding-bottom:10px;"><i class="fas fa-cogs"></i> إعدادات الحساب والنظام</h2>
+
+        <h2 style="color:var(--text-main); border-bottom:2px solid var(--text-main); padding-bottom:10px;"><i class="fas fa-cogs"></i> إعدادات الحساب و النظام</h2>
+
         <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 40px; margin-top:20px;">
             <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (Firebase)</h3>
             <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;"><span><i class="fas fa-database"></i> الحجم: <span id="storageUsed" style="color:var(--primary)" dir="ltr">0.00 KB</span></span><span id="storageFree">جاري الفحص..</span></div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);"><span id="storageSizeText">0 KB / 1024 KB</span><span id="storagePercentText">0%</span></div>
-                <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;"><div id="storageBar" style="width:0%; background:var(--success); height:100%; transition: width 0.5s ease;"></div></div>
-                <p style="font-size:11px; color:var(--text-muted); margin:0;">تنبيه: الحد الأقصى المسموح هو 1 ميجابايت.</p>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;">
+                    <span><i class="fas fa-database"></i> الحجم: <span id="storageUsed" style="color:var(--primary)" dir="ltr">0.00 KB</span></span>
+                    <span id="storageFree">جاري الفحص..</span>
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);">
+                    <span id="storageSizeText">0 KB / 1024 KB</span>
+                    <span id="storagePercentText">0%</span>
+                </div>
+
+                <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;">
+                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition: width 0.5s ease;"></div>
+                </div>
+                
+                <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                    تنبيه: الحد الأقصى المسموح هو 1 ميجابايت (1024 كيلوبايت). إذا وصل المؤشر للون الأحمر، قم بتصدير الأرشيف ومسح السجلات القديمة.
+                </p>
             </div>
         </div>
+
         <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 25px; border-radius: var(--radius-lg); margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center;"><div><h3 style="color: white; margin-bottom: 5px; margin-top:0"><i class="fas fa-flask"></i> الوضع التجريبي (Sandbox)</h3><p style="font-size: 13px; color: #94a3b8; margin: 0;">نسخة محلية للتجربة بأمان.</p></div><label class="theme-switch" style="width: 60px; height: 30px;"><input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()"><span class="slider"></span></label></div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="color: white; margin-bottom: 5px; margin-top:0"><i class="fas fa-flask"></i> الوضع التجريبي (Sandbox)</h3>
+                    <p style="font-size: 13px; color: #94a3b8; margin: 0;">يقوم بنسخ بياناتك الحقيقية الحالية لتجرب عليها بأمان دون التأثير على السحابة.</p>
+                </div>
+                <label class="theme-switch" style="width: 60px; height: 30px;">
+                    <input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
         </div>
+
         <h3><i class="fas fa-key" style="color:var(--primary)"></i> تغيير كلمة المرور</h3>
-        <div class="inner-box" style="margin-bottom:20px"><div style="display:flex; gap:10px; flex-wrap:wrap;"><input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="flex:1"><button class="btn btn-primary" onclick="changeMyPassword()">تحديث</button></div></div>
+        <div class="inner-box" style="margin-bottom:20px">
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <input type="password" id="changePassInput" placeholder="كلمة المرور الجديدة" style="flex:1">
+                <button class="btn btn-primary" onclick="changeMyPassword()">تحديث</button>
+            </div>
+        </div>
+
+        <hr style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
+
+        <h2 style="color:var(--yellow-text); border-bottom:2px solid var(--yellow-border); padding-bottom:10px;"><i class="fas fa-tools"></i> الأدوات المساعدة</h2>
+
+        <div id="todoSection" style="background-color: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 20px; margin-top:20px;">
+            <h3 style="color: var(--yellow-text); margin-top:0"><i class="fas fa-tasks"></i> المهام (To-Do)</h3>
+            <div id="todoInputArea" style="display:flex; gap:10px; margin-bottom:20px">
+                <input id="todoInput" placeholder="اكتب المهمة..." style="background:white; border-color:var(--yellow-border)">
+                <button class="btn" style="background:var(--yellow-btn-bg); color:white" onclick="addTodo()">إضافة</button>
+            </div>
+            <div id="todoBox"></div>
+        </div>
+
     </div>
+
+    <div id="generalNotes" class="card hidden">
+        <h3><i class="fas fa-sticky-note" style="color:var(--primary)"></i> ملاحظات عامة</h3>
+        <div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap;">
+            <textarea id="gnText" placeholder="اكتب ملاحظة جديدة للمتجر..." style="flex:1; min-width:250px; height:50px; resize:vertical;"></textarea>
+            <button class="btn btn-primary" style="height:50px;" onclick="addGeneralNote()"><i class="fas fa-plus"></i> إضافة</button>
+        </div>
+        <div id="generalNotesBox" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <div id="backup" class="card hidden">
         <h3><i class="fas fa-shield-alt" style="color:var(--primary)"></i> حماية البيانات</h3>
         <div style="text-align:center; padding:50px 20px; border:2px dashed var(--border-color); border-radius:30px; background:var(--bg-input);">
             <i class="fas fa-cloud-download-alt" style="font-size:60px; color:var(--primary); margin-bottom:20px; opacity:0.8;"></i>
@@ -1344,26 +1762,10 @@ async function deleteAllVips() {
 // ARRAY:  يُخزَّن كـ Subcollection — كل عنصر وثيقة Firestore مستقلة
 // services: مصفوفة strings بسيطة ← تُخزَّن كحقل في المستند الرئيسي (Scalar)
 // لا تحتوي على IDs فلا تصلح كـ Subcollection
-const SCALAR_KEYS = ["wallets", "settings", "services", "vipCustomers"];
-const ARRAY_KEYS  = ["purchases", "stock", "users", "activityLog", "generalNotes", "todoList", "discounts", "financePoints"];
+const SCALAR_KEYS = ["wallets", "settings", "invest", "services", "vipCustomers"];
+const ARRAY_KEYS  = ["purchases", "stock", "users", "activityLog",
+                     "todoList", "generalNotes", "discounts", "budgetHistory"];
 const STORE_KEYS  = [...SCALAR_KEYS, ...ARRAY_KEYS];
-
-function getTotalBalanceUSD() {
-    let w = safeJSON(store.wallets, {}), s = safeJSON(store.settings, {});
-    let rate = s.exchangeRate && s.exchangeRate > 0 ? s.exchangeRate : 1;
-    let total = 0;
-    Object.values(w).forEach(wallet => { total += (wallet.cur === '$') ? wallet.bal : (wallet.bal / rate); });
-    return total;
-}
-
-function addFinancePoint(type, impactUSD, title, details, refId = null) {
-    let points = safeJSON(store.financePoints, []);
-    points.push({
-        id: 'pt_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-        refId: refId, timestamp: Date.now(), type: type, impact: impactUSD, title: title, details: details
-    });
-    store.financePoints = JSON.stringify(points); fbSave("financePoints", points);
-}
 
 // --- UPDATED DIALOG SYSTEM ---
 let _confirmResolve = null;
@@ -1571,25 +1973,57 @@ function fbSaveMultiple(updates) {
 //  investIncs  : { "ahmad.d": delta, "store.s": delta, ... }
 //  localW/localI: نسخة محلية محدَّثة للـ UI (optimistic)
 // ══════════════════════════════════════════════════════════════
-function fbAtomicWalletInvest(walletIncs, localW) {
+function fbAtomicWalletInvest(walletIncs, investIncs, localW, localI) {
     if (isDemoMode) {
+        // في الوضع التجريبي: الـ store تم تحديثه مسبقاً، فقط احفظ في localStorage
         if (localW) localStorage.setItem('demo_wallets', JSON.stringify(localW));
+        if (localI) localStorage.setItem('demo_invest', JSON.stringify(localI));
         return Promise.resolve();
     }
     if (!fbDocRef) return Promise.resolve();
+
     _startSyncTimer();
+
     const updateObj = {};
+
+    // wallets.<name>.bal += delta
     if (walletIncs) {
         Object.entries(walletIncs).forEach(([name, delta]) => {
-            if (delta !== 0) updateObj[`wallets.${name}.bal`] = firebase.firestore.FieldValue.increment(delta);
+            if (delta !== 0) {
+                updateObj[`wallets.${name}.bal`] =
+                    firebase.firestore.FieldValue.increment(delta);
+            }
         });
     }
-    if (Object.keys(updateObj).length === 0) { clearTimeout(_pendingWritesTimer); return Promise.resolve(); }
-    return fbDocRef.update(updateObj).then(() => {
+
+    // invest.<person>.<currency> += delta  (e.g. "ahmad.d", "store.s")
+    if (investIncs) {
+        Object.entries(investIncs).forEach(([path, delta]) => {
+            if (delta !== 0) {
+                updateObj[`invest.${path}`] =
+                    firebase.firestore.FieldValue.increment(delta);
+            }
+        });
+    }
+
+    if (Object.keys(updateObj).length === 0) {
         clearTimeout(_pendingWritesTimer);
-        if (localW) lastServerState['wallets'] = JSON.parse(JSON.stringify(localW));
-        updateSyncStatus("تم الحفظ بنجاح", "success");
-    }).catch(e => { clearTimeout(_pendingWritesTimer); updateSyncStatus("فشل الحفظ", "error"); });
+        return Promise.resolve();
+    }
+
+    return fbDocRef.update(updateObj)
+        .then(() => {
+            clearTimeout(_pendingWritesTimer);
+            // حفظ الحالة المحلية في lastServerState لمنع overwrite من الـ Diff
+            if (localW) lastServerState['wallets'] = JSON.parse(JSON.stringify(localW));
+            if (localI) lastServerState['invest']  = JSON.parse(JSON.stringify(localI));
+            updateSyncStatus("تم الحفظ بنجاح", "success");
+        })
+        .catch(e => {
+            clearTimeout(_pendingWritesTimer);
+            console.error("fbAtomicWalletInvest error:", e);
+            updateSyncStatus("فشل الحفظ — غير متصل", "error");
+        });
 }
 
 // ── حفظ حقل قياسي (object أو array) في المستند الرئيسي ────────
@@ -2036,7 +2470,7 @@ function getDefaultData() {
     return {
         wallets:  safeJSON(store.wallets,  {"جوال باي — سعاد":{bal:0,cur:"₪",active:true},"جوال باي — محمد":{bal:0,cur:"₪",active:true},"بال باي — أحمد":{bal:0,cur:"₪",active:true},"بايننس — احمد":{bal:0,cur:"$",active:true}}),
         invest:   safeJSON(store.invest,   {ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}),
-        settings: safeJSON(store.settings, {ahmad:35,mohamed:35,store:30,deductCost:true,exchangeRate:0,logsVis:"all",discountEnabled:true,discountChance:25,discountMin:10,discountMax:20,validityMin:15,validityMax:45}),
+        settings: safeJSON(store.settings, {ahmad:0,mohamed:0,store:100,deductCost:false,exchangeRate:0,logsVis:"all",discountEnabled:true,discountChance:25,discountMin:10,discountMax:20,validityMin:15,validityMax:45}),
         services: safeJSON(store.services, []),
         vipCustomers: safeJSON(store.vipCustomers, {})
     };
@@ -2193,6 +2627,295 @@ function row(label, value, colored=false, positive=true) {
     return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value" style="${colorStyle}">${value}</span></div>`;
 }
 
+// ─────────────────────────────────────────────
+// Budget History — تتبع مسار الميزانية
+// ─────────────────────────────────────────────
+function getTotalBalanceUSD() {
+    let wallets = safeJSON(store.wallets, {});
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+    let total = 0;
+    Object.values(wallets).forEach(w => {
+        if(w.cur === '$') total += (w.bal || 0);
+        else total += (w.bal || 0) / rate;
+    });
+    return parseFloat(total.toFixed(4));
+}
+
+function recordBudgetEvent(type, label, deltaUSD, details) {
+    let history = safeJSON(store.budgetHistory, []);
+    let now = new Date();
+    let entry = {
+        id: 'be_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+        ts: now.getTime(),
+        date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
+        type: type,
+        label: label,
+        totalUSD: getTotalBalanceUSD(),
+        deltaUSD: parseFloat((deltaUSD || 0).toFixed(4)),
+        details: details || {}
+    };
+    history.push(entry);
+    store.budgetHistory = JSON.stringify(history);
+    fbSave('budgetHistory', history);
+}
+
+function removeBudgetEvent(id) {
+    let history = safeJSON(store.budgetHistory, []);
+    history = history.filter(x => x.id !== id);
+    store.budgetHistory = JSON.stringify(history);
+    fbSave('budgetHistory', history);
+}
+
+let myBudgetChart = null;
+
+function renderBudgetChart() {
+    let history = safeJSON(store.budgetHistory, []);
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+
+    // تصفية الشهر الحالي
+    let now = new Date();
+    let curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    let monthHistory = history.filter(x => x.date && x.date.startsWith(curMonth));
+
+    // تطبيق فلاتر النقاط
+    let showTypes = {};
+    ['purchase','stock_buy','transfer','withdrawal','set_wallet'].forEach(t => {
+        let el = document.getElementById('bf_' + t);
+        showTypes[t] = el ? el.checked : true;
+    });
+
+    // بناء نقاط المنحنى: نبدأ من أول يوم بالشهر
+    let daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    
+    // نقطة البداية: الرصيد قبل أول حدث في الشهر
+    let sortedEvents = monthHistory.slice().sort((a,b) => a.ts - b.ts);
+    
+    // الحصول على رصيد بداية الشهر
+    let allHistory = history.slice().sort((a,b) => a.ts - b.ts);
+    let startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let startBalance = 0;
+    // أحدث حدث قبل بداية الشهر
+    let prevEvent = allHistory.filter(x => x.ts < startOfMonth).pop();
+    if(prevEvent) startBalance = prevEvent.totalUSD;
+    else if(sortedEvents.length > 0) startBalance = sortedEvents[0].totalUSD - sortedEvents[0].deltaUSD;
+    else startBalance = getTotalBalanceUSD();
+
+    // إنشاء نقاط البيانات
+    let chartPoints = [];
+    let eventsByDay = {};
+
+    // نقطة بداية الشهر
+    chartPoints.push({ x: 1, y: startBalance, events: [], isStart: true });
+
+    sortedEvents.forEach(ev => {
+        let day = parseInt(ev.date.split('-')[2]);
+        if(!eventsByDay[day]) eventsByDay[day] = [];
+        eventsByDay[day].push(ev);
+    });
+
+    // نقاط لكل يوم فيه أحداث
+    let currentY = startBalance;
+    for(let d = 1; d <= now.getDate(); d++) {
+        if(eventsByDay[d]) {
+            eventsByDay[d].forEach(ev => {
+                currentY = ev.totalUSD;
+                chartPoints.push({ x: d, y: ev.totalUSD, event: ev });
+            });
+        }
+    }
+
+    // إذا اليوم الحالي بدون أحداث، أضف نقطة للرصيد الحالي
+    let todayEvents = eventsByDay[now.getDate()] || [];
+    if(todayEvents.length === 0) {
+        chartPoints.push({ x: now.getDate(), y: getTotalBalanceUSD(), events: [], isToday: true });
+    }
+
+    // بناء بيانات Chart.js
+    let labels = chartPoints.map(p => `${p.x}`);
+    let dataValues = chartPoints.map(p => parseFloat(p.y.toFixed(2)));
+
+    // ألوان نقاط حسب النوع
+    const typeColors = {
+        purchase: '#10b981',
+        stock_buy: '#a855f7',
+        transfer: '#f59e0b',
+        withdrawal: '#ef4444',
+        set_wallet: '#3b82f6'
+    };
+
+    let pointColors = chartPoints.map(p => {
+        if(p.isStart || p.isToday) return '#94a3b8';
+        if(p.event) return typeColors[p.event.type] || '#6366f1';
+        return '#94a3b8';
+    });
+
+    let pointRadii = chartPoints.map(p => {
+        if(p.isStart || p.isToday) return 4;
+        if(p.event && showTypes[p.event.type]) return 8;
+        if(p.event && !showTypes[p.event.type]) return 0;
+        return 4;
+    });
+
+    // تحديد إجمالي الرصيد الحالي
+    let wallets = safeJSON(store.wallets, {});
+    let totalUSD = 0, totalSHK = 0;
+    Object.values(wallets).forEach(w => {
+        if(w.cur === '$') totalUSD += (w.bal||0);
+        else totalSHK += (w.bal||0);
+    });
+    let totalInUSD2 = totalUSD + totalSHK / rate;
+    let totalInSHK2 = totalUSD * rate + totalSHK;
+    let budgetTotalEl = document.getElementById('budgetTotalDisplay');
+    if(budgetTotalEl) budgetTotalEl.textContent = `إجمالي: ${fix(totalInUSD2)}$ | ${fix(totalInSHK2)}₪`;
+
+    if(myBudgetChart) { myBudgetChart.destroy(); myBudgetChart = null; }
+    let ctx = document.getElementById('budgetChart');
+    if(!ctx) return;
+
+    myBudgetChart = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'الميزانية ($)',
+                data: dataValues,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99,102,241,0.08)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: pointColors,
+                pointRadius: pointRadii,
+                pointHoverRadius: 10,
+                pointHoverBorderWidth: 3,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                segment: {
+                    borderColor: ctx2 => {
+                        let p0y = ctx2.p0.parsed.y;
+                        let p1y = ctx2.p1.parsed.y;
+                        if(p1y > p0y) return '#10b981';
+                        if(p1y < p0y) return '#ef4444';
+                        return '#6366f1';
+                    }
+                }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'point', intersect: true },
+            onClick: (evt, elements) => {
+                if(elements.length > 0) {
+                    let idx = elements[0].index;
+                    let pt = chartPoints[idx];
+                    if(pt && pt.event) openBudgetEventModal(pt.event);
+                }
+            },
+            onHover: (evt, elements) => {
+                evt.native.target.style.cursor = elements.length > 0 && chartPoints[elements[0]?.index]?.event ? 'pointer' : 'default';
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            let idx = items[0].dataIndex;
+                            let pt = chartPoints[idx];
+                            if(pt?.event) return pt.event.label;
+                            if(pt?.isStart) return 'بداية الشهر';
+                            return `اليوم ${items[0].label}`;
+                        },
+                        label: (item) => {
+                            let idx = item.dataIndex;
+                            let pt = chartPoints[idx];
+                            let val = `الرصيد: ${fix(item.raw)}$`;
+                            if(pt?.event?.deltaUSD !== undefined) {
+                                let d = pt.event.deltaUSD;
+                                val += `  (${d >= 0 ? '+' : ''}${fix(d)}$)`;
+                            }
+                            return val;
+                        },
+                        afterLabel: (item) => {
+                            let idx = item.dataIndex;
+                            let pt = chartPoints[idx];
+                            if(pt?.event) return '← اضغط لرؤية التفاصيل';
+                            return '';
+                        }
+                    }
+                },
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'اليوم', color: '#94a3b8', font: { family: 'Tajawal', size: 12 } },
+                    ticks: { color: '#94a3b8', font: { family: 'Tajawal' } },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                },
+                y: {
+                    title: { display: true, text: 'الرصيد ($)', color: '#94a3b8', font: { family: 'Tajawal', size: 12 } },
+                    ticks: { color: '#94a3b8', font: { family: 'Tajawal' } },
+                    grid: { color: 'rgba(148,163,184,0.1)' }
+                }
+            }
+        }
+    });
+}
+
+function openBudgetEventModal(ev) {
+    let typeLabels = {
+        purchase: 'عملية بيع',
+        stock_buy: 'شراء مخزون',
+        transfer: 'تحويل بين محافظ',
+        withdrawal: 'سحب أرباح',
+        set_wallet: 'تعيين رصيد يدوي'
+    };
+    let typeIcons = {
+        purchase: 'fa-shopping-cart',
+        stock_buy: 'fa-cubes',
+        transfer: 'fa-exchange-alt',
+        withdrawal: 'fa-money-check-alt',
+        set_wallet: 'fa-edit'
+    };
+    let typeColors2 = {
+        purchase: 'var(--success)',
+        stock_buy: '#a855f7',
+        transfer: 'var(--accent)',
+        withdrawal: 'var(--danger)',
+        set_wallet: 'var(--info)'
+    };
+    let d = ev.details || {};
+    let rows = '';
+    rows += `<div class="detail-row"><span style="color:var(--text-muted)">النوع</span><span style="font-weight:800; color:${typeColors2[ev.type]||'var(--primary)'}"><i class="fas ${typeIcons[ev.type]||'fa-info'}"></i> ${typeLabels[ev.type]||ev.type}</span></div>`;
+    rows += `<div class="detail-row"><span style="color:var(--text-muted)">التاريخ</span><span style="font-weight:700">${ev.date} — ${new Date(ev.ts).toLocaleTimeString('ar-EG')}</span></div>`;
+    rows += `<div class="detail-row"><span style="color:var(--text-muted)">الوصف</span><span style="font-weight:700">${esc(ev.label)}</span></div>`;
+    rows += `<div class="detail-row"><span style="color:var(--text-muted)">الرصيد بعد</span><span style="font-weight:800; color:var(--primary)">${fix(ev.totalUSD)}$</span></div>`;
+    if(ev.deltaUSD !== undefined) {
+        let dColor = ev.deltaUSD >= 0 ? 'var(--success)' : 'var(--danger)';
+        let dSign = ev.deltaUSD >= 0 ? '+' : '';
+        rows += `<div class="detail-row"><span style="color:var(--text-muted)">التغيير</span><span style="font-weight:800; color:${dColor}">${dSign}${fix(ev.deltaUSD)}$</span></div>`;
+    }
+    // تفاصيل إضافية حسب النوع
+    if(d.customer) rows += `<div class="detail-row"><span style="color:var(--text-muted)">العميل</span><span>${esc(d.customer)}</span></div>`;
+    if(d.sub) rows += `<div class="detail-row"><span style="color:var(--text-muted)">الخدمة</span><span>${esc(d.sub)}</span></div>`;
+    if(d.paid) rows += `<div class="detail-row"><span style="color:var(--text-muted)">المدفوع</span><span style="color:var(--success); font-weight:700">${esc(String(d.paid))}</span></div>`;
+    if(d.walletName) rows += `<div class="detail-row"><span style="color:var(--text-muted)">المحفظة</span><span>${esc(d.walletName)}</span></div>`;
+    if(d.from) rows += `<div class="detail-row"><span style="color:var(--text-muted)">من</span><span>${esc(d.from)}</span></div>`;
+    if(d.to) rows += `<div class="detail-row"><span style="color:var(--text-muted)">إلى</span><span>${esc(d.to)}</span></div>`;
+    if(d.reason) rows += `<div class="detail-row"><span style="color:var(--text-muted)">السبب</span><span>${esc(d.reason)}</span></div>`;
+    if(d.cost) rows += `<div class="detail-row"><span style="color:var(--text-muted)">التكلفة</span><span style="color:var(--danger)">${esc(String(d.cost))}</span></div>`;
+    if(d.wallet) rows += `<div class="detail-row"><span style="color:var(--text-muted)">المحفظة</span><span>${esc(d.wallet)}</span></div>`;
+    
+    document.getElementById('budgetEventModalBody').innerHTML = rows;
+    document.getElementById('budgetEventModal').classList.remove('hidden');
+}
+
+function closeBudgetEventModal(e) {
+    if(e === 'force' || e.target === document.getElementById('budgetEventModal')) {
+        document.getElementById('budgetEventModal').classList.add('hidden');
+    }
+}
+
 function closeModal(e) {
     if(e === 'force' || e.target.id === 'detailsModal') {
         document.getElementById("detailsModal").classList.add("hidden");
@@ -2237,6 +2960,7 @@ function logAction(actionDescription, type='general', details=null) {
     if(!currentUser) return Promise.resolve();
     let logs = safeJSON(store.activityLog, []);
 
+    // سقف منفصل لكل نوع: مالية 200، خطرة 150، عامة 150
     const LIMITS = { financial: 200, danger: 150, general: 150 };
     logs.unshift({
         id:      genId(),
@@ -2247,6 +2971,7 @@ function logAction(actionDescription, type='general', details=null) {
         logType: type,
         details: details 
     });
+    // احتفظ بأحدث N من كل نوع ثم ادمجها
     const financial = logs.filter(l => getLogType(l) === 'financial').slice(0, LIMITS.financial);
     const danger    = logs.filter(l => getLogType(l) === 'danger').slice(0, LIMITS.danger);
     const general   = logs.filter(l => getLogType(l) === 'general').slice(0, LIMITS.general);
@@ -2254,10 +2979,7 @@ function logAction(actionDescription, type='general', details=null) {
 
     store.activityLog = JSON.stringify(logs);
     const savePromise = fbSave("activityLog", logs);
-    
-    // فلتر حماية يمنع الإيرور
-    let logsDiv = document.getElementById("logs");
-    if(logsDiv && !logsDiv.classList.contains("hidden")) {
+    if(document.getElementById("logs").classList.contains("hidden") === false) {
         currentPage.logs = 1;
         refreshLogs();
     }
@@ -2272,15 +2994,22 @@ function hideSystemLoading() {
 }
 function init(){
     if(!store.users) store.users = JSON.stringify([DEFAULT_USER]);
-    if(!store.wallets) store.wallets = JSON.stringify({"جوال باي — سعاد":{bal:0, cur:"₪", active:true},"بايننس — احمد":{bal:0, cur:"$", active:true}});
+    if(!store.wallets){
+        store.wallets = JSON.stringify({
+            "جوال باي — سعاد":{bal:0, cur:"₪", active:true},
+            "جوال باي — محمد":{bal:0, cur:"₪", active:true},
+            "بال باي — أحمد":{bal:0, cur:"₪", active:true},
+            "بايننس — احمد":{bal:0, cur:"$", active:true}
+        });
+    }
     if(!store.purchases) store.purchases = "[]"; 
-    if(!store.financePoints) store.financePoints = "[]"; 
+    if(!store.invest) store.invest = JSON.stringify({ahmad:{d:0,s:0},mohamed:{d:0,s:0},store:{d:0,s:0}}); 
     if(!store.generalNotes) store.generalNotes = "[]"; 
-    if(!store.settings) store.settings = JSON.stringify({exchangeRate: 3.5, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}); 
+    if(!store.todoList) store.todoList = "[]"; 
+    if(!store.settings) store.settings = JSON.stringify({ahmad: 0, mohamed: 0, store: 100, deductCost: false, exchangeRate: 0, logsVis: 'all', discountEnabled:true, discountChance:25, discountMin:10, discountMax:20, validityMin:15, validityMax:45}); 
     if(!store.activityLog) store.activityLog = "[]"; 
     if(!store.stock) store.stock = "[]"; 
     if(!store.services) store.services = "[]";
-    if(!store.todoList) store.todoList = "[]"; 
     if(!store.discounts) store.discounts = "[]"; 
     if(!store.vipCustomers) store.vipCustomers = "{}";
 
@@ -2291,12 +3020,20 @@ function init(){
     if(localStorage.getItem("isDemoMode") === "true") {
         isDemoMode = true;
         if(document.getElementById("demoModeToggle")) document.getElementById("demoModeToggle").checked = true;
+        // إظهار شعار الوضع التجريبي في صفحة الدخول
         let demoBanner = document.getElementById("demoLoginBanner");
         if(demoBanner) demoBanner.style.display = "block";
-        STORE_KEYS.forEach(k => { let saved = localStorage.getItem('demo_' + k); if(saved) store[k] = saved; });
+        // تحميل بيانات الوضع التجريبي من localStorage
+        STORE_KEYS.forEach(k => {
+            let saved = localStorage.getItem('demo_' + k);
+            if(saved) store[k] = saved;
+        });
         updateSyncStatus("وضع تجريبي (غير متصل)", "warning");
         hideSystemLoading();
-    } else { initFirebase(); }
+    } else {
+        initFirebase();
+    }
+    
     updateStorageUI();
 }
 
@@ -2563,7 +3300,6 @@ function applyRBAC() {
     
     safeToggle("sec-manual-wallet", "add");
     safeToggle("sec-set-wallet-balance", "add");
-    safeToggle("sec-set-profit-share", "add");
     safeToggle("sec-manage-wallets", "add");
     safeToggle("sec-rename-wallet", "add");
     safeToggle("sec-profit-settings", "add");
@@ -2602,7 +3338,6 @@ function applyRBAC() {
         
         safeToggle("sec-manual-wallet", "remove");
         safeToggle("sec-set-wallet-balance", "remove");
-        safeToggle("sec-set-profit-share", "remove");
         safeToggle("sec-manage-wallets", "remove");
         safeToggle("sec-rename-wallet", "remove");
         safeToggle("sec-profit-settings", "remove");
@@ -2970,7 +3705,7 @@ function loadWallets(){
         document.getElementById("wallet"), document.getElementById("stWallet"), 
         document.getElementById("modWallet"), document.getElementById("renameWalletSelect"), 
         document.getElementById("tfFromWallet"), document.getElementById("tfToWallet"), 
-        document.getElementById("wWalletAhmad"), document.getElementById("wWalletMohamed"), document.getElementById("wWalletStore")
+        document.getElementById("wWalletStore")
     ];
     selects.forEach(s => { 
         if(s) { 
@@ -3033,6 +3768,7 @@ function syncPurchaseDuration() {
 function loadProfitSettings(){
     let s = safeJSON(store.settings, {});
     document.getElementById("setExchangeRate").value = s.exchangeRate || 0;
+    
     document.getElementById("setDiscountEnabled").checked = s.discountEnabled !== false;
     document.getElementById("setDiscountChance").value = s.discountChance ?? 25;
     document.getElementById("setDiscountMin").value = s.discountMin ?? 10;
@@ -3040,20 +3776,13 @@ function loadProfitSettings(){
     document.getElementById("setValidityMin").value = s.validityMin ?? 15;
     document.getElementById("setValidityMax").value = s.validityMax ?? 45;
 }
-
 function saveProfitSettings(){
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     let sObj = safeJSON(store.settings, {});
     sObj.exchangeRate = +document.getElementById("setExchangeRate").value;
-    sObj.discountEnabled = document.getElementById("setDiscountEnabled").checked;
-    sObj.discountChance = +document.getElementById("setDiscountChance").value || 0;
-    sObj.discountMin = +document.getElementById("setDiscountMin").value || 0;
-    sObj.discountMax = +document.getElementById("setDiscountMax").value || 0;
-    sObj.validityMin = +document.getElementById("setValidityMin").value || 0;
-    sObj.validityMax = +document.getElementById("setValidityMax").value || 0;
     store.settings = JSON.stringify(sObj); fbSave("settings", sObj);
-    logAction("تعديل إعدادات المتجر", 'general');
-    notify("تم الحفظ"); refreshAll();
+    logAction("تعديل سعر الصرف", 'general');
+    notify("تم الحفظ");
 }
 
 function saveDiscountSettings(){
@@ -3178,56 +3907,239 @@ function addPurchase(){
 }
 
 function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, calculatedCost, rate, usedDiscountObj, appliedDiscountPct, isComp, customerVal, customerPhoneVal, walletVal) {
-    let wallets = safeJSON(store.wallets, {}), purchases = safeJSON(store.purchases, []);
-    if(!wallets[walletVal]) { notify("المحفظة غير موجودة", "error"); return; }
+    let wallets = safeJSON(store.wallets, {}), invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
+    
+    if(!wallets[walletVal]) { notify("المحفظة المحددة غير موجودة", "error"); return; }
     
     let tBefore = wallets[walletVal].bal;
     wallets[walletVal].bal += paid;
     
+    let distributableProfit = paid;
+    let recoupAmount = 0;
+
+    if (settings.deductCost && !isComp) {
+        recoupAmount = calculatedCost; 
+        distributableProfit = paid - calculatedCost;
+    } else if (settings.deductCost && isComp) {
+        let oC = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        let sT = stItem.costCurrency === '$' ? 'd' : 's';
+        invest.store[sT] -= oC;
+    }
+
+    let shareType = (paidCur === '$') ? 'd' : 's';
+    
+    if(!isComp) {
+        invest.store[shareType] += recoupAmount;
+
+        if (distributableProfit >= 0) {
+            let aP = +(distributableProfit * (settings.ahmad/100)).toFixed(2);
+            let mP = +(distributableProfit * (settings.mohamed/100)).toFixed(2);
+            let sP = +(distributableProfit * (settings.store/100)).toFixed(2);
+            invest.ahmad[shareType] += aP; invest.mohamed[shareType] += mP; invest.store[shareType] += sP;
+        } else {
+            invest.store[shareType] += distributableProfit; 
+        }
+    }
+    
     let d = new Date(stItem.timestamp || Date.now()), exp = null;
-    if (duration > 0) { exp = new Date(d); exp.setMonth(exp.getMonth() + duration); if(exp.getDate() !== d.getDate()) exp.setDate(0); }
+    if (duration > 0) {
+        exp = new Date(d);
+        exp.setMonth(exp.getMonth() + duration);
+        if(exp.getDate() !== d.getDate()) exp.setDate(0);
+    }
     
     let buyerInfo = (customerVal ? customerVal : "عميل") + (customerPhoneVal ? ` - ${customerPhoneVal}` : "");
-    if(!stItem.buyers) stItem.buyers = []; stItem.buyers.push(buyerInfo);
-    stItem.soldProfiles = (stItem.soldProfiles || 0) + 1;
-    if(stItem.soldProfiles >= (stItem.totalProfiles || 1)) { stItem.status = 'sold'; let ndd = new Date(); stItem.soldDate = `${ndd.getFullYear()}-${(ndd.getMonth()+1).toString().padStart(2,'0')}-${ndd.getDate().toString().padStart(2,'0')}`; }
+    if(!stItem.buyers) stItem.buyers = [];
+    stItem.buyers.push(buyerInfo);
     
+    stItem.soldProfiles = (stItem.soldProfiles || 0) + 1;
+    if(stItem.soldProfiles >= (stItem.totalProfiles || 1)) {
+        stItem.status = 'sold';
+        let ndd = new Date();
+        let mm = (ndd.getMonth()+1).toString().padStart(2,'0');
+        let dd = ndd.getDate().toString().padStart(2,'0');
+        stItem.soldDate = `${ndd.getFullYear()}-${mm}-${dd}`;
+    }
     let stockList = safeJSON(store.stock, []);
     let stIdx = stockList.findIndex(x => x.id === stItem.id);
     if(stIdx !== -1) stockList[stIdx] = stItem;
-    
+    let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let nddStr = nd.getDate().toString().padStart(2,'0');
+
     purchases.forEach(p => p.canBeUndone = false);
+
+    // -- معالجة الـ VIP --
     let vips = safeJSON(store.vipCustomers, {});
     let vipPrevState = null;
+    let vipRankChanged = false;
+    let vipNewRank = null;
+    let vipCustomerObj = null;
+
     if (customerPhoneVal && !isComp) {
-        let nd = new Date();
-        let vipCustomerObj = vips[customerPhoneVal] || { name: customerVal, count: 0, rankIndex: 0, target: 3, lastPurchaseTime: nd.getTime() };
+        vipCustomerObj = vips[customerPhoneVal] || { name: customerVal, count: 0, rankIndex: 0, target: 3, lastPurchaseTime: nd.getTime() };
         vipPrevState = JSON.parse(JSON.stringify(vipCustomerObj)); 
-        vipCustomerObj.count++; vipCustomerObj.name = customerVal; vipCustomerObj.lastPurchaseTime = nd.getTime();
-        vips[customerPhoneVal] = vipCustomerObj; store.vipCustomers = JSON.stringify(vips); 
+        
+        vipCustomerObj.count++;
+        vipCustomerObj.name = customerVal;
+        vipCustomerObj.lastPurchaseTime = nd.getTime();
+        
+        let oldRank = vipCustomerObj.rankIndex;
+        
+        if (vipCustomerObj.rankIndex < 4 && vipCustomerObj.count >= vipCustomerObj.target) {
+            vipCustomerObj.rankIndex++;
+            if (vipCustomerObj.rankIndex < 4) {
+                let nextRankDiff = VIP_RANKS[vipCustomerObj.rankIndex + 1].min - VIP_RANKS[vipCustomerObj.rankIndex].min;
+                vipCustomerObj.target = vipCustomerObj.count + nextRankDiff;
+            } else {
+                vipCustomerObj.target = null; 
+            }
+        }
+        
+        vips[customerPhoneVal] = vipCustomerObj;
+        store.vipCustomers = JSON.stringify(vips); 
+        
+        vipRankChanged = (vipCustomerObj.rankIndex > oldRank);
+        vipNewRank = VIP_RANKS[vipCustomerObj.rankIndex];
     }
 
+    const _undoDelta = { shareType, vipPhone: customerPhoneVal, vipPrevState: vipPrevState };
+    if (!isComp) {
+        const _storeTotal = recoupAmount + (distributableProfit >= 0 ? +(distributableProfit * (settings.store / 100)).toFixed(2) : distributableProfit);
+        _undoDelta.store   = _storeTotal;
+        _undoDelta.ahmad   = distributableProfit >= 0 ? +(distributableProfit * (settings.ahmad   / 100)).toFixed(2) : 0;
+        _undoDelta.mohamed = distributableProfit >= 0 ? +(distributableProfit * (settings.mohamed / 100)).toFixed(2) : 0;
+    } else if (settings.deductCost) {
+        let _oC = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        _undoDelta.store      = -_oC;
+        _undoDelta.storeType  = stItem.costCurrency === '$' ? 'd' : 's';
+        _undoDelta.overrideType = true;
+    }
+
+    // حساب التكلفة الأصلية بالعملة التي تم شراء المخزون بها
     let originalCostDisplay = fix((parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1)) + (stItem.costCurrency || '₪');
-    let newPurchaseId = 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
-    let ndd = new Date();
+
     purchases.push({
-        id: newPurchaseId, date: `${ndd.getFullYear()}-${(ndd.getMonth()+1).toString().padStart(2,'0')}-${ndd.getDate().toString().padStart(2,'0')}`,
-        customer: customerVal||"عميل", phone: customerPhoneVal||"-", sub: cleanName, stockId: stItem.id, duration: duration,
-        paid: paid+paidCur, cost: originalCostDisplay, wallet: walletVal, expiry: exp ? exp.getTime() : null,
-        isComp: isComp, usedDiscountObj: usedDiscountObj, canBeUndone: true, investDelta: { vipPhone: customerPhoneVal, vipPrevState: vipPrevState }
+        id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+        date: `${nd.getFullYear()}-${nmm}-${nddStr}`,
+        customer: customerVal||"عميل",
+        phone: customerPhoneVal||"-",
+        sub: cleanName,
+        stockId: stItem.id,
+        duration: duration,
+        paid: paid+paidCur,
+        cost: originalCostDisplay, // حفظ التكلفة بعملتها الأصلية في الأرشيف
+        wallet: walletVal,
+        expiry: exp ? exp.getTime() : null,
+        investDelta: _undoDelta,
+        isComp: isComp,
+        usedDiscountObj: usedDiscountObj,
+        canBeUndone: true
     });
 
-    store.stock = JSON.stringify(stockList); store.wallets = JSON.stringify(wallets); store.purchases = JSON.stringify(purchases);
-    fbAtomicWalletInvest({ [walletVal]: paid }, wallets);
+    store.stock     = JSON.stringify(stockList);
+    store.wallets   = JSON.stringify(wallets);
+    store.invest    = JSON.stringify(invest);
+    store.purchases = JSON.stringify(purchases);
+
+    const _wIncs = { [walletVal]: paid };
+    const _iIncs = {};
+    if (!isComp) {
+        const _storeTotal = recoupAmount + (distributableProfit >= 0 ? +(distributableProfit * (settings.store / 100)).toFixed(2) : distributableProfit);
+        _iIncs[`store.${shareType}`]   = _storeTotal;
+        if (distributableProfit >= 0) {
+            _iIncs[`ahmad.${shareType}`]   = +(distributableProfit * (settings.ahmad / 100)).toFixed(2);
+            _iIncs[`mohamed.${shareType}`] = +(distributableProfit * (settings.mohamed / 100)).toFixed(2);
+        }
+    } else if (settings.deductCost) {
+        let _oC  = (parseFloat(stItem.cost) || 0) / (parseInt(stItem.totalProfiles) || 1);
+        let _sT  = stItem.costCurrency === '$' ? 'd' : 's';
+        _iIncs[`store.${_sT}`] = -_oC;
+    }
+
+    fbAtomicWalletInvest(_wIncs, _iIncs, wallets, invest);
     fbSaveMultiple({ stock: stockList, purchases: purchases, vipCustomers: vips });
     
-    let logDet = { type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur, costVal: originalCostDisplay, isFirstProfile: !isComp, toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal, appliedDiscountPct: appliedDiscountPct, isComp: isComp };
-    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, 'financial', logDet);
-    
-    let impactUSD = isComp ? 0 : (paidCur === '$' ? paid : paid/rate);
-    addFinancePoint('purchase', impactUSD, `بيع: ${cleanName}`, logDet, newPurchaseId);
+    // سجّل حدث الميزانية
+    let _budgetSettings = safeJSON(store.settings, {});
+    let _budgetRate = _budgetSettings.exchangeRate && _budgetSettings.exchangeRate > 0 ? _budgetSettings.exchangeRate : 3.5;
+    let _paidDeltaUSD = paidCur === '$' ? paid : paid / _budgetRate;
+    let _costDeltaUSD = paidCur === '$' ? -calculatedCost : -(calculatedCost / _budgetRate);
+    let _netDeltaUSD = _paidDeltaUSD + (settings.deductCost && !isComp ? _costDeltaUSD : 0);
+    // نحفظ id آخر purchase في budgetHistory لنتمكن من التراجع
+    let _lastPurchaseId = purchases[purchases.length-1]?.id;
+    recordBudgetEvent('purchase', `شراء ${cleanName} للعميل ${customerVal||"عميل"}: ${paid}${paidCur}`, _netDeltaUSD, {
+        type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur,
+        cost: originalCostDisplay, wallet: walletVal, isComp, purchaseId: _lastPurchaseId
+    });
 
-    currentPage.history = 1; loadPurchaseStock(); refreshAll(); notify("تمت العملية بنجاح");
+    logAction(`إضافة عملية شراء: ${cleanName} للعميل ${customerVal}`, 'financial', {
+        type: 'purchase', customer: customerVal||"عميل", sub: cleanName, paid: paid+paidCur, costVal: originalCostDisplay, isFirstProfile: !isComp, toName: walletVal, tBefore: tBefore, tAfter: wallets[walletVal].bal, appliedDiscountPct: appliedDiscountPct, isComp: isComp
+    });
+
+    if (usedDiscountObj) {
+        let dList = safeJSON(store.discounts, []);
+        let dIdx = dList.findIndex(x => x.id === usedDiscountObj.id);
+        if(dIdx !== -1) {
+            dList[dIdx].usedCount = (dList[dIdx].usedCount || 0) + 1;
+            store.discounts = JSON.stringify(dList);
+            fbSave("discounts", dList);
+        }
+    }
+
+    let dEnabled = settings.discountEnabled !== false;
+    let baseChance = settings.discountChance !== undefined ? settings.discountChance : 25;
+    let vipChancePerk = vipNewRank ? vipNewRank.chance : 0;
+    let finalChance = baseChance + vipChancePerk;
+    
+    let generatedCoupon = null;
+
+    if (dEnabled && !isComp && paid > 0 && appliedDiscountPct === 0) {
+        let rand = Math.random() * 100;
+        if (rand <= finalChance) {
+            let dMin = settings.discountMin !== undefined ? settings.discountMin : 10;
+            let dMax = settings.discountMax !== undefined ? settings.discountMax : 20;
+            let vMin = settings.validityMin !== undefined ? settings.validityMin : 15;
+            let vMax = settings.validityMax !== undefined ? settings.validityMax : 45;
+
+            let pct = Math.floor(Math.random() * (dMax - dMin + 1)) + dMin + (vipNewRank ? vipNewRank.discount : 0);
+            let days = Math.floor(Math.random() * (vMax - vMin + 1)) + vMin + (vipNewRank ? vipNewRank.days : 0);
+            let uses = vipNewRank ? vipNewRank.uses : 1;
+
+            let dList = safeJSON(store.discounts, []);
+            let code;
+            do { code = Math.floor(100000000 + Math.random() * 900000000).toString(); } 
+            while (dList.some(x => x.code === code));
+            
+            let expTime = new Date().getTime() + (days * 86400000);
+
+            generatedCoupon = {
+                id: 'id_' + Date.now().toString(), code: code, customer: customerVal || "عميل", service: cleanName, percentage: pct, expiry: expTime, days: days, maxUses: uses, usedCount: 0, notified: false
+            };
+
+            dList.unshift(generatedCoupon);
+            store.discounts = JSON.stringify(dList);
+            fbSave("discounts", dList);
+        }
+    }
+    
+    // تسلسل النوافذ المنبثقة للـ VIP والكود
+// تسلسل النوافذ المنبثقة للـ VIP والكود (تم منع الظهور للزبون العادي > 0)
+    if (generatedCoupon && vipRankChanged && vipCustomerObj.rankIndex > 0) {
+        showCouponModal(generatedCoupon, customerPhoneVal, () => {
+            setTimeout(() => { showVipUpgradeModal(vipCustomerObj, vipNewRank, customerPhoneVal); }, 5000);
+        });
+    } else if (generatedCoupon) {
+        showCouponModal(generatedCoupon, customerPhoneVal, null);
+    } else if (vipRankChanged && vipCustomerObj.rankIndex > 0) {
+        showVipUpgradeModal(vipCustomerObj, vipNewRank, customerPhoneVal);
+    }
+    
+    currentPage.history = 1;
+    loadPurchaseStock();
+    refreshAll();  notify("تمت العملية بنجاح");
+    
+    document.getElementById("paidAmount").value=""; document.getElementById("customer").value=""; document.getElementById("sub").value=""; document.getElementById("customerPhone").value=""; document.getElementById("discountCodeInput").value=""; document.getElementById("isCompensation").checked = false; document.getElementById("customerPhone").style.borderColor = "";
 }
 
 function showCouponModal(coupon, phone, onCloseCallback = null) {
@@ -3522,16 +4434,9 @@ function refreshWallets(){
         rows+=`<tr><td><b>${esc(displayKey)}</b></td><td><span class="badge ${w[k].cur=='$'?'badge-success':'badge-info'}">${w[k].cur}</span></td><td style="text-align:center; font-weight:800">${balDisplay}</td><td>${act?'<i class="fas fa-check-circle" style="color:var(--success)"></i>':'<i class="fas fa-times-circle" style="color:var(--danger)"></i>'}</td></tr>`;
         if(w[k].cur=="$") td+=w[k].bal; else ts+=w[k].bal;
     }
-    
-    // فلتر حماية يمنع الإيرور إذا كانت الصفحة محذوفة
-    let walletListEl = document.getElementById("walletList");
-    if(walletListEl) walletListEl.innerHTML=rows;
-    
+    document.getElementById("walletList").innerHTML=rows;
     if(!isRestricted) {
-        let statDollarEl = document.getElementById("statDollar");
-        let statShekelEl = document.getElementById("statShekel");
-        if(statDollarEl) statDollarEl.textContent=fix(td)+" $"; 
-        if(statShekelEl) statShekelEl.textContent=fix(ts)+" ₪";
+        document.getElementById("statDollar").textContent=fix(td)+" $"; document.getElementById("statShekel").textContent=fix(ts)+" ₪";
     }
 }
 function refreshHistory(){
@@ -3579,133 +4484,72 @@ function refreshHistory(){
 function filterHistory() { refreshHistory(); }
 
 function refreshInvestment(){
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+    let wallets = safeJSON(store.wallets, {});
+    let totalUSD = 0, totalShekel = 0;
+    Object.values(wallets).forEach(w => {
+        if(w.cur === '$') totalUSD += w.bal;
+        else totalShekel += w.bal;
+    });
+    let totalInUSD = totalUSD + totalShekel / rate;
+    let totalInShekel = totalUSD * rate + totalShekel;
+    
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
-    let tUSD = getTotalBalanceUSD();
-    let display = isRestricted ? "****" : `${tUSD.toFixed(2)} $`;
+    let sD = isRestricted ? "****" : `${fix(totalInUSD)}$ | ${fix(totalInShekel)}₪`;
+    
     document.getElementById("investBox").innerHTML=`
-    <div class="stat-card" style="border-right:5px solid #6366f1; width:100%; max-width:400px; flex-direction:column; align-items:center; text-align:center;">
-        <div style="font-size:16px; color:var(--text-muted); margin-bottom:10px;">إجمالي رصيد المتجر (جميع المحافظ)</div>
-        <div style="font-size:32px; font-weight:900; color:var(--primary)">${display}</div>
+    <div class="stat-card" style="border-right:5px solid #6366f1; flex-direction:column; align-items:flex-start">
+        <div style="font-size:14px; color:var(--text-muted)">إجمالي رأس مال المتجر</div>
+        <div style="font-size:20px; font-weight:800">${sD}</div>
     </div>`;
 }
-
-async function withdrawPartial(){ 
-    if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
-    let input = document.getElementById('withdrawStore');
-    let walletSelect = document.getElementById('wWalletStore');
-    let amount = +input.value;
-    let walletName = walletSelect.value;
-    if(!amount) return notify("أدخل المبلغ","error");
-    if(!walletName) return notify("يرجى اختيار المحفظة","error");
-
-    let reason = await showPrompt("سبب السحب", "هذا الحقل إجباري", "أدخل سبب السحب...", '<i class="fas fa-money-bill-wave"></i>', false, "", true);
-    if(!reason) return notify("تم الإلغاء: السبب مطلوب","error");
-
-    let w = safeJSON(store.wallets, {});
-    let wallet = w[walletName];
-    if(wallet.bal < amount) { notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error"); return; }
-
-    let s = safeJSON(store.settings, {});
-    let rate = s.exchangeRate || 1;
-    let impactUSD = -(wallet.cur === '$' ? amount : amount/rate);
-    let walletBefore = wallet.bal;
-    w[walletName].bal -= amount; 
-
-    store.wallets = JSON.stringify(w);
-    fbAtomicWalletInvest({ [walletName]: -amount }, w);
-
-    let logDet = { type: 'withdraw', person: 'المتجر', amount: amount, currency: wallet.cur, walletName: walletName, reason: reason, walletBefore: walletBefore, walletAfter: w[walletName].bal };
-    logAction(`سحب أموال من ${walletName}`, 'financial', logDet);
-    addFinancePoint('withdraw', impactUSD, `سحب: ${reason}`, logDet);
-
-    refreshInvestment(); refreshWallets(); refreshAnalytics(); input.value=""; notify("تم السحب بنجاح");
-}
-let myTimelineChart = null;
-let activeChartFilters = { purchase: true, stock_add: true, withdraw: true, other: true };
-
-function toggleChartFilter(type, btn) {
-    activeChartFilters[type] = !activeChartFilters[type];
-    if(activeChartFilters[type]) { btn.classList.add('btn-primary'); btn.style.background = ''; btn.style.color = ''; } 
-    else { btn.classList.remove('btn-primary'); btn.style.background = 'transparent'; btn.style.color = 'var(--text-muted)'; btn.style.border = '1px solid var(--border-color)'; }
-    refreshAnalytics();
-}
-
 function refreshAnalytics() {
-    if(currentUser && (currentUser.role === 'viewer' || currentUser.role === 'viewer_plus')) return;
+    let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
 
-    let points = safeJSON(store.financePoints, []);
-    let currentTotalUSD = getTotalBalanceUSD();
-
-    points.sort((a,b) => a.timestamp - b.timestamp);
-
-    let now = new Date();
-    let monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    let monthPoints = points.filter(p => p.timestamp >= monthStart);
-
-    let tempBalance = currentTotalUSD;
-    for(let i = monthPoints.length - 1; i >= 0; i--) {
-        let p = monthPoints[i];
-        p.balanceAfter = tempBalance;
-        tempBalance -= p.impact;
-    }
-
-    let startBalance = tempBalance;
-    let timelinePoints = [];
+    if (myProfitChart) myProfitChart.destroy();
     
-    timelinePoints.push({ x: `بداية الشهر`, y: startBalance, impact: 0, isStart: true });
-
-    monthPoints.forEach(p => {
-        if(!activeChartFilters[p.type]) return; 
-        let dateStr = new Date(p.timestamp).toLocaleString('ar-EG', {day:'numeric', month:'short'});
-        timelinePoints.push({ x: dateStr, y: p.balanceAfter, impact: p.impact, title: p.title, fullLog: p.details });
-    });
-
-    timelinePoints.push({ x: "الآن", y: currentTotalUSD, impact: 0, isNow: true });
-
-    if (myTimelineChart) myTimelineChart.destroy();
-    let ctxT = document.getElementById('timelineChart').getContext('2d');
-    myTimelineChart = new Chart(ctxT, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: 'السيولة المجمعة ($)', data: timelinePoints, borderWidth: 3,
-                pointBackgroundColor: timelinePoints.map(p => p.impact > 0 ? '#10b981' : (p.impact < 0 ? '#ef4444' : '#6366f1')),
-                pointRadius: timelinePoints.map(p => (p.isStart || p.isNow) ? 6 : 4), pointHoverRadius: 8,
-                fill: true, backgroundColor: 'rgba(99, 102, 241, 0.05)', tension: 0.1,
-                segment: { borderColor: ctx => ctx.p0.parsed.y <= ctx.p1.parsed.y ? '#10b981' : '#ef4444' }
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, interaction: { mode: 'nearest', intersect: true },
-            scales: { x: { display: false }, y: { ticks: { callback: val => val.toFixed(1) + ' $' } } },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        title: ctx => ctx[0].raw.x,
-                        label: ctx => {
-                            let p = ctx.raw;
-                            if(p.isStart) return `الرصيد الافتتاحي: ${p.y.toFixed(2)}$`;
-                            if(p.isNow) return `السيولة الحالية: ${p.y.toFixed(2)}$`;
-                            let sign = p.impact > 0 ? '+' : '';
-                            return [`${p.title}`, `التأثير: ${sign}${p.impact.toFixed(2)}$`, `الرصيد بعدها: ${p.y.toFixed(2)}$`];
-                        }
-                    },
-                    backgroundColor: 'rgba(15, 23, 42, 0.9)', titleFont: { family: 'Tajawal', size: 14 }, bodyFont: { family: 'Tajawal', size: 13 }, padding: 12, displayColors: false
-                }
-            },
-            onClick: (e, elements) => { if (elements.length > 0) { const pt = timelinePoints[elements[0].index]; if (pt && pt.fullLog) showModalDetails(pt.fullLog); } }
+    if(currentUser && currentUser.role !== 'viewer') {
+        let wallets2 = safeJSON(store.wallets, {});
+        let totalW_USD = 0, totalW_SHK = 0;
+        Object.values(wallets2).forEach(w2 => {
+            if(w2.cur === '$') totalW_USD += w2.bal;
+            else totalW_SHK += w2.bal;
+        });
+        myProfitChart = new Chart(document.getElementById('profitChart').getContext('2d'), { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['دولار $', 'شيكل ₪'], 
+                datasets: [{ 
+                    data: [totalW_USD, totalW_SHK], 
+                    backgroundColor: ['#6366f1', '#10b981'], 
+                    borderWidth: 0 
+                }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: false } 
+        });
+    }
+    
+    let months = {}, labels = [], data = [];
+    for(let i=5; i>=0; i--){ let d = new Date(); d.setMonth(d.getMonth() - i); let mm = (d.getMonth()+1).toString().padStart(2,'0'); labels.push(mm+'/'+d.getFullYear()); months[labels[labels.length-1]] = 0; }
+    purchases.forEach(p => { 
+        if(p.date && !p.isComp) {
+            let parts = p.date.split('-');
+            if(parts.length===3) {
+               let k = parts[1]+'/'+parts[0]; 
+               if(months[k] !== undefined) months[k]++; 
+            }
         }
     });
-
-    let purchases = safeJSON(store.purchases, []);
-    let months = {}, labels = [], dataSales = [];
-    for(let i=5; i>=0; i--){ let d = new Date(); d.setMonth(d.getMonth() - i); let mm = (d.getMonth()+1).toString().padStart(2,'0'); labels.push(mm+'/'+d.getFullYear()); months[labels[labels.length-1]] = 0; }
-    purchases.forEach(p => { if(p.date && !p.isComp) { let parts = p.date.split('-'); if(parts.length===3) { let k = parts[1]+'/'+parts[0]; if(months[k] !== undefined) months[k]++; } } });
-    labels.forEach(l => dataSales.push(months[l]));
+    labels.forEach(l => data.push(months[l]));
     
     if (mySalesChart) mySalesChart.destroy();
-    mySalesChart = new Chart(document.getElementById('salesChart').getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'مبيعات', data: dataSales, backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false } });
+    mySalesChart = new Chart(document.getElementById('salesChart').getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'مبيعات', data: data, backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+    
+    // رسم مسار الميزانية
+    renderBudgetChart();
 }
 function addGeneralNote(){ 
     let gnTextVal = document.getElementById("gnText").value.trim(); 
@@ -3773,8 +4617,8 @@ function completeTodo(id){
 async function withdrawPartial(p){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     
-    let input = document.getElementById(p==='ahmad'?'withdrawAhmad':p==='mohamed'?'withdrawMohamed':'withdrawStore');
-    let walletSelect = document.getElementById(p==='ahmad'?'wWalletAhmad':p==='mohamed'?'wWalletMohamed':'wWalletStore');
+    let input = document.getElementById('withdrawStore');
+    let walletSelect = document.getElementById('wWalletStore');
     
     let amount = +input.value;
     let walletName = walletSelect.value;
@@ -3785,50 +4629,33 @@ async function withdrawPartial(p){
     let reason = await showPrompt("سبب السحب", "هذا الحقل إجباري", "أدخل سبب السحب...", '<i class="fas fa-money-bill-wave"></i>', false, "", true);
     if(!reason) return notify("تم الإلغاء: السبب مطلوب","error");
 
-    let i = safeJSON(store.invest, {});
     let w = safeJSON(store.wallets, {});
-    
     let wallet = w[walletName];
+    if(!wallet) return notify("المحفظة غير موجودة", "error");
     let currency = wallet.cur;
-    let shareType = (currency === '$') ? 'd' : 's';
-
-    let currentShare = Number(i[p][shareType].toFixed(2));
-    let currentWallet = Number(wallet.bal.toFixed(2));
-
-    if(currentShare < amount) { notify(`رصيد الحصة (${currency}) غير كافي للسحب`,"error"); return; }
-    if(currentWallet < amount) { notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error"); return; }
-
-    let shareBefore = i[p][shareType];
     let walletBefore = wallet.bal;
 
-    i[p][shareType] -= amount; 
+    if(walletBefore < amount) { notify(`رصيد المحفظة (${walletName}) غير كافي.`, "error"); return; }
+
     w[walletName].bal -= amount; 
-
-    // ─── Atomic: سحب الأرباح ─────────────────────────────────────
-    store.invest = JSON.stringify(i);
     store.wallets = JSON.stringify(w);
-    fbAtomicWalletInvest(
-        { [walletName]: -amount },
-        { [`${p}.${shareType}`]: -amount },
-        w, i
-    );
+    fbAtomicWalletInvest({ [walletName]: -amount }, {}, w, {});
 
-    logAction(`سحب أرباح من حصة ${p} عبر ${walletName}`, 'financial', {
-        type: 'withdraw',
-        person: p,
-        amount: amount,
-        currency: currency,
-        walletName: walletName,
-        deductedFromWallet: amount,
-        reason: reason,
-        shareBefore: shareBefore,
-        shareAfter: i[p][shareType],
-        walletBefore: walletBefore,
-        walletAfter: w[walletName].bal
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+    let deltaUSD = currency === '$' ? -amount : -(amount / rate);
+    recordBudgetEvent('withdrawal', `سحب أرباح من ${walletName}: ${amount}${currency}`, deltaUSD, {
+        type: 'withdraw', walletName, amount, currency, reason,
+        walletBefore, walletAfter: w[walletName].bal
+    });
+
+    logAction(`سحب أرباح من ${walletName}`, 'financial', {
+        type: 'withdraw', amount, currency, walletName, reason,
+        walletBefore, walletAfter: w[walletName].bal
     });
 
     refreshInvestment(); refreshWallets(); input.value=""; 
-     notify("تم السحب بنجاح");
+    notify("تم السحب بنجاح");
 }
 
 function addNewWallet(){ 
@@ -3979,53 +4806,184 @@ function confirmTransfer() {
 }
 
 function executeTransfer() {
-    let from = document.getElementById("tfFromWallet").value, to = document.getElementById("tfToWallet").value;
-    let amount = parseFloat(document.getElementById("tfAmount").value), fee = parseFloat(document.getElementById("tfFee").value) || 0;
-    let rate = parseFloat(document.getElementById("tfRate").value) || 1, result = parseFloat(document.getElementById("tfResult").value); 
-    if(!from || !to || isNaN(amount) || amount <= 0 || fee < 0 || rate <= 0 || isNaN(result) || result < 0 || from === to) return notify("بيانات خاطئة", "error");
+    let from = document.getElementById("tfFromWallet").value;
+    let to = document.getElementById("tfToWallet").value;
+    let amount = parseFloat(document.getElementById("tfAmount").value);
+    let fee = parseFloat(document.getElementById("tfFee").value) || 0;
+    let rate = parseFloat(document.getElementById("tfRate").value) || 1;
+    let result = parseFloat(document.getElementById("tfResult").value); 
+
+    if(!from || !to) return notify("يرجى تحديد المحافظ بشكل صحيح", "error");
+    if(isNaN(amount) || amount <= 0) return notify("مبلغ التحويل يجب أن يكون أكبر من الصفر", "error");
+    if(fee < 0) return notify("العمولة لا يمكن أن تكون قيمة سالبة", "error");
+    if(rate <= 0) return notify("سعر الصرف يجب أن يكون أكبر من الصفر", "error");
+    if(isNaN(result) || result < 0) return notify("قيمة الصافي غير صالحة", "error");
+    if(from === to) return notify("لا يمكن التحويل لنفس المحفظة", "error");
 
     let w = safeJSON(store.wallets, {});
     if(w[from].bal < amount) return notify("الرصيد غير كافي", "error");
 
-    let fromCur = w[from].cur, toCur = w[to].cur;
-    w[from].bal -= amount; w[to].bal += result;
+    let fromCur = w[from].cur;
+    let toCur = w[to].cur;
 
-    store.wallets = JSON.stringify(w); 
-    fbAtomicWalletInvest({ [from]: -amount, [to]: +result }, w);
+    w[from].bal -= amount;
+    w[to].bal += result;
+
+    let invest = safeJSON(store.invest, {});
     
-    let logDet = { type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: toCur };
-    logAction(`تحويل من ${from} إلى ${to}`, 'financial', logDet);
-    
-    if(fee > 0) {
-        let s = safeJSON(store.settings, {});
-        let impactUSD = -(fromCur === '$' ? fee : fee/(s.exchangeRate||1));
-        addFinancePoint('other', impactUSD, `عمولة تحويل`, logDet);
+    if(fromCur !== toCur) {
+        let fromType = (fromCur === '$') ? 'd' : 's';
+        let toType = (toCur === '$') ? 'd' : 's';
+        invest.store[fromType] -= amount; 
+        invest.store[toType] += result;
+    } else {
+        if(fee > 0) {
+            if(fromCur === '$') invest.store.d -= fee;
+            else invest.store.s -= fee;
+        }
     }
-    refreshWallets(); refreshInvestment(); refreshAnalytics(); notify("تم التحويل");
+
+    // ─── Atomic: تحويل الأرصدة ───────────────────────────────────
+    store.wallets = JSON.stringify(w); 
+    store.invest  = JSON.stringify(invest);
+
+    const _wIncsTransfer = {
+        [from]: -amount,
+        [to]:   +result
+    };
+    const _iIncsTransfer = {};
+    if (fromCur !== toCur) {
+        let _fType = (fromCur === '$') ? 'd' : 's';
+        let _tType = (toCur   === '$') ? 'd' : 's';
+        _iIncsTransfer[`store.${_fType}`] = -amount;
+        _iIncsTransfer[`store.${_tType}`] = +result;
+    } else if (fee > 0) {
+        let _feeType = (fromCur === '$') ? 'd' : 's';
+        _iIncsTransfer[`store.${_feeType}`] = -fee;
+    }
+    fbAtomicWalletInvest(_wIncsTransfer, _iIncsTransfer, w, invest);
+    
+    // سجّل حدث الميزانية — التحويل لا يغير الإجمالي إلا بسبب العمولة
+    if(fee > 0) {
+        let _tSettings = safeJSON(store.settings, {});
+        let _tRate = _tSettings.exchangeRate && _tSettings.exchangeRate > 0 ? _tSettings.exchangeRate : 3.5;
+        let _feeDeltaUSD = fromCur === '$' ? -fee : -(fee / _tRate);
+        recordBudgetEvent('transfer', `تحويل من ${from} إلى ${to} (عمولة: ${fee}${fromCur})`, _feeDeltaUSD, {
+            type: 'transfer', from, to, amount, fee, fromCur, toCur, rate, result
+        });
+    } else {
+        recordBudgetEvent('transfer', `تحويل من ${from} إلى ${to}: ${amount}${fromCur}`, 0, {
+            type: 'transfer', from, to, amount, fee, fromCur, toCur, rate, result
+        });
+    }
+
+    logAction(`تحويل من ${from} إلى ${to}`, 'financial', {
+        type: 'transfer', from: from, to: to, amount: amount, fee: fee, feeCur: fromCur, rate: rate, result: result, netAmount: amount - fee, fromCur: fromCur, toCur: toCur
+    });
+
+    refreshWallets(); refreshInvestment();  notify("تم التحويل");
+    document.getElementById("tfAmount").value = "";
+    document.getElementById("tfFee").value = "0";
+    document.getElementById("tfResult").value = "";
 }
 
 async function setWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    
     let modWalletVal = document.getElementById("modWallet").value;
     let modAmountVal = parseFloat(document.getElementById("modAmount").value);
-    if(!modWalletVal || isNaN(modAmountVal)) return notify("أدخل البيانات", "error");
-    let reason = await showPrompt("سبب التعديل", "هذا الحقل إجباري", "أدخل السبب...", '<i class="fas fa-edit"></i>', false, "", true);
+    
+    if(!modWalletVal) return notify("اختر المحفظة أولاً", "error");
+    if(isNaN(modAmountVal)) return notify("أدخل الرصيد الجديد", "error");
+    
+    let reason = await showPrompt("سبب التعيين المباشر", "هذا الحقل إجباري", "أدخل سبب التعيين...", '<i class="fas fa-edit"></i>', false, "", true);
     if(!reason) return;
     
-    let w=safeJSON(store.wallets, {}); let before = w[modWalletVal].bal; let diff = parseFloat((modAmountVal - before).toFixed(2));
-    w[modWalletVal].bal = modAmountVal; store.wallets = JSON.stringify(w);
-
-    if (isDemoMode) { localStorage.setItem('demo_wallets', JSON.stringify(w)); } else if (fbDocRef) { fbDocRef.update({ [`wallets.${modWalletVal}.bal`]: modAmountVal }); } 
+    let w=safeJSON(store.wallets, {}); 
+    let before = w[modWalletVal].bal;
+    let diff = parseFloat((modAmountVal - before).toFixed(2));
     
-    let logDet = { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff };
-    logAction(`تعيين رصيد محفظة ${modWalletVal}`, 'financial', logDet);
-    
-    let s = safeJSON(store.settings, {});
-    let impactUSD = (w[modWalletVal].cur === '$' ? diff : diff/(s.exchangeRate||1));
-    addFinancePoint('other', impactUSD, `تعديل يدوي: ${modWalletVal}`, logDet);
+    w[modWalletVal].bal = modAmountVal; 
+    store.wallets = JSON.stringify(w);
 
-    refreshWallets(); refreshInvestment(); refreshAnalytics(); notify("تم تحديث الرصيد"); 
+    if (isDemoMode) {
+        localStorage.setItem('demo_wallets', JSON.stringify(w));
+    } else if (fbDocRef) {
+        _startSyncTimer();
+        fbDocRef.update({ [`wallets.${modWalletVal}.bal`]: modAmountVal })
+            .then(() => { clearTimeout(_pendingWritesTimer); lastServerState['wallets'] = JSON.parse(JSON.stringify(w)); updateSyncStatus("تم الحفظ بنجاح", "success"); })
+            .catch(e => { clearTimeout(_pendingWritesTimer); console.error("setWallet error:", e); updateSyncStatus("فشل الحفظ", "error"); });
+    }
+
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+    let walletCur = w[modWalletVal].cur;
+    let deltaUSD = walletCur === '$' ? diff : diff / rate;
+    recordBudgetEvent('set_wallet', `تعيين رصيد ${modWalletVal}: ${modAmountVal}${walletCur}`, deltaUSD, {
+        type: 'manual', wallet: modWalletVal, reason, before, after: modAmountVal, diff
+    });
+
+    logAction(`تعيين رصيد محفظة ${modWalletVal}`, 'financial', { type: 'manual', wallet: modWalletVal, reason: reason, before: before, after: modAmountVal, diff: diff });
+    refreshWallets(); refreshInvestment(); notify("تم تحديث الرصيد بنجاح"); 
 }
+
+async function setProfitShare() {
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let person = document.getElementById("setSharePerson").value;
+    let currency = document.getElementById("setShareCurrency").value;
+    let amount = parseFloat(document.getElementById("setShareAmount").value);
+
+    if(isNaN(amount)) return notify("أدخل الرصيد الجديد", "error");
+    
+    let syncType = await showPrompt("نوع التعديل", "اختر طبيعة التعديل:", "", '<i class="fas fa-link"></i>', true, '<option value="open">مفتوح (تعديل الحصة فقط)</option><option value="closed">مغلق (ربط التعديل بمحفظة)</option>');
+    if(!syncType) return;
+    
+    let targetWallet = null;
+    if(syncType === 'closed') {
+        let wallets=safeJSON(store.wallets, {});
+        let opts = "";
+        let expectedCurSymbol = currency === 'd' ? '$' : '₪';
+        Object.keys(wallets).forEach(w => { if(wallets[w].cur === expectedCurSymbol) opts += `<option value="${w}">${w}</option>`; });
+        if(!opts) return notify(`لا يوجد محافظ بعمله ${expectedCurSymbol}`, "error");
+        
+        targetWallet = await showPrompt("اختيار المحفظة للربط", `اختر المحفظة (يجب أن تكون بعملة ${expectedCurSymbol}):`, "", '<i class="fas fa-wallet"></i>', true, opts);
+        if(!targetWallet) return;
+    }
+
+    let reason = await showPrompt("سبب تعديل الحصة", "هذا الحقل إجباري", "أدخل السبب...", '<i class="fas fa-edit"></i>', false, "", true);
+    if(!reason) return;
+
+    let invest = safeJSON(store.invest, {});
+    let before = invest[person][currency];
+    let diff = parseFloat((amount - before).toFixed(2));
+    
+    let w = safeJSON(store.wallets, {});
+    if(syncType === 'closed') {
+        if (w[targetWallet].bal + diff < 0) {
+            return notify(`رصيد المحفظة المرتبطة غير كافٍ لتحمل هذا النقصان!`, "error");
+        }
+        w[targetWallet].bal = parseFloat((w[targetWallet].bal + diff).toFixed(2));
+        // wallet سيُحفظ بـ fbAtomicWalletInvest أدناه
+    }
+    
+    invest[person][currency] = amount;
+    store.invest = JSON.stringify(invest);
+
+    // ─── Atomic: تعديل الحصة ─────────────────────────────────────
+    const _iPIncs = { [`${person}.${currency}`]: diff };
+    if (syncType === 'closed') {
+        // الـ wallet يُعدَّل أيضاً بـ increment ذري
+        const _walletCur = currency === 'd' ? '$' : '₪';
+        const _wPIncs = { [targetWallet]: diff };
+        store.wallets = JSON.stringify(w);
+        fbAtomicWalletInvest(_wPIncs, _iPIncs, w, invest);
+    } else {
+        fbAtomicWalletInvest({}, _iPIncs, null, invest);
+    }
+    logAction(`تعديل مباشر لحصة ${person}`, 'financial', { type: 'manual_invest', person: person, currency: currency, reason: reason, before: before, after: amount, diff: diff, syncedWallet: targetWallet });
+    refreshInvestment(); refreshWallets(); notify("تم تحديث الحصة بنجاح");
+}
+
 async function deleteWallet(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error"); 
     let targetWallet = document.getElementById("renameWalletSelect").value;
@@ -4040,23 +4998,13 @@ async function deleteWallet(){
         let absVal = Math.abs(wallet.bal);
         let expectedCurKey = wallet.cur === '$' ? 'd' : 's';
         let msg = isNeg
-            ? `المحفظة تحتوي على رصيد سالب (${fix(wallet.bal)}${wallet.cur}). يرجى اختيار الحصة التي سيُضاف إليها هذا المبلغ كتسوية:`
-            : `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. يرجى اختيار الحصة التي سيتم خصم هذا المبلغ منها قبل الحذف:`;
-        let targetShare = await showPrompt("رصيد المحفظة غير مصفر", msg, "", '<i class="fas fa-chart-pie"></i>', true, '<option value="ahmad">أحمد</option><option value="mohamed">محمد</option><option value="store">المتجر</option>');
-        if(!targetShare) return;
-
-        let invest = safeJSON(store.invest, {});
-        if (!isNeg && invest[targetShare][expectedCurKey] < wallet.bal) {
-            return notify(`رصيد حصة ${targetShare} غير كافٍ لاستيعاب هذا الخصم!`, "error");
-        }
-
-        let confirmMsg = isNeg
-            ? `سيُضاف ${fix(absVal)}${wallet.cur} لحصة ${targetShare} (تسوية رصيد سالب) وتُحذف المحفظة. تأكيد؟`
-            : `سيتم خصم ${fix(wallet.bal)}${wallet.cur} من حصة ${targetShare} وحذف المحفظة نهائياً. تأكيد؟`;
-        let ok = await showConfirm("حذف المحفظة", confirmMsg, isNeg ? "تسوية وحذف" : "خصم وحذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+            ? `المحفظة تحتوي على رصيد سالب (${fix(wallet.bal)}${wallet.cur}). سيتم إضافة هذا المبلغ للمتجر كتسوية.`
+            : `المحفظة تحتوي على ${fix(wallet.bal)}${wallet.cur}. هل تريد حذفها (سيتم شطب الرصيد نهائياً)؟`;
+        let ok = await showConfirm("حذف المحفظة", msg, isNeg ? "تسوية وحذف" : "خصم وحذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
         if(!ok) return;
 
-        // الرصيد السالب يُعاد للحصة (إضافة)، الموجب يُخصم منها
+        let invest = safeJSON(store.invest, {});
+        let targetShare = 'store';
         let delta = isNeg ? absVal : -wallet.bal;
         invest[targetShare][expectedCurKey] = +((invest[targetShare][expectedCurKey] || 0) + delta).toFixed(2);
         store.invest = JSON.stringify(invest);
@@ -4169,40 +5117,120 @@ function importData(){
 
 async function undoLastPurchase(){ 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return;
-    let purchases = safeJSON(store.purchases, []);
-    if(purchases.length === 0) return notify("لا توجد عمليات", "error");
-    let undoIdx = purchases.findIndex(x => x.canBeUndone);
-    if (undoIdx === -1) return notify("لا يمكن التراجع سوى عن أحدث عملية بيع فقط", "error");
     
-    let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة وإلغاء النقطة من المنحنى.", "نعم، تراجع", "لا", '<i class="fas fa-undo"></i>');
+    let purchases = safeJSON(store.purchases, []);
+    if(purchases.length === 0) return notify("لا توجد عمليات للتراجع عنها", "error");
+    
+    let undoIdx = purchases.findIndex(x => x.canBeUndone);
+    if (undoIdx === -1) {
+        return notify("لا يمكن التراجع سوى لمرة واحدة عن أحدث عملية بيع فقط", "error");
+    }
+    let lastP = purchases[undoIdx];
+    
+    let ok = await showConfirm("تراجع عن آخر عملية", "سيتم استعادة جميع الأرصدة والحصص وكود الخصم وترقية الـ VIP (إن وُجد). هل تريد المتابعة؟", "نعم، تراجع", "لا، إلغاء", '<i class="fas fa-undo"></i>');
     if(!ok) return;
     
-    let lastP = purchases[undoIdx];
     purchases.splice(undoIdx, 1); 
     
-    let wallets = safeJSON(store.wallets, {}); const _undoWalletIncs = {};
-    if(lastP.wallet && wallets[lastP.wallet]) { let paidVal = parseFloat(lastP.paid); wallets[lastP.wallet].bal -= paidVal; _undoWalletIncs[lastP.wallet] = -paidVal; }
-    
-    let undoUpdates = { purchases: purchases }; store.wallets = JSON.stringify(wallets); store.purchases = JSON.stringify(purchases);
-
-    if (lastP.stockId) {
-        let stockList = safeJSON(store.stock, []); let sItem = stockList.find(x => x.id === lastP.stockId);
-        if (sItem) { sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1); if (sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop(); if (sItem.status === 'sold') { sItem.status = 'active'; delete sItem.soldDate; } store.stock = JSON.stringify(stockList); undoUpdates.stock = stockList; }
+    let wallets = safeJSON(store.wallets, {});
+    const _undoWalletIncs = {};
+    if(lastP.wallet && wallets[lastP.wallet]) { 
+        let paidVal = parseFloat(lastP.paid); 
+        wallets[lastP.wallet].bal -= paidVal;
+        _undoWalletIncs[lastP.wallet] = -paidVal;
     }
     
+    let undoUpdates = { purchases: purchases };
+    store.wallets   = JSON.stringify(wallets);
+    store.purchases = JSON.stringify(purchases);
+
+    if (lastP.stockId) {
+        let stockList = safeJSON(store.stock, []);
+        let sItem = stockList.find(x => x.id === lastP.stockId);
+        if (sItem) {
+            sItem.soldProfiles = Math.max(0, (sItem.soldProfiles || 0) - 1);
+            if (sItem.buyers && sItem.buyers.length > 0) sItem.buyers.pop();
+            if (sItem.status === 'sold') { sItem.status = 'active'; delete sItem.soldDate; }
+            store.stock = JSON.stringify(stockList);
+            undoUpdates.stock = stockList;
+        }
+    }
+
+    if (lastP.usedDiscountObj) {
+        let dList = safeJSON(store.discounts, []);
+        let existingIdx = dList.findIndex(x => x.id === lastP.usedDiscountObj.id);
+        if (existingIdx !== -1) {
+            dList[existingIdx].usedCount = Math.max(0, (dList[existingIdx].usedCount || 1) - 1);
+        } else {
+            let restoredCoupon = lastP.usedDiscountObj;
+            restoredCoupon.usedCount = Math.max(0, (restoredCoupon.maxUses || 1) - 1);
+            dList.unshift(restoredCoupon);
+        }
+        store.discounts = JSON.stringify(dList);
+        undoUpdates.discounts = dList;
+    }
+
+    // -- التراجع عن الـ VIP --
     let vips = safeJSON(store.vipCustomers, {});
-    if (lastP.investDelta && lastP.investDelta.vipPhone) { let phone = lastP.investDelta.vipPhone; let pState = lastP.investDelta.vipPrevState; if (!pState || pState.count === 0) { delete vips[phone]; } else { vips[phone] = pState; } store.vipCustomers = JSON.stringify(vips); undoUpdates.vipCustomers = vips; }
+    if (lastP.investDelta && lastP.investDelta.vipPhone) {
+        let phone = lastP.investDelta.vipPhone;
+        let pState = lastP.investDelta.vipPrevState;
+        
+        if (!pState || pState.count === 0) {
+            delete vips[phone]; 
+        } else {
+            vips[phone] = pState; 
+        }
+        store.vipCustomers = JSON.stringify(vips);
+        undoUpdates.vipCustomers = vips;
+    }
 
-    let points = safeJSON(store.financePoints, []);
-    points = points.filter(pt => pt.refId !== lastP.id);
-    store.financePoints = JSON.stringify(points); undoUpdates.financePoints = points;
+    fbSaveMultiple(undoUpdates);
 
-    fbSaveMultiple(undoUpdates); fbAtomicWalletInvest(_undoWalletIncs, wallets);
+    if (lastP.investDelta) {
+        const d = lastP.investDelta;
+        const _iUndo = {};
+        if (d.overrideType) {
+            _iUndo[`store.${d.storeType}`] = -(d.store);
+        } else {
+            const t = d.shareType || 's';
+            if (d.store   !== undefined) _iUndo[`store.${t}`]   = -d.store;
+            if (d.ahmad   !== undefined) _iUndo[`ahmad.${t}`]   = -d.ahmad;
+            if (d.mohamed !== undefined) _iUndo[`mohamed.${t}`] = -d.mohamed;
+        }
+        let invest = safeJSON(store.invest, {});
+        Object.entries(_iUndo).forEach(([path, delta]) => {
+            let [person, cur] = path.split('.');
+            if (invest[person]) invest[person][cur] = +((invest[person][cur] || 0) + delta).toFixed(2);
+        });
+        store.invest = JSON.stringify(invest);
+        fbAtomicWalletInvest(_undoWalletIncs, _iUndo, wallets, invest);
+    } else {
+        fbAtomicWalletInvest(_undoWalletIncs, {}, wallets, wallets);
+    }
+    
     logAction("تراجع عن عملية شراء", 'financial', { type: 'undo', data: lastP, deducted: lastP.paid });
     
-    currentPage.history = 1; loadPurchaseStock(); refreshAll(); 
-    if(!document.getElementById("analytics").classList.contains("hidden")) refreshAnalytics(); 
-    notify("تم التراجع"); 
+    // حذف حدث الميزانية المرتبط بهذه العملية
+    if(lastP.investDelta && lastP.investDelta.purchaseId) {
+        let budgetH = safeJSON(store.budgetHistory, []);
+        budgetH = budgetH.filter(x => x.details?.purchaseId !== lastP.investDelta.purchaseId);
+        store.budgetHistory = JSON.stringify(budgetH);
+        fbSave('budgetHistory', budgetH);
+    } else {
+        // حذف آخر حدث من نوع purchase
+        let budgetH2 = safeJSON(store.budgetHistory, []);
+        let lastPurchaseIdx = budgetH2.map((x,i)=>({x,i})).filter(({x})=>x.type==='purchase').pop();
+        if(lastPurchaseIdx) {
+            budgetH2.splice(lastPurchaseIdx.i, 1);
+            store.budgetHistory = JSON.stringify(budgetH2);
+            fbSave('budgetHistory', budgetH2);
+        }
+    }
+    
+    currentPage.history = 1;
+    loadPurchaseStock();
+    refreshAll();  notify("تم التراجع واستعادة البيانات بنجاح"); 
 }
 
 async function clearHistory() {
@@ -4334,27 +5362,85 @@ function verifyStockAdd() {
 
 function executeStockAdd(stService, stCost, stWallet, wallets) {
     let stProfiles = parseInt(document.getElementById("stProfiles").value) || 1;
-    let w = wallets[stWallet]; let wBefore = w.bal; w.bal -= stCost;
+    let w = wallets[stWallet];
+    let wBefore = w.bal;
     
+    w.bal -= stCost;
+    
+    let invest = safeJSON(store.invest, {});
+    let shareType = (w.cur === '$') ? 'd' : 's';
+    invest.store[shareType] -= stCost;
+    
+    let baseName = stService + (stProfiles > 1 ? " Shared" : "");
     let stock = safeJSON(store.stock, []);
+    let activeStock = stock.filter(x => x.status === 'active');
+    let finalName = baseName;
+    let counter = 2;
+    while(activeStock.some(x => (x.displayName || x.service) === finalName)) {
+        finalName = baseName + counter;
+        counter++;
+    }
+
     let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let ndd = nd.getDate().toString().padStart(2,'0');
+
     let s = {
         id: 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
-        service: stService, displayName: stService + (stProfiles > 1 ? " Shared" : ""), totalProfiles: stProfiles, soldProfiles: 0,
-        vendor: document.getElementById("stVendor").value, duration: document.getElementById("stDuration").value, email: document.getElementById("stEmail").value.trim(), pass: document.getElementById("stPass").value, notes: document.getElementById("stNotes").value,
-        buyers: [], status: 'active', date: `${nd.getFullYear()}-${(nd.getMonth()+1).toString().padStart(2,'0')}-${nd.getDate().toString().padStart(2,'0')}`, timestamp: nd.getTime(), cost: stCost, costCurrency: w.cur, sourceWallet: stWallet  
+        service: stService,
+        displayName: finalName,
+        totalProfiles: stProfiles,
+        soldProfiles: 0,
+        vendor: document.getElementById("stVendor").value,
+        duration: document.getElementById("stDuration").value,
+        email: document.getElementById("stEmail").value.trim(),
+        pass: document.getElementById("stPass").value,
+        notes: document.getElementById("stNotes").value,
+        buyers: [],
+        status: 'active',
+        date: `${nd.getFullYear()}-${nmm}-${ndd}`,
+        timestamp: nd.getTime(),
+        cost: stCost,           
+        costCurrency: w.cur,    
+        sourceWallet: stWallet  
     };
-    stock.unshift(s); store.stock = JSON.stringify(stock); fbSave("stock", stock);
-    store.wallets = JSON.stringify(wallets); fbAtomicWalletInvest({ [stWallet]: -stCost }, wallets);
     
-    let logDet = { type: 'stock_add', item: s.displayName, cost: stCost, currency: w.cur, wallet: stWallet, wBefore: wBefore, wAfter: w.bal };
-    logAction(`شراء مخزون جديد: ${s.displayName}`, 'financial', logDet);
+    stock.unshift(s);
     
-    let set = safeJSON(store.settings, {});
-    let impactUSD = -(w.cur === '$' ? stCost : stCost/(set.exchangeRate||1));
-    addFinancePoint('stock_add', impactUSD, `مصروف: ${s.displayName}`, logDet);
+    store.stock = JSON.stringify(stock); fbSave("stock", stock);
 
-    document.getElementById("stockModal").classList.add("hidden"); currentPage.stock = 1; loadPurchaseStock(); refreshAll(); notify("تم شراء المخزون");
+    // ─── Atomic: خصم التكلفة من المحفظة وحصة المتجر ─────────────
+    store.wallets = JSON.stringify(wallets);
+    store.invest  = JSON.stringify(invest);
+    fbAtomicWalletInvest(
+        { [stWallet]: -stCost },
+        { [`store.${shareType}`]: -stCost },
+        wallets, invest
+    );
+    
+    logAction(`شراء مخزون جديد: ${s.displayName}`, 'financial', {
+        type: 'stock_add',
+        item: s.displayName,
+        cost: stCost,
+        currency: w.cur,
+        wallet: stWallet,
+        wBefore: wBefore,
+        wAfter: w.bal
+    });
+    
+    // سجّل حدث الميزانية
+    let _sSettings = safeJSON(store.settings, {});
+    let _sRate = _sSettings.exchangeRate && _sSettings.exchangeRate > 0 ? _sSettings.exchangeRate : 3.5;
+    let _sDeltaUSD = w.cur === '$' ? -stCost : -(stCost / _sRate);
+    recordBudgetEvent('stock_buy', `شراء مخزون: ${s.displayName} بتكلفة ${stCost}${w.cur}`, _sDeltaUSD, {
+        type: 'stock_add', item: s.displayName, cost: stCost, currency: w.cur, wallet: stWallet
+    });
+    
+    document.getElementById("stockModal").classList.add("hidden");
+    currentPage.stock = 1;
+    loadPurchaseStock();
+    refreshAll();
+    notify("تم شراء وإضافة المخزون بنجاح");
 }
 
 function updateStockNote() {
@@ -4858,9 +5944,6 @@ window.onload = init;
 </script>
 </body>
 </html>
-
-
-
 
 
 
