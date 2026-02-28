@@ -438,6 +438,11 @@
             #history .input-group {
                 width: 100%;
             }
+
+            /* واجهة سحب الأرباح في الجوال */
+            #investment > div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
         }
 
         /* --- OTHER COMPONENTS --- */
@@ -1023,9 +1028,19 @@
         
         <!-- Budget Timeline Chart -->
         <div class="inner-box" style="margin-bottom:30px; padding:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
-                <h4 style="margin:0; color:var(--text-main)"><i class="fas fa-chart-line" style="color:var(--primary)"></i> مسار الميزانية - الشهر الحالي</h4>
-                <div id="budgetTotalDisplay" style="font-size:14px; font-weight:800; color:var(--primary); background:rgba(99,102,241,0.1); padding:6px 14px; border-radius:20px;"></div>
+            <div style="margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                    <h4 style="margin:0; color:var(--text-main)"><i class="fas fa-chart-line" style="color:var(--primary)"></i> مسار الميزانية</h4>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                        <div id="budgetTotalDisplay" style="font-size:14px; font-weight:800; color:var(--primary); background:rgba(99,102,241,0.1); padding:6px 14px; border-radius:20px;"></div>
+                        <div id="budgetProfitDisplay" style="font-size:13px; font-weight:800; padding:5px 12px; border-radius:20px; display:none;"></div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+                    <button onclick="budgetNavNext()" id="btnBudgetNext" title="الشهر التالي" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:10px; padding:5px 14px; cursor:pointer; color:var(--text-main); font-size:18px; font-weight:700; line-height:1; transition:0.2s;" onmouseover="this.style.background='var(--primary)';this.style.color='white';" onmouseout="this.style.background='var(--bg-input)';this.style.color='var(--text-main)';">&#x276E;</button>
+                    <span id="budgetMonthLabel" style="font-size:15px; font-weight:800; color:var(--text-main); min-width:160px; text-align:center;"></span>
+                    <button onclick="budgetNavPrev()" id="btnBudgetPrev" title="الشهر السابق" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:10px; padding:5px 14px; cursor:pointer; color:var(--text-main); font-size:18px; font-weight:700; line-height:1; transition:0.2s;" onmouseover="this.style.background='var(--primary)';this.style.color='white';" onmouseout="this.style.background='var(--bg-input)';this.style.color='var(--text-main)';">&#x276F;</button>
+                </div>
             </div>
             <!-- فلاتر أنواع النقاط -->
             <div id="budgetFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
@@ -1114,26 +1129,74 @@
 
     <div id="investment" class="card hidden">
         <h3><i class="fas fa-hand-holding-usd" style="color:var(--primary)"></i> سحب الأرباح</h3>
-        <div id="investBox" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;"></div>
-        
-        <div class="inner-box" style="margin-top:40px; border-color:var(--danger)!important">
-            <h4 style="margin-top:0; color:var(--danger)"><i class="fas fa-money-check-alt"></i> سحب الأرباح</h4>
-            <div style="margin-bottom:15px; font-size:13px; color:var(--text-muted);">
-                <i class="fas fa-info-circle"></i> سيتم خصم المبلغ تلقائياً من المحفظة المحددة.
+
+        <!-- بطاقة رأس المال الإجمالي -->
+        <div id="investBox" style="margin-bottom:28px;"></div>
+
+        <!-- قسم السحب الجديد -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; align-items:start;">
+
+            <!-- يسار: اختيار المحفظة -->
+            <div>
+                <div style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-wallet" style="color:var(--primary)"></i> اختر المحفظة
+                </div>
+                <div id="walletPickerCards" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:20px">
-                
-                <div class="input-group">
-                    <label>سحب من المتجر</label>
-                    <div style="display:flex; flex-direction:column; gap:10px">
-                        <select id="wWalletStore" style="width:100%"></select>
-                        <input id="withdrawStore" type="number" placeholder="0.00">
-                        <button class="btn btn-danger" onclick="withdrawPartial('store')" style="width:100%">سحب</button>
-                    </div>
+
+            <!-- يمين: نموذج السحب -->
+            <div>
+                <div style="font-size:13px; font-weight:700; color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-money-bill-wave" style="color:var(--success)"></i> تفاصيل السحب
                 </div>
 
+                <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; gap:16px;">
+
+                    <!-- المحفظة المختارة -->
+                    <div id="selectedWalletPreview" style="display:none; background:var(--bg-card); border:2px solid var(--primary); border-radius:var(--radius-md); padding:14px; display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:700; font-size:14px; color:var(--text-main);" id="selectedWalletName">—</span>
+                        <span style="font-size:18px; font-weight:900; color:var(--primary); direction:ltr;" id="selectedWalletBal">0.00</span>
+                    </div>
+                    <div id="noWalletHint" style="text-align:center; padding:14px; color:var(--text-muted); font-size:13px;">
+                        <i class="fas fa-arrow-right" style="margin-left:6px;"></i> اختر محفظة من اليسار أولاً
+                    </div>
+
+                    <!-- حقل المبلغ -->
+                    <div>
+                        <label style="font-size:12px; color:var(--text-muted); font-weight:700; margin-bottom:6px; display:block;">المبلغ</label>
+                        <div style="display:flex; gap:0; border:2px solid var(--border-color); border-radius:var(--radius-md); overflow:hidden; transition:border-color 0.2s;" id="amountFieldWrap" onfocusin="this.style.borderColor='var(--primary)'" onfocusout="this.style.borderColor='var(--border-color)'">
+                            <input id="withdrawStore" type="number" placeholder="0.00" min="0" step="0.01"
+                                oninput="updateWithdrawPreview()"
+                                style="flex:1; padding:12px 14px; border:none; background:var(--bg-input); color:var(--text-main); font-size:18px; font-weight:800; outline:none; direction:ltr; text-align:left;">
+                            <span id="withdrawCurrencyLabel" style="padding:12px 16px; background:var(--bg-input); color:var(--text-muted); font-weight:700; font-size:15px; border-right:1px solid var(--border-color); white-space:nowrap;">—</span>
+                        </div>
+                    </div>
+
+                    <!-- معاينة الرصيد بعد السحب -->
+                    <div id="withdrawPreviewBox" style="display:none; background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:var(--radius-md); padding:12px 14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--text-muted);">
+                            <span>الرصيد قبل</span>
+                            <span id="previewBefore" style="font-weight:700; color:var(--text-main); direction:ltr;"></span>
+                        </div>
+                        <div style="height:1px; background:var(--border-color); margin:8px 0;"></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+                            <span style="font-weight:700; color:var(--danger);">الرصيد بعد السحب</span>
+                            <span id="previewAfter" style="font-weight:900; color:var(--danger); font-size:16px; direction:ltr;"></span>
+                        </div>
+                    </div>
+
+                    <!-- زر السحب -->
+                    <button onclick="withdrawPartial('store')" id="btnDoWithdraw"
+                        style="width:100%; padding:14px; border-radius:var(--radius-md); border:none; background:linear-gradient(135deg, #ef4444, #dc2626); color:white; font-size:15px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.2s; opacity:0.5; pointer-events:none;"
+                        disabled>
+                        <i class="fas fa-arrow-circle-down"></i> تأكيد السحب
+                    </button>
+                </div>
             </div>
         </div>
+
+        <!-- ─── Hidden select (still needed by withdrawPartial logic) ─── -->
+        <select id="wWalletStore" style="display:none;"></select>
     </div>
 
     <div id="modify" class="card hidden">
@@ -1286,9 +1349,9 @@
                     <span id="storageFree">جاري الفحص..</span>
                 </div>
                 
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);">
-                    <span id="storageSizeText">0 KB / 1024 KB</span>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);" dir="ltr">
                     <span id="storagePercentText">0%</span>
+                    <span id="storageSizeText">0 KB / 1024 KB</span>
                 </div>
 
                 <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;">
@@ -2674,6 +2737,36 @@ function removeBudgetEvent(id) {
 
 let myBudgetChart = null;
 let _budgetResizeObserver = null;
+let currentChartMonth = null; // 'YYYY-MM' - null = الشهر الحالي
+
+const _arabicMonthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+function _getCurrentMonthStr() {
+    let now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getNavigableMonths() {
+    let history = safeJSON(store.budgetHistory, []);
+    let monthSet = new Set();
+    history.forEach(ev => { if(ev.date) monthSet.add(ev.date.substring(0,7)); });
+    monthSet.add(_getCurrentMonthStr()); // الشهر الحالي دائماً مضمّن
+    return Array.from(monthSet).sort();
+}
+
+function budgetNavPrev() {
+    let months = getNavigableMonths();
+    let active = currentChartMonth || _getCurrentMonthStr();
+    let idx = months.indexOf(active);
+    if(idx > 0) { currentChartMonth = months[idx - 1]; renderBudgetChart(); }
+}
+
+function budgetNavNext() {
+    let months = getNavigableMonths();
+    let active = currentChartMonth || _getCurrentMonthStr();
+    let idx = months.indexOf(active);
+    if(idx < months.length - 1) { currentChartMonth = months[idx + 1]; renderBudgetChart(); }
+}
 
 // ─── إعادة رسم الـ chart بشكل آمن عند تغيير حجم الـ container ───
 function _initBudgetResizeObserver() {
@@ -2697,8 +2790,26 @@ function renderBudgetChart() {
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
 
     let now = new Date();
-    let curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    let monthHistory = history.filter(x => x.date && x.date.startsWith(curMonth));
+    let realCurMonth = _getCurrentMonthStr();
+    let viewMonth = currentChartMonth || realCurMonth;
+    let isCurrentMonth = (viewMonth === realCurMonth);
+
+    // ─── تحديث تسمية الشهر وأزرار التنقل ────────────────────────
+    let monthLabel = document.getElementById('budgetMonthLabel');
+    if(monthLabel) {
+        let [yy, mm] = viewMonth.split('-');
+        let mName = _arabicMonthNames[parseInt(mm) - 1];
+        let suffix = isCurrentMonth ? ' (الشهر الحالي)' : '';
+        monthLabel.textContent = `${mName} ${yy}${suffix}`;
+    }
+    let months = getNavigableMonths();
+    let activeIdx = months.indexOf(viewMonth);
+    let btnPrev = document.getElementById('btnBudgetPrev');
+    let btnNext = document.getElementById('btnBudgetNext');
+    if(btnPrev) { btnPrev.disabled = activeIdx <= 0; btnPrev.style.opacity = activeIdx <= 0 ? '0.35' : '1'; btnPrev.style.cursor = activeIdx <= 0 ? 'not-allowed' : 'pointer'; }
+    if(btnNext) { btnNext.disabled = activeIdx >= months.length - 1; btnNext.style.opacity = activeIdx >= months.length - 1 ? '0.35' : '1'; btnNext.style.cursor = activeIdx >= months.length - 1 ? 'not-allowed' : 'pointer'; }
+
+    let monthHistory = history.filter(x => x.date && x.date.startsWith(viewMonth));
 
     // فلاتر النقاط
     let showTypes = {};
@@ -2707,15 +2818,47 @@ function renderBudgetChart() {
         showTypes[t] = el ? el.checked : true;
     });
 
-    // رصيد بداية الشهر
+    // رصيد بداية الشهر المعروض
+    let [vy, vm] = viewMonth.split('-').map(Number);
     let sortedEvents = monthHistory.slice().sort((a,b) => a.ts - b.ts);
     let allHistory = history.slice().sort((a,b) => a.ts - b.ts);
-    let startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let startOfMonth = new Date(vy, vm - 1, 1).getTime();
     let startBalance = 0;
     let prevEvent = allHistory.filter(x => x.ts < startOfMonth).pop();
     if(prevEvent) startBalance = prevEvent.totalUSD;
     else if(sortedEvents.length > 0) startBalance = sortedEvents[0].totalUSD - (sortedEvents[0].deltaUSD || 0);
-    else startBalance = getTotalBalanceUSD();
+    else startBalance = isCurrentMonth ? getTotalBalanceUSD() : 0;
+
+    // رصيد نهاية/حالي الشهر المعروض
+    let endBalance;
+    if(isCurrentMonth) {
+        endBalance = getTotalBalanceUSD();
+    } else {
+        let lastEv = sortedEvents[sortedEvents.length - 1];
+        endBalance = lastEv ? lastEv.totalUSD : startBalance;
+    }
+
+    // ─── عرض الأرباح / الخسائر ───────────────────────────────────
+    let profitEl = document.getElementById('budgetProfitDisplay');
+    if(profitEl) {
+        let diff = endBalance - startBalance;
+        let diffUSD = parseFloat(diff.toFixed(2));
+        let diffSHK = parseFloat((diff * rate).toFixed(2));
+        let sign = diffUSD >= 0 ? '+' : '';
+        if(Math.abs(diffUSD) < 0.001) {
+            profitEl.style.display = 'none';
+        } else if(diffUSD >= 0) {
+            profitEl.style.display = '';
+            profitEl.style.background = 'rgba(16,185,129,0.12)';
+            profitEl.style.color = '#10b981';
+            profitEl.textContent = `الأرباح: ${sign}${fix(diffUSD)}$ | ${sign}${fix(diffSHK)}₪`;
+        } else {
+            profitEl.style.display = '';
+            profitEl.style.background = 'rgba(239,68,68,0.12)';
+            profitEl.style.color = '#ef4444';
+            profitEl.textContent = `الخسائر: ${sign}${fix(diffUSD)}$ | ${sign}${fix(diffSHK)}₪`;
+        }
+    }
 
     // ─── بناء النقاط ─────────────────────────────────────────────
     // عند كثرة العمليات (>200)، نجمّع بالساعة بدل كل عملية
@@ -2750,7 +2893,21 @@ function renderBudgetChart() {
         });
     }
 
-    for(let d = 1; d <= now.getDate(); d++) {
+    // تحديد آخر يوم نرسمه
+    let lastDayOfMonth;
+    if(isCurrentMonth) {
+        lastDayOfMonth = now.getDate();
+    } else {
+        // آخر يوم في الشهر المحدد
+        lastDayOfMonth = new Date(vy, vm, 0).getDate();
+        // أو آخر يوم فيه حدث إذا كان أقل
+        if(sortedEvents.length > 0) {
+            let lastEvDay = parseInt(sortedEvents[sortedEvents.length-1].date.split('-')[2]);
+            lastDayOfMonth = lastEvDay;
+        }
+    }
+
+    for(let d = 1; d <= lastDayOfMonth; d++) {
         if(eventsByDay[d]) {
             eventsByDay[d].forEach(ev => {
                 chartPoints.push({ x: `${d}`, y: parseFloat(ev.totalUSD.toFixed(2)), event: ev });
@@ -2758,11 +2915,13 @@ function renderBudgetChart() {
         }
     }
 
-    // نقطة اليوم الحالي إذا لم تكن هناك أحداث اليوم
-    let todayDay = now.getDate();
-    let hasTodayPoint = chartPoints.some(p => parseInt(p.x) === todayDay && !p.isStart);
-    if(!hasTodayPoint) {
-        chartPoints.push({ x: `${todayDay}`, y: parseFloat(getTotalBalanceUSD().toFixed(2)), isToday: true });
+    // نقطة اليوم الحالي إذا كنا في الشهر الحالي ولم تكن هناك أحداث اليوم
+    if(isCurrentMonth) {
+        let todayDay = now.getDate();
+        let hasTodayPoint = chartPoints.some(p => parseInt(p.x) === todayDay && !p.isStart);
+        if(!hasTodayPoint) {
+            chartPoints.push({ x: `${todayDay}`, y: parseFloat(getTotalBalanceUSD().toFixed(2)), isToday: true });
+        }
     }
 
     // ─── بيانات الرسم ─────────────────────────────────────────────
@@ -2794,7 +2953,13 @@ function renderBudgetChart() {
         else tSHK += (w.bal||0);
     });
     let el = document.getElementById('budgetTotalDisplay');
-    if(el) el.textContent = `إجمالي: ${fix(tUSD + tSHK/rate)}$ | ${fix(tUSD*rate + tSHK)}₪`;
+    if(isCurrentMonth) {
+        if(el) el.textContent = `إجمالي: ${fix(tUSD + tSHK/rate)}$ | ${fix(tUSD*rate + tSHK)}₪`;
+    } else {
+        // عرض رصيد نهاية الشهر المحدد
+        let endUSD = endBalance;
+        if(el) el.textContent = `إجمالي: ${fix(endUSD)}$ | ${fix(endUSD*rate)}₪`;
+    }
 
     // ─── إنشاء/تحديث الـ Chart ───────────────────────────────────
     // دائماً destroy الـ chart قبل إعادة إنشائه لمنع خلل الـ canvas
@@ -2880,6 +3045,7 @@ function renderBudgetChart() {
                             let pt = chartPoints[idx];
                             if(pt?.event) return pt.event.label;
                             if(pt?.isStart) return 'بداية الشهر';
+                            if(pt?.isToday) return 'الرصيد الحالي';
                             return `اليوم ${items[0].label}`;
                         },
                         label: (item) => {
@@ -3096,40 +3262,85 @@ function init(){
 }
 
 function updateStorageUI() {
+    // ─── حساب دقيق لحجم البيانات المخزنة في Firebase ───────────────
+    // Firebase Firestore يحسب الحجم بطريقة محددة:
+    // - المستندات الـ Scalar: حقول في مستند واحد (wallets, settings, invest, services, vipCustomers)
+    // - المستندات الـ Array: كل عنصر وثيقة Firestore مستقلة (purchases, stock, users, activityLog, todoList, generalNotes, discounts, budgetHistory)
+    // تكلفة كل مستند Firestore = 32 bytes (overhead ثابت) + اسم المسار (~50 bytes) + حجم البيانات المُضغَّطة
+
+    const FIRESTORE_DOC_OVERHEAD = 82; // bytes ثابتة لكل وثيقة (metadata + path)
     let totalBytes = 0;
-    // حساب دقيق جداً لحجم البيانات الفعلي المخزن في النظام
-    const STORE_KEYS_ALL = ["wallets", "settings", "invest", "services", "vipCustomers", "purchases", "stock", "users", "activityLog", "todoList", "generalNotes", "discounts"];
-    
-    STORE_KEYS_ALL.forEach(k => {
-        if(store[k]) {
-            // استخدام Blob يعطينا الحجم الفعلي بالبايتات بدقة متناهية
-            totalBytes += new Blob([store[k]]).size;
+
+    // ① الـ Scalar keys — مخزنة كحقول في مستند main واحد
+    SCALAR_KEYS.forEach(k => {
+        if (store[k]) {
+            // حجم اسم الحقل (field name) + حجم القيمة الفعلية
+            let fieldNameSize = new Blob([k]).size + 1;
+            let fieldValueSize = new Blob([store[k]]).size + 1;
+            totalBytes += fieldNameSize + fieldValueSize;
+        }
+    });
+    totalBytes += FIRESTORE_DOC_OVERHEAD; // overhead المستند الرئيسي الواحد
+
+    // ② الـ Array keys — كل عنصر وثيقة Firestore مستقلة
+    ARRAY_KEYS.forEach(k => {
+        if (store[k]) {
+            try {
+                let arr = JSON.parse(store[k]);
+                if (Array.isArray(arr)) {
+                    arr.forEach(item => {
+                        // حجم بيانات العنصر + overhead الوثيقة المستقلة
+                        let itemSize = new Blob([JSON.stringify(item)]).size;
+                        totalBytes += itemSize + FIRESTORE_DOC_OVERHEAD;
+                    });
+                } else {
+                    // ليست مصفوفة — نعاملها كـ scalar
+                    totalBytes += new Blob([store[k]]).size + FIRESTORE_DOC_OVERHEAD;
+                }
+            } catch(e) {
+                totalBytes += new Blob([store[k]]).size + FIRESTORE_DOC_OVERHEAD;
+            }
         }
     });
 
-    let totalKB = (totalBytes / 1024).toFixed(2);
-    const MAX_KB = 1024; // 1 ميجابايت (حد فايربيز للمستند الواحد)
-    let percentage = Math.min((totalBytes / (MAX_KB * 1024)) * 100, 100).toFixed(1);
+    // ③ إضافة حجم أسماء المجموعات (Collection names overhead)
+    totalBytes += ARRAY_KEYS.length * 20; // ~20 bytes لكل اسم collection
+
+    // ─── تحويل وعرض ─────────────────────────────────────────────
+    let totalKB = totalBytes / 1024;
+    // حد Firestore الفعلي للبيانات: 1 GB مجاناً — نعرض نسبة من 1 MB (حد المستند الواحد هو 1MB)
+    // لكن المنطقي هو مقارنتها بـ 1 MB وهو حد البيانات العملي لهذا النوع من الأنظمة
+    const MAX_KB = 1024; // 1 MB كحد مرجعي عملي
+    let percentage = Math.min((totalKB / MAX_KB) * 100, 100).toFixed(1);
+
+    let displaySize;
+    if (totalKB < 1) {
+        displaySize = totalBytes.toFixed(0) + " B";
+    } else if (totalKB < 1024) {
+        displaySize = totalKB.toFixed(2) + " KB";
+    } else {
+        displaySize = (totalKB / 1024).toFixed(2) + " MB";
+    }
 
     let statusEl = document.getElementById("storageFree");
-    if(statusEl) {
+    if (statusEl) {
         statusEl.innerText = fbConnected ? "متصل (Online)" : "غير متصل (Offline)";
         statusEl.style.color = fbConnected ? "var(--success)" : "var(--danger)";
     }
 
     let usedEl = document.getElementById("storageUsed");
-    if(usedEl) usedEl.innerText = totalKB + " KB";
+    if (usedEl) usedEl.innerText = displaySize;
 
     let sizeText = document.getElementById("storageSizeText");
     let percentText = document.getElementById("storagePercentText");
     let bar = document.getElementById("storageBar");
 
-    if(sizeText) sizeText.innerText = `${totalKB} KB / ${MAX_KB} KB`;
-    if(percentText) percentText.innerText = `${percentage}%`;
+    if (sizeText) sizeText.innerText = `${totalKB.toFixed(2)} KB / ${MAX_KB} KB`;
+    if (percentText) percentText.innerText = `${percentage}%`;
 
-    if(bar) {
+    if (bar) {
         bar.style.width = `${percentage}%`;
-        if(percentage < 50) bar.style.background = "var(--success)";
+        if (percentage < 50) bar.style.background = "var(--success)";
         else if (percentage < 80) bar.style.background = "var(--accent)";
         else bar.style.background = "var(--danger)";
     }
@@ -3208,6 +3419,7 @@ async function attemptLogin() {
         resetSessionTimer();
         checkExpiringOnLogin();
         checkExpiredCouponsOnLogin();
+        startExpiryPeriodicCheck();
         btn.classList.remove('loading');
         return;
     }
@@ -3245,6 +3457,7 @@ async function attemptLogin() {
         resetSessionTimer();
         checkExpiringOnLogin();
         checkExpiredCouponsOnLogin();
+        startExpiryPeriodicCheck();
     } else { 
         errEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> اسم المستخدم أو كلمة المرور غير صحيحة.';
         errEl.style.background = 'rgba(239,68,68,0.12)';
@@ -3272,9 +3485,42 @@ async function attemptLogin() {
 
 function checkExpiringOnLogin() {
     let p = safeJSON(store.purchases, []);
-    let now = new Date().getTime(), days3 = 3 * 86400000;
-    let expiringCount = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now < days3 && x.expiry - now > -2592000000)).length;
-    if(expiringCount > 0) notify(`يوجد ${expiringCount} اشتراك ينتهي قريباً (غير منبه)`, "warning");
+    let now = new Date().getTime();
+    let days7 = 7 * 86400000;
+    // نحسب المنتهية + القادمة خلال 7 أيام بدون أي حد زمني للإخفاء
+    let allAlerts = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now) < days7);
+    let expiredNow = allAlerts.filter(x => x.expiry <= now);
+    let soonList  = allAlerts.filter(x => x.expiry > now);
+    if(expiredNow.length > 0) {
+        setTimeout(() => notify(`🔴 يوجد ${expiredNow.length} اشتراك منتهي الصلاحية — اضغط "التنبيهات"`, "error", 9000), 1500);
+    }
+    if(soonList.length > 0) {
+        let soonest = soonList.sort((a,b) => a.expiry - b.expiry)[0];
+        let daysLeft = Math.ceil((soonest.expiry - now) / 86400000);
+        let msg = `⏰ يوجد ${soonList.length} اشتراك ينتهي خلال ${daysLeft <= 1 ? 'يوم' : daysLeft + ' أيام'} — اضغط "التنبيهات"`;
+        setTimeout(() => notify(msg, "warning", 8000), expiredNow.length > 0 ? 11000 : 1500);
+    }
+}
+
+// ─── فحص دوري كل ساعة للاشتراكات المنتهية ───────────────────
+let _expiryCheckInterval = null;
+function startExpiryPeriodicCheck() {
+    if(_expiryCheckInterval) clearInterval(_expiryCheckInterval);
+    _expiryCheckInterval = setInterval(() => {
+        if(!currentUser) { clearInterval(_expiryCheckInterval); return; }
+        let p = safeJSON(store.purchases, []);
+        let now = new Date().getTime();
+        let days7 = 7 * 86400000;
+        let freshExpired = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp
+            && x.expiry <= now && x.expiry > now - 3600000); // انتهت خلال آخر ساعة
+        if(freshExpired.length > 0) {
+            freshExpired.forEach(item => {
+                notify(`🔴 انتهى اشتراك ${esc(item.customer)} - ${esc(item.sub)}`, "error", 7000);
+            });
+        }
+        // تحديث badge
+        refreshAll();
+    }, 3600000); // كل ساعة
 }
 
 function checkExpiredCouponsOnLogin() {
@@ -3748,19 +3994,19 @@ function toggleDarkMode() {
 
 let _notifyQueue = [];
 let _notifyBusy = false;
-function notify(msg, type="success") {
-    _notifyQueue.push({msg, type});
+function notify(msg, type="success", duration=2800) {
+    _notifyQueue.push({msg, type, duration});
     if(!_notifyBusy) _processNotifyQueue();
 }
 function _processNotifyQueue() {
     if(_notifyQueue.length === 0) { _notifyBusy = false; return; }
     _notifyBusy = true;
-    let {msg, type} = _notifyQueue.shift();
+    let {msg, type, duration} = _notifyQueue.shift();
     let n = document.getElementById("notification");
     n.innerHTML = (type==='success' ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-exclamation-triangle"></i> ') + msg;
     n.style.background = type === "success" ? "#10b981" : type === "warning" ? "#f59e0b" : "#ef4444";
     n.style.display = "flex";
-    setTimeout(() => { n.style.display = "none"; setTimeout(_processNotifyQueue, 200); }, 2800);
+    setTimeout(() => { n.style.display = "none"; setTimeout(_processNotifyQueue, 200); }, duration || 2800);
 }
 
 function loadWallets(){
@@ -4005,31 +4251,39 @@ function _executePurchase(paid, paidCur, duration, settings, stItem, cleanName, 
         }
     }
     
-    let d = new Date(stItem.timestamp || Date.now()), exp = null;
+    let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let nddStr = nd.getDate().toString().padStart(2,'0');
+
+    // ─── حساب تاريخ الانتهاء بالأولوية التالية: ───────────────────
+    // 1) تاريخ شراء المخزون (stItem.timestamp) ← الأصل
+    // 2) تاريخ البيع الفعلي (nd = اليوم)
+    // 3) لا يُحسب (exp = null) إذا duration = 0
+    let exp = null;
     if (duration > 0) {
-        exp = new Date(d);
+        let baseDate;
+        if (stItem.timestamp) {
+            baseDate = new Date(stItem.timestamp);
+        } else {
+            baseDate = new Date(nd); // fallback: تاريخ البيع
+        }
+        exp = new Date(baseDate);
         exp.setMonth(exp.getMonth() + duration);
-        if(exp.getDate() !== d.getDate()) exp.setDate(0);
+        if(exp.getDate() !== baseDate.getDate()) exp.setDate(0);
     }
-    
+
     let buyerInfo = (customerVal ? customerVal : "عميل") + (customerPhoneVal ? ` - ${customerPhoneVal}` : "");
     if(!stItem.buyers) stItem.buyers = [];
     stItem.buyers.push(buyerInfo);
-    
+
     stItem.soldProfiles = (stItem.soldProfiles || 0) + 1;
     if(stItem.soldProfiles >= (stItem.totalProfiles || 1)) {
         stItem.status = 'sold';
-        let ndd = new Date();
-        let mm = (ndd.getMonth()+1).toString().padStart(2,'0');
-        let dd = ndd.getDate().toString().padStart(2,'0');
-        stItem.soldDate = `${ndd.getFullYear()}-${mm}-${dd}`;
+        stItem.soldDate = `${nd.getFullYear()}-${nmm}-${nddStr}`;
     }
     let stockList = safeJSON(store.stock, []);
     let stIdx = stockList.findIndex(x => x.id === stItem.id);
     if(stIdx !== -1) stockList[stIdx] = stItem;
-    let nd = new Date();
-    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
-    let nddStr = nd.getDate().toString().padStart(2,'0');
 
     purchases.forEach(p => p.canBeUndone = false);
 
@@ -4342,10 +4596,11 @@ function refreshAll(){
     updateMonthSalesStat();
     
     // تحديث badge التنبيهات دائماً بغض النظر عن الصفحة المرئية
-    let days3 = 3 * 86400000, nowMs2 = now.getTime();
+    let days3 = 7 * 86400000, nowMs2 = now.getTime();
     let expiryBadge2 = document.getElementById("expiryBadge");
     if(expiryBadge2) {
-        let expiringCount2 = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs2 < days3 && x.expiry - nowMs2 > -2592000000)).length;
+        // المنتهية + القادمة خلال 7 أيام — بدون حد زمني للإخفاء
+        let expiringCount2 = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs2) < days3).length;
         expiryBadge2.textContent = expiringCount2;
         expiryBadge2.style.display = expiringCount2 > 0 ? "inline-flex" : "none";
     }
@@ -4426,9 +4681,13 @@ function refreshExpiring() {
     let p = safeJSON(store.purchases, []);
     let body = document.getElementById("expiringBody"); 
     if(!body) return;
-    let now = new Date().getTime(), days3 = 3 * 86400000;
+    let now = new Date().getTime(), days7 = 7 * 86400000;
     
-    let filtered = p.map((d, i) => ({ d, i })).filter(x => x.d.expiry && !x.d.expiryDismissed && !x.d.isComp && (x.d.expiry - now < days3 && x.d.expiry - now > -2592000000));
+    // نُظهر: المنتهية + يلي باقيلها 7 أيام أو أقل — بدون أي حد زمني للإخفاء التلقائي
+    let filtered = p.map((d, i) => ({ d, i })).filter(x => 
+        x.d.expiry && !x.d.expiryDismissed && !x.d.isComp && 
+        (x.d.expiry - now) < days7  // ينتهي خلال 7 أيام أو انتهى بالفعل
+    );
     filtered.sort((a, b) => a.d.expiry - b.d.expiry);
     
     renderPagination(filtered.length, 'expiring', refreshExpiring, 'expiringPagination');
@@ -4475,11 +4734,23 @@ function markAsReminded(id) {
 }
 async function deleteExpired() { 
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
-    let ok = await showConfirm("إخفاء الاشتراكات المنتهية", "سيتم إخفاء جميع الاشتراكات المنتهية من القائمة.", "إخفاء", "إلغاء", '<i class="fas fa-eye-slash"></i>');
+    let p = safeJSON(store.purchases, []), now = new Date().getTime();
+    let expiredCount = p.filter(x => x.expiry && x.expiry < now && !x.expiryDismissed && !x.isComp).length;
+    if(expiredCount === 0) return notify("لا توجد اشتراكات منتهية لحذفها", "error");
+    let ok = await showConfirm(
+        "حذف الاشتراكات المنتهية",
+        `سيتم حذف ${expiredCount} اشتراك منتهي الصلاحية نهائياً من القائمة. الاشتراكات القادمة لن تتأثر.`,
+        "حذف نهائي", "إلغاء", '<i class="fas fa-trash-alt"></i>'
+    );
     if(!ok) return;
-    let p = safeJSON(store.purchases, []), now = new Date().getTime(); 
-    p.forEach(x => { if(x.expiry && x.expiry < now) x.expiryDismissed = true; }); 
-    store.purchases = JSON.stringify(p); fbSave("purchases", p); logAction("إخفاء الاشتراكات المنتهية", 'danger'); currentPage.expiring = 1; refreshAll();  
+    // نحذف المنتهية فقط من السجل المالي (purchases) — نبقي يلي ما انتهى بعد
+    p = p.filter(x => !(x.expiry && x.expiry < now && !x.isComp));
+    store.purchases = JSON.stringify(p); 
+    fbSave("purchases", p); 
+    logAction(`حذف ${expiredCount} اشتراك منتهي من قائمة التنبيهات`, 'danger'); 
+    currentPage.expiring = 1; 
+    refreshAll();
+    notify(`تم حذف ${expiredCount} اشتراك منتهي`);
 }
 function refreshWallets(){
     let w=safeJSON(store.wallets, {}), td=0, ts=0;
@@ -4564,17 +4835,137 @@ function refreshInvestment(){
     });
     let totalInUSD = totalUSD + totalShekel / rate;
     let totalInShekel = totalUSD * rate + totalShekel;
-    
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
-    let sD = isRestricted ? "****" : `${fix(totalInUSD)}$ | ${fix(totalInShekel)}₪`;
-    
-    document.getElementById("investBox").innerHTML=`
-    <div class="stat-card" style="border-right:5px solid #6366f1; flex-direction:column; align-items:flex-start">
-        <div style="font-size:14px; color:var(--text-muted)">إجمالي رأس مال المتجر</div>
-        <div style="font-size:20px; font-weight:800">${sD}</div>
+
+    // ─── بطاقة رأس المال ────────────────────────────────────────
+    let sD = isRestricted ? "****" : `${fix(totalInUSD)}$`;
+    let sD2 = isRestricted ? "" : `${fix(totalInShekel)}₪`;
+    document.getElementById("investBox").innerHTML = `
+    <div style="background:linear-gradient(135deg, var(--primary), #4f46e5); border-radius:var(--radius-xl); padding:28px 30px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 8px 24px rgba(99,102,241,0.25);">
+        <div>
+            <div style="font-size:13px; color:rgba(255,255,255,0.7); font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <i class="fas fa-store"></i> إجمالي رأس مال المتجر
+            </div>
+            <div style="font-size:32px; font-weight:900; color:white; direction:ltr; letter-spacing:-1px;">${sD}</div>
+            ${sD2 ? `<div style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.75); direction:ltr; margin-top:4px;">${sD2}</div>` : ''}
+        </div>
+        <div style="width:64px; height:64px; background:rgba(255,255,255,0.15); border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; color:white;">
+            <i class="fas fa-coins"></i>
+        </div>
     </div>`;
+
+    // ─── بطاقات اختيار المحفظة ──────────────────────────────────
+    let pickerEl = document.getElementById('walletPickerCards');
+    if(!pickerEl) return;
+    let sortedKeys = Object.keys(wallets).filter(k => wallets[k].active !== false).sort((a,b) => a.localeCompare(b,'ar'));
+    if(sortedKeys.length === 0) {
+        pickerEl.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;"><i class="fas fa-exclamation-circle"></i> لا توجد محافظ</div>`;
+        return;
+    }
+    let html = sortedKeys.map(k => {
+        let w = wallets[k];
+        let balDisplay = isRestricted ? '****' : `${fix(w.bal)} ${w.cur}`;
+        let colorClass = w.cur === '$' ? '#6366f1' : '#10b981';
+        return `<div onclick="selectWithdrawWallet('${k.replace(/'/g,"\\'")}', this)"
+            data-wallet="${k.replace(/"/g,'&quot;')}"
+            style="background:var(--bg-input); border:2px solid var(--border-color); border-radius:var(--radius-md); padding:14px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; user-select:none;"
+            onmouseover="if(!this.classList.contains('w-selected')){this.style.borderColor='${colorClass}'; this.style.background='rgba(99,102,241,0.04)';}"
+            onmouseout="if(!this.classList.contains('w-selected')){this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-input)';}">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:${w.cur==='$'?'rgba(99,102,241,0.12)':'rgba(16,185,129,0.12)'}; display:flex; align-items:center; justify-content:center; color:${colorClass}; font-size:14px; font-weight:900;">${w.cur}</div>
+                <span style="font-weight:700; font-size:14px; color:var(--text-main);">${esc(k)}</span>
+            </div>
+            <span style="font-weight:800; font-size:15px; color:${colorClass}; direction:ltr;">${balDisplay}</span>
+        </div>`;
+    }).join('');
+    pickerEl.innerHTML = html;
+
+    // إذا كانت هناك محفظة مختارة مسبقاً، أعد تحديدها
+    let currentVal = document.getElementById('wWalletStore').value;
+    if(currentVal && wallets[currentVal]) {
+        let card = pickerEl.querySelector(`[data-wallet="${currentVal.replace(/"/g,'&quot;')}"]`);
+        if(card) selectWithdrawWallet(currentVal, card);
+    }
+}
+
+function selectWithdrawWallet(walletName, cardEl) {
+    // إلغاء تحديد باقي البطاقات
+    document.querySelectorAll('#walletPickerCards > div').forEach(c => {
+        c.classList.remove('w-selected');
+        c.style.borderColor = 'var(--border-color)';
+        c.style.background = 'var(--bg-input)';
+        c.style.boxShadow = 'none';
+    });
+    // تحديد البطاقة المختارة
+    cardEl.classList.add('w-selected');
+    cardEl.style.borderColor = 'var(--primary)';
+    cardEl.style.background = 'rgba(99,102,241,0.06)';
+    cardEl.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)';
+
+    // مزامنة الـ hidden select
+    let sel = document.getElementById('wWalletStore');
+    if(sel) sel.value = walletName;
+
+    // تحديث معاينة المحفظة المختارة
+    let wallets = safeJSON(store.wallets, {});
+    let w = wallets[walletName];
+    if(!w) return;
+
+    let preview = document.getElementById('selectedWalletPreview');
+    let noHint  = document.getElementById('noWalletHint');
+    let nameEl  = document.getElementById('selectedWalletName');
+    let balEl   = document.getElementById('selectedWalletBal');
+    let currEl  = document.getElementById('withdrawCurrencyLabel');
+
+    if(preview) { preview.style.display = 'flex'; preview.style.removeProperty('display'); preview.style.display = 'flex'; }
+    if(noHint)  noHint.style.display = 'none';
+    if(nameEl)  nameEl.textContent = walletName;
+    if(balEl)   balEl.textContent = `${fix(w.bal)} ${w.cur}`;
+    if(currEl)  currEl.textContent = w.cur;
+
+    // مسح حقل المبلغ وتحديث المعاينة
+    let inp = document.getElementById('withdrawStore');
+    if(inp) inp.value = '';
+    document.getElementById('withdrawPreviewBox').style.display = 'none';
+    let btn = document.getElementById('btnDoWithdraw');
+    if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+}
+
+function updateWithdrawPreview() {
+    let walletName = document.getElementById('wWalletStore').value;
+    let amount = parseFloat(document.getElementById('withdrawStore').value) || 0;
+    let previewBox = document.getElementById('withdrawPreviewBox');
+    let btn = document.getElementById('btnDoWithdraw');
+    if(!walletName || !previewBox) return;
+
+    let wallets = safeJSON(store.wallets, {});
+    let w = wallets[walletName];
+    if(!w) return;
+
+    let after = w.bal - amount;
+    let before = w.bal;
+
+    if(amount > 0) {
+        document.getElementById('previewBefore').textContent = `${fix(before)} ${w.cur}`;
+        document.getElementById('previewAfter').textContent  = `${fix(after)} ${w.cur}`;
+        previewBox.style.display = 'block';
+        previewBox.style.background = after < 0 ? 'rgba(239,68,68,0.10)' : 'rgba(16,185,129,0.05)';
+        previewBox.style.borderColor = after < 0 ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.2)';
+        document.getElementById('previewAfter').style.color = after < 0 ? 'var(--danger)' : 'var(--success)';
+        // تفعيل الزر فقط إذا المبلغ صحيح وما تجاوز الرصيد
+        if(btn) {
+            let ok = amount > 0 && after >= 0;
+            btn.disabled = !ok;
+            btn.style.opacity = ok ? '1' : '0.5';
+            btn.style.pointerEvents = ok ? 'auto' : 'none';
+        }
+    } else {
+        previewBox.style.display = 'none';
+        if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+    }
 }
 function refreshAnalytics() {
+    currentChartMonth = null; // إعادة تعيين للشهر الحالي عند فتح الإحصائيات
     let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
