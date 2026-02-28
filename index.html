@@ -3486,7 +3486,7 @@ async function attemptLogin() {
 function checkExpiringOnLogin() {
     let p = safeJSON(store.purchases, []);
     let now = new Date().getTime();
-    let days7 = 7 * 86400000;
+    let days7 = 3 * 86400000;
     // نحسب المنتهية + القادمة خلال 7 أيام بدون أي حد زمني للإخفاء
     let allAlerts = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now) < days7);
     let expiredNow = allAlerts.filter(x => x.expiry <= now);
@@ -3510,7 +3510,7 @@ function startExpiryPeriodicCheck() {
         if(!currentUser) { clearInterval(_expiryCheckInterval); return; }
         let p = safeJSON(store.purchases, []);
         let now = new Date().getTime();
-        let days7 = 7 * 86400000;
+        let days7 = 3 * 86400000;
         let freshExpired = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp
             && x.expiry <= now && x.expiry > now - 3600000); // انتهت خلال آخر ساعة
         if(freshExpired.length > 0) {
@@ -4596,7 +4596,7 @@ function refreshAll(){
     updateMonthSalesStat();
     
     // تحديث badge التنبيهات دائماً بغض النظر عن الصفحة المرئية
-    let days3 = 7 * 86400000, nowMs2 = now.getTime();
+    let days3 = 3 * 86400000, nowMs2 = now.getTime();
     let expiryBadge2 = document.getElementById("expiryBadge");
     if(expiryBadge2) {
         // المنتهية + القادمة خلال 7 أيام — بدون حد زمني للإخفاء
@@ -4681,9 +4681,9 @@ function refreshExpiring() {
     let p = safeJSON(store.purchases, []);
     let body = document.getElementById("expiringBody"); 
     if(!body) return;
-    let now = new Date().getTime(), days7 = 7 * 86400000;
+    let now = new Date().getTime(), days7 = 3 * 86400000;
     
-    // نُظهر: المنتهية + يلي باقيلها 7 أيام أو أقل — بدون أي حد زمني للإخفاء التلقائي
+    // نُظهر: المنتهية + يلي باقيلها 3 أيام أو أقل — بدون أي حد زمني للإخفاء التلقائي
     let filtered = p.map((d, i) => ({ d, i })).filter(x => 
         x.d.expiry && !x.d.expiryDismissed && !x.d.isComp && 
         (x.d.expiry - now) < days7  // ينتهي خلال 7 أيام أو انتهى بالفعل
@@ -4787,11 +4787,13 @@ function refreshHistory(){
         let matchesTo = !toDate || (item.date && item.date <= toDate);
         return matchesSearch && matchesFrom && matchesTo;
     }).sort((a, b) => {
-        // فرز من الأحدث للأقدم حسب الـ id (يحتوي timestamp) أو التاريخ
+        // الترتيب الأساسي: تاريخ البيع المسجل (item.date) من الأحدث للأقدم
+        let dateComp = (b.date || '').localeCompare(a.date || '');
+        if (dateComp !== 0) return dateComp;
+        // عند تساوي التاريخ: نستخدم الـ id (timestamp الإنشاء) كـ tiebreaker
         let tsA = a.id ? parseInt(a.id.split('_')[1]) || 0 : 0;
         let tsB = b.id ? parseInt(b.id.split('_')[1]) || 0 : 0;
-        if (tsB !== tsA) return tsB - tsA;
-        return (b.date || '').localeCompare(a.date || '');
+        return tsB - tsA;
     });
     
     renderPagination(filtered.length, 'history', refreshHistory, 'historyPagination');
@@ -4833,59 +4835,98 @@ function refreshInvestment(){
         if(w.cur === '$') totalUSD += w.bal;
         else totalShekel += w.bal;
     });
-    let totalInUSD = totalUSD + totalShekel / rate;
-    let totalInShekel = totalUSD * rate + totalShekel;
     let isRestricted = currentUser ? (currentUser.role === 'viewer') : true;
 
-    // ─── بطاقة رأس المال ────────────────────────────────────────
-    let sD = isRestricted ? "****" : `${fix(totalInUSD)}$`;
-    let sD2 = isRestricted ? "" : `${fix(totalInShekel)}₪`;
+    // ─── بطاقة رأس المال — إجمالي منفصل ────────────────────────
+    let usdDisplay  = isRestricted ? '****' : `${fix(totalUSD)} $`;
+    let shklDisplay = isRestricted ? '****' : `${fix(totalShekel)} ₪`;
     document.getElementById("investBox").innerHTML = `
-    <div style="background:linear-gradient(135deg, var(--primary), #4f46e5); border-radius:var(--radius-xl); padding:28px 30px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; box-shadow:0 8px 24px rgba(99,102,241,0.25);">
-        <div>
-            <div style="font-size:13px; color:rgba(255,255,255,0.7); font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-                <i class="fas fa-store"></i> إجمالي رأس مال المتجر
+    <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-xl); padding:24px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:52px; height:52px; border-radius:16px; background:rgba(99,102,241,0.12); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--primary);">
+                <i class="fas fa-store"></i>
             </div>
-            <div style="font-size:32px; font-weight:900; color:white; direction:ltr; letter-spacing:-1px;">${sD}</div>
-            ${sD2 ? `<div style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.75); direction:ltr; margin-top:4px;">${sD2}</div>` : ''}
-        </div>
-        <div style="width:64px; height:64px; background:rgba(255,255,255,0.15); border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; color:white;">
-            <i class="fas fa-coins"></i>
+            <div>
+                <div style="font-size:12px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">إجمالي رأس مال المتجر</div>
+                <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <span style="font-size:22px; font-weight:900; color:var(--primary); direction:ltr;">${usdDisplay}</span>
+                    <span style="font-size:22px; font-weight:900; color:var(--success); direction:ltr;">${shklDisplay}</span>
+                </div>
+            </div>
         </div>
     </div>`;
 
-    // ─── بطاقات اختيار المحفظة ──────────────────────────────────
+    // ─── بطاقات المحافظ (مخفية افتراضياً) ──────────────────────
     let pickerEl = document.getElementById('walletPickerCards');
     if(!pickerEl) return;
+
     let sortedKeys = Object.keys(wallets).filter(k => wallets[k].active !== false).sort((a,b) => a.localeCompare(b,'ar'));
+
     if(sortedKeys.length === 0) {
         pickerEl.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;"><i class="fas fa-exclamation-circle"></i> لا توجد محافظ</div>`;
         return;
     }
-    let html = sortedKeys.map(k => {
+
+    // ─── بناء الـ HTML بشكل ثابت (مخفي) ────────────────────────
+    let cardsHtml = sortedKeys.map(k => {
         let w = wallets[k];
         let balDisplay = isRestricted ? '****' : `${fix(w.bal)} ${w.cur}`;
-        let colorClass = w.cur === '$' ? '#6366f1' : '#10b981';
+        let accentColor = w.cur === '$' ? 'var(--primary)' : 'var(--success)';
+        let accentBg    = w.cur === '$' ? 'rgba(99,102,241,0.12)' : 'rgba(16,185,129,0.12)';
+        let safeK = k.replace(/'/g,"\\'").replace(/"/g,'&quot;');
         return `<div onclick="selectWithdrawWallet('${k.replace(/'/g,"\\'")}', this)"
             data-wallet="${k.replace(/"/g,'&quot;')}"
-            style="background:var(--bg-input); border:2px solid var(--border-color); border-radius:var(--radius-md); padding:14px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; user-select:none;"
-            onmouseover="if(!this.classList.contains('w-selected')){this.style.borderColor='${colorClass}'; this.style.background='rgba(99,102,241,0.04)';}"
+            style="background:var(--bg-input); border:2px solid var(--border-color); border-radius:var(--radius-md); padding:13px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.18s; user-select:none;"
+            onmouseover="if(!this.classList.contains('w-selected')){this.style.borderColor='${accentColor}'; this.style.background='rgba(99,102,241,0.04)';}"
             onmouseout="if(!this.classList.contains('w-selected')){this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-input)';}">
             <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:36px; height:36px; border-radius:10px; background:${w.cur==='$'?'rgba(99,102,241,0.12)':'rgba(16,185,129,0.12)'}; display:flex; align-items:center; justify-content:center; color:${colorClass}; font-size:14px; font-weight:900;">${w.cur}</div>
+                <div style="width:34px; height:34px; border-radius:9px; background:${accentBg}; display:flex; align-items:center; justify-content:center; color:${accentColor}; font-size:13px; font-weight:900;">${w.cur}</div>
                 <span style="font-weight:700; font-size:14px; color:var(--text-main);">${esc(k)}</span>
             </div>
-            <span style="font-weight:800; font-size:15px; color:${colorClass}; direction:ltr;">${balDisplay}</span>
+            <span style="font-weight:800; font-size:15px; color:${accentColor}; direction:ltr;">${balDisplay}</span>
         </div>`;
     }).join('');
-    pickerEl.innerHTML = html;
 
-    // إذا كانت هناك محفظة مختارة مسبقاً، أعد تحديدها
+    pickerEl.innerHTML = `
+        <!-- زر الفتح/الإغلاق -->
+        <button onclick="toggleWalletPicker(this)"
+            style="width:100%; padding:11px 16px; background:var(--bg-input); border:1px dashed var(--border-color); border-radius:var(--radius-md); cursor:pointer; font-size:13px; font-weight:700; color:var(--text-muted); display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.2s;"
+            onmouseover="this.style.borderColor='var(--primary)'; this.style.color='var(--primary)';"
+            onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-muted)';">
+            <i class="fas fa-wallet" id="walletPickerIcon"></i>
+            <span id="walletPickerBtnText">اختر محفظة السحب</span>
+            <i class="fas fa-chevron-down" id="walletPickerChevron" style="margin-right:auto; transition:transform 0.2s;"></i>
+        </button>
+        <!-- القائمة المخفية -->
+        <div id="walletPickerList" style="display:none; flex-direction:column; gap:8px; margin-top:8px;">
+            ${cardsHtml}
+        </div>`;
+
+    // إذا كانت هناك محفظة مختارة مسبقاً، أعد تحديدها وافتح القائمة
     let currentVal = document.getElementById('wWalletStore').value;
     if(currentVal && wallets[currentVal]) {
-        let card = pickerEl.querySelector(`[data-wallet="${currentVal.replace(/"/g,'&quot;')}"]`);
-        if(card) selectWithdrawWallet(currentVal, card);
+        // افتح القائمة
+        let list = document.getElementById('walletPickerList');
+        let chevron = document.getElementById('walletPickerChevron');
+        if(list) { list.style.display = 'flex'; }
+        if(chevron) { chevron.style.transform = 'rotate(180deg)'; }
+        // اختر البطاقة
+        setTimeout(() => {
+            let card = pickerEl.querySelector(`[data-wallet="${currentVal.replace(/"/g,'&quot;')}"]`);
+            if(card) selectWithdrawWallet(currentVal, card);
+        }, 0);
     }
+}
+
+function toggleWalletPicker(btn) {
+    let list    = document.getElementById('walletPickerList');
+    let chevron = document.getElementById('walletPickerChevron');
+    let txtEl   = document.getElementById('walletPickerBtnText');
+    if(!list) return;
+    let isOpen = list.style.display === 'flex';
+    list.style.display    = isOpen ? 'none' : 'flex';
+    if(chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    if(txtEl)   txtEl.textContent = isOpen ? 'اختر محفظة السحب' : 'إخفاء المحافظ';
 }
 
 function selectWithdrawWallet(walletName, cardEl) {
