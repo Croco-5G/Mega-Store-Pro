@@ -1024,8 +1024,60 @@
     </div>
 
     <div id="analytics" class="card hidden">
-        <h3><i class="fas fa-chart-bar" style="color:var(--primary)"></i> الإحصائيات</h3>
-        
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+            <h3 style="margin:0;"><i class="fas fa-chart-bar" style="color:var(--primary)"></i> الإحصائيات</h3>
+            <div id="analyticsMonthFilterBadge" style="display:none; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.25); color:var(--primary); font-size:12px; font-weight:700; padding:5px 12px; border-radius:20px;">
+                <i class="fas fa-filter"></i> <span id="analyticsFilterLabel"></span>
+            </div>
+        </div>
+
+        <!-- ── فلتر الأيام للشهر الحالي ── -->
+        <div id="analyticsDateFilterBox" style="background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(168,85,247,0.06)); border:1.5px solid rgba(99,102,241,0.18); border-radius:16px; padding:18px 22px; margin-bottom:24px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+                <div style="width:32px; height:32px; background:var(--primary); border-radius:10px; display:flex; align-items:center; justify-content:center; color:white; font-size:14px; flex-shrink:0;">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div>
+                    <div style="font-weight:800; font-size:14px; color:var(--text-main);">فلترة الشهر الحالي</div>
+                    <div style="font-size:12px; color:var(--text-muted);" id="analyticsCurrentMonthName"></div>
+                </div>
+                <button onclick="resetAnalyticsDateFilter()" id="btnResetAnalyticsFilter" title="إعادة تعيين الفلتر" style="margin-right:auto; background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2); border-radius:10px; padding:5px 14px; cursor:pointer; font-size:12px; font-weight:700; display:none; transition:0.2s;" onmouseover="this.style.background='var(--danger)';this.style.color='white';" onmouseout="this.style.background='rgba(239,68,68,0.1)';this.style.color='var(--danger)';">
+                    <i class="fas fa-undo"></i> إعادة تعيين
+                </button>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:160px;">
+                    <label style="font-size:13px; font-weight:700; color:var(--text-muted); white-space:nowrap; margin-bottom:0;">من يوم</label>
+                    <div style="position:relative; flex:1;">
+                        <input type="number" id="analyticsFromDay" min="1" value="1"
+                            style="width:100%; padding:10px 14px; border-radius:12px; border:1.5px solid var(--border-color); background:var(--bg-card); font-size:15px; font-weight:800; text-align:center; color:var(--primary);"
+                            oninput="onAnalyticsFilterChange()">
+                    </div>
+                </div>
+                <div style="color:var(--text-muted); font-weight:800; font-size:18px; padding-top:2px;">—</div>
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:160px;">
+                    <label style="font-size:13px; font-weight:700; color:var(--text-muted); white-space:nowrap; margin-bottom:0;">إلى يوم</label>
+                    <div style="position:relative; flex:1;">
+                        <input type="number" id="analyticsToDay" min="1" value="1"
+                            style="width:100%; padding:10px 14px; border-radius:12px; border:1.5px solid var(--border-color); background:var(--bg-card); font-size:15px; font-weight:800; text-align:center; color:var(--primary);"
+                            oninput="onAnalyticsFilterChange()">
+                    </div>
+                </div>
+                <button onclick="applyAnalyticsDateFilter()" style="background:var(--primary); color:white; border:none; border-radius:12px; padding:11px 22px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap; transition:0.2s; display:flex; align-items:center; gap:6px;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-search"></i> تطبيق
+                </button>
+            </div>
+            <!-- شريط الأيام البصري -->
+            <div style="margin-top:14px; position:relative; height:6px; background:var(--border-color); border-radius:10px; overflow:visible;">
+                <div id="analyticsFilterBar" style="position:absolute; right:0; top:0; height:100%; background:linear-gradient(90deg, var(--primary), #a855f7); border-radius:10px; transition:all 0.3s;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                <span style="font-size:11px; color:var(--text-muted);">اليوم 1</span>
+                <span id="analyticsFilterBarLabel" style="font-size:11px; color:var(--primary); font-weight:700;"></span>
+                <span id="analyticsFilterBarEnd" style="font-size:11px; color:var(--text-muted);"></span>
+            </div>
+        </div>
+
         <!-- Budget Timeline Chart -->
         <div class="inner-box" style="margin-bottom:30px; padding:20px;">
             <div style="margin-bottom:15px;">
@@ -2387,6 +2439,8 @@ function initFirebase() {
                         loader.style.opacity = '0';
                         setTimeout(() => { loader.style.display = 'none'; }, 500);
                     }
+                    // محاولة الدخول التلقائي بعد تحميل البيانات
+                    setTimeout(() => tryAutoLogin(), 100);
                 }
             }
         },
@@ -2809,7 +2863,15 @@ function renderBudgetChart() {
     if(btnPrev) { btnPrev.disabled = activeIdx <= 0; btnPrev.style.opacity = activeIdx <= 0 ? '0.35' : '1'; btnPrev.style.cursor = activeIdx <= 0 ? 'not-allowed' : 'pointer'; }
     if(btnNext) { btnNext.disabled = activeIdx >= months.length - 1; btnNext.style.opacity = activeIdx >= months.length - 1 ? '0.35' : '1'; btnNext.style.cursor = activeIdx >= months.length - 1 ? 'not-allowed' : 'pointer'; }
 
-    let monthHistory = history.filter(x => x.date && x.date.startsWith(viewMonth));
+    let monthHistory = history.filter(x => {
+        if(!x.date || !x.date.startsWith(viewMonth)) return false;
+        // تطبيق فلتر الأيام فقط على الشهر الحالي
+        if(isCurrentMonth && analyticsFilter.active) {
+            let day = parseInt(x.date.split('-')[2]);
+            return day >= analyticsFilter.fromDay && day <= analyticsFilter.toDay;
+        }
+        return true;
+    });
 
     // فلاتر النقاط
     let showTypes = {};
@@ -2866,7 +2928,15 @@ function renderBudgetChart() {
     let chartPoints = [];
     let eventsByDay = {};
 
-    chartPoints.push({ x: '1', y: parseFloat(startBalance.toFixed(2)), isStart: true });
+    let filterStartDay = (isCurrentMonth && analyticsFilter.active) ? analyticsFilter.fromDay : 1;
+    // حساب رصيد بداية الفترة المفلترة
+    if(isCurrentMonth && analyticsFilter.active && analyticsFilter.fromDay > 1) {
+        // أوجد آخر حدث قبل يوم البداية المفلتر
+        let filterStartTs = new Date(vy, vm-1, analyticsFilter.fromDay).getTime();
+        let prevFilterEv = history.filter(x => x.ts < filterStartTs).sort((a,b)=>a.ts-b.ts).pop();
+        if(prevFilterEv) startBalance = prevFilterEv.totalUSD;
+    }
+    chartPoints.push({ x: String(filterStartDay), y: parseFloat(startBalance.toFixed(2)), isStart: true });
 
     sortedEvents.forEach(ev => {
         let day = parseInt(ev.date.split('-')[2]);
@@ -2896,7 +2966,7 @@ function renderBudgetChart() {
     // تحديد آخر يوم نرسمه
     let lastDayOfMonth;
     if(isCurrentMonth) {
-        lastDayOfMonth = now.getDate();
+        lastDayOfMonth = analyticsFilter.active ? analyticsFilter.toDay : now.getDate();
     } else {
         // آخر يوم في الشهر المحدد
         lastDayOfMonth = new Date(vy, vm, 0).getDate();
@@ -2907,7 +2977,7 @@ function renderBudgetChart() {
         }
     }
 
-    for(let d = 1; d <= lastDayOfMonth; d++) {
+    for(let d = filterStartDay; d <= lastDayOfMonth; d++) {
         if(eventsByDay[d]) {
             eventsByDay[d].forEach(ev => {
                 chartPoints.push({ x: `${d}`, y: parseFloat(ev.totalUSD.toFixed(2)), event: ev });
@@ -3216,6 +3286,77 @@ function hideSystemLoading() {
         setTimeout(() => { loader.style.display = 'none'; }, 500); // إخفاء بعد تأثير التلاشي
     }
 }
+
+// ══════════════════════════════════════════════════════════════
+//  نظام الدخول التلقائي — Auto Login (حتى 10 مرات بدون إعادة إدخال)
+// ══════════════════════════════════════════════════════════════
+let _autoLoginAttempted = false;
+
+// ── فلتر الإحصائيات بالأيام ──────────────────────────────────────
+let analyticsFilter = { fromDay: 1, toDay: 1, active: false };
+
+function tryAutoLogin() {
+    // تأكد أن هذه الوظيفة لا تُشغَّل إلا مرة واحدة لكل زيارة
+    if (_autoLoginAttempted) return;
+    _autoLoginAttempted = true;
+
+    const loginLayer = document.getElementById("loginLayer");
+    if (!loginLayer || loginLayer.style.display === "none") return;
+
+    const raw = localStorage.getItem("_autoLogin");
+    if (!raw) return; // لا يوجد حساب محفوظ
+
+    let autoData;
+    try { autoData = JSON.parse(raw); } catch(e) { localStorage.removeItem("_autoLogin"); return; }
+
+    const { username, password, count } = autoData;
+    if (!username || !password) { localStorage.removeItem("_autoLogin"); return; }
+
+    // تحقق من المستخدم في قاعدة البيانات
+    const users = safeJSON(store.users, []);
+    const userObj = users.find(x => x.username.toLowerCase() === username.toLowerCase() && x.password === password);
+
+    // إذا كان المستخدم غير موجود أو محظور أو كلمة السر تغيرت
+    if (!userObj || userObj.status === "banned") {
+        localStorage.removeItem("_autoLogin");
+        return;
+    }
+
+    // إذا وصلنا للزيارة العاشرة: اطلب إعادة الإدخال
+    if (count >= 10) {
+        const errEl = document.getElementById("loginError");
+        if (errEl) {
+            errEl.innerHTML = '<i class="fas fa-shield-alt"></i> للتحقق من هويتك يرجى إدخال بيانات الدخول مجدداً (كل 10 زيارات).';
+            errEl.style.background = 'rgba(99,102,241,0.12)';
+            errEl.style.color = 'var(--primary)';
+            errEl.style.border = '1.5px solid rgba(99,102,241,0.35)';
+            errEl.style.display = 'block';
+        }
+        const loginUserEl = document.getElementById("loginUser");
+        if (loginUserEl && !loginUserEl.value) loginUserEl.value = username;
+        return;
+    }
+
+    // ─── دخول تلقائي ──────────────────────────────────────────────
+    localStorage.setItem("_autoLogin", JSON.stringify({ username, password, count: count + 1 }));
+
+    if (userObj.username === "Mohamed Ahmed") { userObj.role = "admin"; userObj.status = "active"; }
+    currentUser = userObj;
+    userObj.lastLogin = new Date().toLocaleString("ar-EG");
+    userObj.deviceInfo = getOS();
+    store.users = JSON.stringify(users); fbSave("users", users);
+    logAction("دخول تلقائي للنظام", 'general');
+
+    loginLayer.style.display = "none";
+    document.body.classList.remove("locked");
+    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+    document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
+    resetSessionTimer();
+    checkExpiringOnLogin();
+    checkExpiredCouponsOnLogin();
+    startExpiryPeriodicCheck();
+}
+
 function init(){
     if(!store.users) store.users = JSON.stringify([DEFAULT_USER]);
     if(!store.wallets){
@@ -3447,6 +3588,8 @@ async function attemptLogin() {
         userObj.lastLogin = new Date().toLocaleString("ar-EG");
         userObj.deviceInfo = getOS();
         store.users = JSON.stringify(users); fbSave("users", users);
+        // حفظ بيانات الدخول التلقائي وإعادة العداد لصفر
+        localStorage.setItem("_autoLogin", JSON.stringify({ username: userObj.username, password: userObj.password, count: 0 }));
         
         logAction("تسجيل دخول للنظام", 'general');
 
@@ -3575,6 +3718,7 @@ async function logout() {
     clearTimeout(_sessionTimer);
     await logAction("تسجيل خروج من النظام", 'general');
     currentUser = null;
+    localStorage.removeItem("_autoLogin"); // مسح الدخول التلقائي عند تسجيل الخروج
     location.reload();
 }
 function getRoleName(role) { 
@@ -5005,6 +5149,186 @@ function updateWithdrawPreview() {
         if(btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
     }
 }
+// ─────────────────────────────────────────────
+// دوال فلتر الإحصائيات اليومي
+// ─────────────────────────────────────────────
+function initAnalyticsDateFilter() {
+    let today = new Date().getDate();
+    let daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+    let monthName = _arabicMonthNames[new Date().getMonth()];
+    let yr = new Date().getFullYear();
+
+    let fromEl = document.getElementById("analyticsFromDay");
+    let toEl   = document.getElementById("analyticsToDay");
+    let nameEl = document.getElementById("analyticsCurrentMonthName");
+    if(!fromEl || !toEl) return;
+
+    fromEl.min = 1; fromEl.max = today;
+    toEl.min   = 1; toEl.max   = today;
+
+    if(!analyticsFilter.active) {
+        fromEl.value = 1;
+        toEl.value   = today;
+        analyticsFilter.fromDay = 1;
+        analyticsFilter.toDay   = today;
+    } else {
+        fromEl.value = analyticsFilter.fromDay;
+        toEl.value   = analyticsFilter.toDay;
+    }
+
+    if(nameEl) nameEl.textContent = `${monthName} ${yr} — حتى اليوم ${today}`;
+
+    let endEl = document.getElementById("analyticsFilterBarEnd");
+    if(endEl) endEl.textContent = `اليوم ${today}`;
+
+    updateAnalyticsFilterBar();
+    updateAnalyticsFilterBadge();
+}
+
+function onAnalyticsFilterChange() {
+    let today = new Date().getDate();
+    let fromEl = document.getElementById("analyticsFromDay");
+    let toEl   = document.getElementById("analyticsToDay");
+    if(!fromEl || !toEl) return;
+
+    let f = parseInt(fromEl.value) || 1;
+    let t = parseInt(toEl.value)   || today;
+
+    // تصحيح القيم
+    f = Math.max(1, Math.min(f, today));
+    t = Math.max(f, Math.min(t, today));
+    fromEl.value = f; toEl.value = t;
+
+    updateAnalyticsFilterBar();
+}
+
+function updateAnalyticsFilterBar() {
+    let today = new Date().getDate();
+    let fromEl = document.getElementById("analyticsFromDay");
+    let toEl   = document.getElementById("analyticsToDay");
+    let bar    = document.getElementById("analyticsFilterBar");
+    let label  = document.getElementById("analyticsFilterBarLabel");
+    if(!fromEl || !toEl || !bar) return;
+
+    let f = parseInt(fromEl.value) || 1;
+    let t = parseInt(toEl.value)   || today;
+
+    // شريط بصري: right% و width%
+    let rightPct  = ((f - 1) / today) * 100;
+    let widthPct  = ((t - f + 1) / today) * 100;
+    bar.style.right = rightPct + '%';
+    bar.style.width = widthPct + '%';
+
+    if(label) label.textContent = `${f} – ${t} (${t - f + 1} يوم)`;
+}
+
+function applyAnalyticsDateFilter() {
+    let today = new Date().getDate();
+    let fromEl = document.getElementById("analyticsFromDay");
+    let toEl   = document.getElementById("analyticsToDay");
+    if(!fromEl || !toEl) return;
+
+    let f = parseInt(fromEl.value) || 1;
+    let t = parseInt(toEl.value)   || today;
+    f = Math.max(1, Math.min(f, today));
+    t = Math.max(f, Math.min(t, today));
+
+    analyticsFilter.fromDay = f;
+    analyticsFilter.toDay   = t;
+    analyticsFilter.active  = (f !== 1 || t !== today);
+
+    updateAnalyticsFilterBadge();
+
+    let resetBtn = document.getElementById("btnResetAnalyticsFilter");
+    if(resetBtn) resetBtn.style.display = analyticsFilter.active ? '' : 'none';
+
+    // إعادة رسم الإحصائيات مع الفلتر
+    renderBudgetChart();
+    renderFilteredSalesChart();
+}
+
+function resetAnalyticsDateFilter() {
+    let today = new Date().getDate();
+    analyticsFilter.fromDay = 1;
+    analyticsFilter.toDay   = today;
+    analyticsFilter.active  = false;
+
+    let fromEl = document.getElementById("analyticsFromDay");
+    let toEl   = document.getElementById("analyticsToDay");
+    if(fromEl) fromEl.value = 1;
+    if(toEl)   toEl.value   = today;
+
+    let resetBtn = document.getElementById("btnResetAnalyticsFilter");
+    if(resetBtn) resetBtn.style.display = 'none';
+
+    updateAnalyticsFilterBar();
+    updateAnalyticsFilterBadge();
+
+    renderBudgetChart();
+    renderFilteredSalesChart();
+}
+
+function updateAnalyticsFilterBadge() {
+    let badge = document.getElementById("analyticsMonthFilterBadge");
+    let labelEl = document.getElementById("analyticsFilterLabel");
+    if(!badge) return;
+    if(analyticsFilter.active) {
+        badge.style.display = '';
+        if(labelEl) labelEl.textContent = `اليوم ${analyticsFilter.fromDay} – ${analyticsFilter.toDay}`;
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function renderFilteredSalesChart() {
+    let purchases = safeJSON(store.purchases, []);
+    let now = new Date();
+    let curYear  = now.getFullYear().toString();
+    let curMonth = (now.getMonth()+1).toString().padStart(2,'0');
+    let curMonthStr = curYear + '-' + curMonth;
+
+    let labels = [], data = [];
+
+    if(analyticsFilter.active) {
+        // وضع الفلتر: عرض مبيعات يومية للشهر الحالي فقط
+        let fromD = analyticsFilter.fromDay;
+        let toD   = analyticsFilter.toDay;
+        for(let d = fromD; d <= toD; d++) {
+            let dayStr = d.toString().padStart(2,'0');
+            let fullDate = curMonthStr + '-' + dayStr;
+            labels.push(dayStr + '/' + curMonth);
+            let cnt = purchases.filter(p => p.date === fullDate && !p.isComp).length;
+            data.push(cnt);
+        }
+    } else {
+        // وضع عادي: آخر 6 أشهر
+        let months = {};
+        for(let i=5; i>=0; i--) {
+            let d = new Date(); d.setMonth(d.getMonth()-i);
+            let mm = (d.getMonth()+1).toString().padStart(2,'0');
+            let lbl = mm+'/'+d.getFullYear();
+            labels.push(lbl); months[lbl] = 0;
+        }
+        purchases.forEach(p => {
+            if(p.date && !p.isComp) {
+                let parts = p.date.split('-');
+                if(parts.length===3) { let k = parts[1]+'/'+parts[0]; if(months[k]!==undefined) months[k]++; }
+            }
+        });
+        labels.forEach(l => data.push(months[l]));
+    }
+
+    if(mySalesChart) mySalesChart.destroy();
+    let salesLabel = analyticsFilter.active
+        ? `مبيعات ${_arabicMonthNames[now.getMonth()]} (يوم ${analyticsFilter.fromDay}–${analyticsFilter.toDay})`
+        : 'مبيعات آخر 6 أشهر';
+    mySalesChart = new Chart(document.getElementById('salesChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: salesLabel, data, backgroundColor: '#6366f1', borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+}
+
 function refreshAnalytics() {
     currentChartMonth = null; // إعادة تعيين للشهر الحالي عند فتح الإحصائيات
     let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
@@ -5034,21 +5358,9 @@ function refreshAnalytics() {
         });
     }
     
-    let months = {}, labels = [], data = [];
-    for(let i=5; i>=0; i--){ let d = new Date(); d.setMonth(d.getMonth() - i); let mm = (d.getMonth()+1).toString().padStart(2,'0'); labels.push(mm+'/'+d.getFullYear()); months[labels[labels.length-1]] = 0; }
-    purchases.forEach(p => { 
-        if(p.date && !p.isComp) {
-            let parts = p.date.split('-');
-            if(parts.length===3) {
-               let k = parts[1]+'/'+parts[0]; 
-               if(months[k] !== undefined) months[k]++; 
-            }
-        }
-    });
-    labels.forEach(l => data.push(months[l]));
-    
-    if (mySalesChart) mySalesChart.destroy();
-    mySalesChart = new Chart(document.getElementById('salesChart').getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: 'مبيعات', data: data, backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+    // تهيئة فلتر الأيام وعرض مخطط المبيعات المفلتر
+    initAnalyticsDateFilter();
+    renderFilteredSalesChart();
     
     // رسم مسار الميزانية
     renderBudgetChart();
@@ -5534,7 +5846,7 @@ async function deleteWallet(){
     document.getElementById("renameWalletInput").value = "";
 }
 
-function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية", 'general'); }
+function exportData(){ if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; let exportObj = {}; ["users","wallets","purchases","invest","settings","generalNotes","todoList","activityLog","stock","services","discounts","vipCustomers","budgetHistory"].forEach(k=>{ if(store[k]) exportObj[k]=store[k]; }); let a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(exportObj)],{type:"application/json"})); a.download=`MegaBackup_${new Date().toLocaleDateString()}.json`; a.click(); logAction("تصدير نسخة احتياطية", 'general'); }
 function importData(){ 
     if(currentUser.role !== 'admin') return notify("للأدمن فقط","error");
     let f=document.getElementById("importFile").files[0];
@@ -5552,8 +5864,8 @@ function importData(){
             );
             if(!ok) return;
             
-            const SCALAR_IMPORT = ["wallets","invest","settings","services"];
-            const ARRAY_IMPORT  = ["users","purchases","generalNotes","todoList","activityLog","stock","discounts"];
+            const SCALAR_IMPORT = ["wallets","invest","settings","services","vipCustomers"];
+            const ARRAY_IMPORT  = ["users","purchases","generalNotes","todoList","activityLog","stock","discounts","budgetHistory"];
             
             // حفظ الحقول القياسية في المستند الرئيسي
             let scalarUpdates = {};
