@@ -1134,6 +1134,46 @@
                 <tbody id="walletList"></tbody>
             </table>
         </div>
+
+        <!-- التحويل بين المحافظ — للأدمن والموظف -->
+        <div id="sec-manual-wallet" style="margin-top:30px;">
+            <hr style="margin: 0 0 30px 0; border: 0; border-top: 2px dashed var(--border-color);">
+            <h3 style="margin-top:0"><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> التحويل بين المحافظ</h3>
+            <div class="inner-box" style="margin-bottom:30px">
+                <div class="grid-2">
+                    <div class="input-group"><label>من (المصدر)</label><select id="tfFromWallet"></select></div>
+                    <div class="input-group"><label>إلى (المستلم)</label><select id="tfToWallet"></select></div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group"><label>المبلغ</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div>
+                    <div class="input-group">
+                        <label>العمولة (تخصم من المصدر)</label>
+                        <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>سعر الصرف (1$ = ؟ ₪)</label>
+                    <input type="number" id="tfRate" placeholder="مثلاً 3.50" value="1" oninput="calculateTransfer()">
+                </div>
+                <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);">
+                    <label style="color:var(--yellow-text)">الصافي للمستلم:</label>
+                    <input type="number" id="tfResult" placeholder="0.00" style="background:var(--bg-card); border:1px solid var(--yellow-border); font-weight:800; font-size:18px; color:var(--yellow-text); padding:8px 12px; border-radius:var(--radius-md); width:100%; box-sizing:border-box;">
+                </div>
+                <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="confirmTransfer()">إتمام التحويل</button>
+            </div>
+        </div>
+
+        <!-- تعيين رصيد يدوي — للأدمن فقط -->
+        <div id="sec-set-wallet-balance">
+            <h3 style="margin-top:0"><i class="fas fa-edit" style="color:var(--primary)"></i> تعيين رصيد يدوي</h3>
+            <div class="inner-box" style="margin-bottom:10px; border-style:dashed!important;">
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div class="input-group" style="flex:2; min-width:200px"><label>المحفظة</label><select id="modWallet"></select></div>
+                    <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد</label><input id="modAmount" type="number" placeholder="0.00"></div>
+                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="history" class="card hidden">
@@ -1253,52 +1293,9 @@
 
     <div id="modify" class="card hidden">
         
-        <h2 class="admin-only" style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:10px; margin-top:0;"><i class="fas fa-bolt"></i> العمليات المالية المتقدمة</h2>
-        
-        <div id="sec-manual-wallet">
-            <h3 style="margin-top:20px"><i class="fas fa-exchange-alt" style="color:var(--primary)"></i> التحويل بين المحافظ</h3>
-            <div class="inner-box" style="margin-bottom:40px">
-                <div class="grid-2">
-                    <div class="input-group"><label>من (المصدر)</label><select id="tfFromWallet"></select></div>
-                    <div class="input-group"><label>إلى (المستلم)</label><select id="tfToWallet"></select></div>
-                </div>
-                
-                <div class="grid-2">
-                    <div class="input-group"><label>المبلغ</label><input type="number" id="tfAmount" placeholder="0.00" oninput="calculateTransfer()"></div>
-                    <div class="input-group">
-                        <label>العمولة (تخصم من المصدر)</label>
-                        <input type="number" id="tfFee" placeholder="0.00" value="0" oninput="calculateTransfer()">
-                    </div>
-                </div>
+        <hr class="admin-only" style="margin: 0 0 30px 0; border: 0; border-top: 2px dashed var(--border-color); display:none;">
 
-                <div class="input-group">
-                    <label>سعر الصرف (1$ = ؟ ₪)</label>
-                    <input type="number" id="tfRate" placeholder="مثلاً 3.50" value="1" oninput="calculateTransfer()">
-                </div>
-
-                <div class="input-group" style="background:var(--yellow-bg); padding:15px; border-radius:12px; border:1px solid var(--yellow-border);">
-                    <label style="color:var(--yellow-text)">الصافي للمستلم:</label>
-                    <input type="number" id="tfResult" placeholder="0.00" style="background:var(--bg-card); border:1px solid var(--yellow-border); font-weight:800; font-size:18px; color:var(--yellow-text); padding:8px 12px; border-radius:var(--radius-md); width:100%; box-sizing:border-box;">
-                </div>
-
-                <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="confirmTransfer()">إتمام التحويل</button>
-            </div>
-        </div>
-
-        <div id="sec-set-wallet-balance">
-            <h3><i class="fas fa-edit" style="color:var(--primary)"></i> تعيين رصيد يدوي</h3>
-            <div class="inner-box" style="margin-bottom:40px; border-style:dashed!important;">
-                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
-                    <div class="input-group" style="flex:2; min-width:200px"><label>المحفظة</label><select id="modWallet"></select></div>
-                    <div class="input-group" style="flex:1; min-width:100px"><label>الرصيد</label><input id="modAmount" type="number" placeholder="0.00"></div>
-                    <button class="btn btn-primary" style="height:48px; margin-bottom:18px" onclick="setWallet()">حفظ</button>
-                </div>
-            </div>
-        </div>
-
-        <hr class="admin-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
-
-        <h2 class="editor-only" style="color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:10px;"><i class="fas fa-store"></i> إعدادات المتجر و العمل الأساسية</h2>
+        <h2 class="editor-only" style="color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:10px; margin-top:0;"><i class="fas fa-store"></i> إعدادات المتجر و العمل الأساسية</h2>
 
         <div id="sec-manage-services">
             <h3 style="margin-top:20px"><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
@@ -4148,7 +4145,7 @@ function showPage(id, btn){
     if(id === 'generalNotes') refreshGeneralNotes();
     if(id === 'investment') refreshInvestment();
     if(id === 'history') { refreshHistory(); initDatePickers(); }
-    if(id === 'wallets') refreshWallets();
+    if(id === 'wallets') { loadWallets(); refreshWallets(); }
     if(id === 'expiring') refreshExpiring();
     if(id === 'discounts') refreshDiscounts();
     if(id === 'vip') refreshVip();
