@@ -3671,12 +3671,12 @@ function checkExpiringOnLogin() {
     let expiredNow = allAlerts.filter(x => x.expiry <= now);
     let soonList  = allAlerts.filter(x => x.expiry > now);
     if(expiredNow.length > 0) {
-        setTimeout(() => notify(`🔴 يوجد ${expiredNow.length} اشتراك منتهي الصلاحية — اضغط "التنبيهات"`, "error", 9000), 1500);
+        setTimeout(() => notify(`يوجد ${expiredNow.length} اشتراك منتهي الصلاحية — اضغط "التنبيهات"`, "error", 9000), 1500);
     }
     if(soonList.length > 0) {
         let soonest = soonList.sort((a,b) => a.expiry - b.expiry)[0];
         let daysLeft = Math.ceil((soonest.expiry - now) / 86400000);
-        let msg = `⏰ يوجد ${soonList.length} اشتراك ينتهي خلال ${daysLeft <= 1 ? 'يوم' : daysLeft + ' أيام'} — اضغط "التنبيهات"`;
+        let msg = `يوجد ${soonList.length} اشتراك ينتهي خلال ${daysLeft <= 1 ? 'يوم' : daysLeft + ' أيام'} — اضغط "التنبيهات"`;
         setTimeout(() => notify(msg, "warning", 8000), expiredNow.length > 0 ? 11000 : 1500);
     }
 }
@@ -6819,3 +6819,4 @@ window.onload = init;
 </script>
 </body>
 </html>
+
