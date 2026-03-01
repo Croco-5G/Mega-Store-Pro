@@ -1079,7 +1079,7 @@
         </div>
 
         <!-- Budget Timeline Chart -->
-        <div class="inner-box" style="margin-bottom:30px; padding:20px;">
+        <div id="budgetChartSection" class="inner-box" style="margin-bottom:30px; padding:20px;">
             <div style="margin-bottom:15px;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
                     <h4 style="margin:0; color:var(--text-main)"><i class="fas fa-chart-line" style="color:var(--primary)"></i> مسار الميزانية</h4>
@@ -1097,23 +1097,23 @@
             <!-- فلاتر أنواع النقاط -->
             <div id="budgetFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;">
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_purchase" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#10b981;"> 
+                    <input type="checkbox" id="bf_purchase" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#10b981;"> 
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; margin-left:2px;"></span> بيع
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_stock_buy" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f97316;">
+                    <input type="checkbox" id="bf_stock_buy" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f97316;">
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f97316; margin-left:2px;"></span> شراء
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_transfer" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f59e0b;">
+                    <input type="checkbox" id="bf_transfer" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f59e0b;">
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f59e0b; margin-left:2px;"></span> تحويلات
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_withdrawal" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#ef4444;">
+                    <input type="checkbox" id="bf_withdrawal" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#ef4444;">
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ef4444; margin-left:2px;"></span> سحب أرباح
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
-                    <input type="checkbox" id="bf_set_wallet" checked onchange="renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#3b82f6;">
+                    <input type="checkbox" id="bf_set_wallet" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#3b82f6;">
                     <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#3b82f6; margin-left:2px;"></span> عمليات أخرى
                 </label>
             </div>
@@ -2839,6 +2839,14 @@ function _initBudgetResizeObserver() {
 }
 
 function renderBudgetChart() {
+    // ─── إخفاء مسار الميزانية من المشاهد العادي ─────────────────────
+    let budgetSection = document.getElementById('budgetChartSection');
+    if(currentUser && currentUser.role === 'viewer') {
+        if(budgetSection) budgetSection.style.display = 'none';
+        return;
+    }
+    if(budgetSection) budgetSection.style.display = '';
+
     let history = safeJSON(store.budgetHistory, []);
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
@@ -2873,7 +2881,8 @@ function renderBudgetChart() {
         return true;
     });
 
-    // فلاتر النقاط
+    // فلاتر النقاط — استعادة من localStorage
+    loadBudgetFilters();
     let showTypes = {};
     ['purchase','stock_buy','transfer','withdrawal','set_wallet'].forEach(t => {
         let el = document.getElementById('bf_' + t);
@@ -2923,15 +2932,15 @@ function renderBudgetChart() {
     }
 
     // ─── بناء النقاط ─────────────────────────────────────────────
-    // عند كثرة العمليات (>200)، نجمّع بالساعة بدل كل عملية
     const MAX_RAW_POINTS = 200;
     let chartPoints = [];
     let eventsByDay = {};
 
     let filterStartDay = (isCurrentMonth && analyticsFilter.active) ? analyticsFilter.fromDay : 1;
+    let filterEndDay = (isCurrentMonth && analyticsFilter.active) ? analyticsFilter.toDay : null;
+
     // حساب رصيد بداية الفترة المفلترة
     if(isCurrentMonth && analyticsFilter.active && analyticsFilter.fromDay > 1) {
-        // أوجد آخر حدث قبل يوم البداية المفلتر
         let filterStartTs = new Date(vy, vm-1, analyticsFilter.fromDay).getTime();
         let prevFilterEv = history.filter(x => x.ts < filterStartTs).sort((a,b)=>a.ts-b.ts).pop();
         if(prevFilterEv) startBalance = prevFilterEv.totalUSD;
@@ -2951,10 +2960,9 @@ function renderBudgetChart() {
         sortedEvents.forEach(ev => {
             let h = new Date(ev.ts).getHours();
             let key = `${ev.date}_${h}`;
-            aggregated[key] = ev; // آخر حدث في كل ساعة
+            aggregated[key] = ev;
         });
         usedEvents = Object.values(aggregated).sort((a,b) => a.ts - b.ts);
-        // أعد بناء eventsByDay
         eventsByDay = {};
         usedEvents.forEach(ev => {
             let day = parseInt(ev.date.split('-')[2]);
@@ -2966,11 +2974,9 @@ function renderBudgetChart() {
     // تحديد آخر يوم نرسمه
     let lastDayOfMonth;
     if(isCurrentMonth) {
-        lastDayOfMonth = analyticsFilter.active ? analyticsFilter.toDay : now.getDate();
+        lastDayOfMonth = filterEndDay !== null ? filterEndDay : now.getDate();
     } else {
-        // آخر يوم في الشهر المحدد
         lastDayOfMonth = new Date(vy, vm, 0).getDate();
-        // أو آخر يوم فيه حدث إذا كان أقل
         if(sortedEvents.length > 0) {
             let lastEvDay = parseInt(sortedEvents[sortedEvents.length-1].date.split('-')[2]);
             lastDayOfMonth = lastEvDay;
@@ -2985,11 +2991,12 @@ function renderBudgetChart() {
         }
     }
 
-    // نقطة اليوم الحالي إذا كنا في الشهر الحالي ولم تكن هناك أحداث اليوم
+    // نقطة اليوم الحالي — فقط إذا كنا في الشهر الحالي وداخل نطاق الفلتر
     if(isCurrentMonth) {
         let todayDay = now.getDate();
+        let isInRange = filterEndDay === null || (todayDay >= filterStartDay && todayDay <= filterEndDay);
         let hasTodayPoint = chartPoints.some(p => parseInt(p.x) === todayDay && !p.isStart);
-        if(!hasTodayPoint) {
+        if(!hasTodayPoint && isInRange) {
             chartPoints.push({ x: `${todayDay}`, y: parseFloat(getTotalBalanceUSD().toFixed(2)), isToday: true });
         }
     }
@@ -3007,13 +3014,18 @@ function renderBudgetChart() {
         if(p.isStart || p.isToday) return '#94a3b8';
         return typeColors[p.event?.type] || '#6366f1';
     });
+
+    // النقطة المخفية: radius=0 و hoverRadius=0 → لا تظهر نهائياً
     let pointRadii = chartPoints.map(p => {
         if(p.isStart || p.isToday) return 5;
         if(p.event && showTypes[p.event.type]) return 8;
         if(p.event && !showTypes[p.event.type]) return 0;
         return 5;
     });
-    let pointHoverRadii = chartPoints.map(p => p.event ? 12 : 6);
+    let pointHoverRadii = chartPoints.map(p => {
+        if(p.event && !showTypes[p.event.type]) return 0; // مخفية ← لا تظهر عند التأشير
+        return p.event ? 12 : 6;
+    });
 
     // ─── عرض الإجمالي ─────────────────────────────────────────────
     let wallets2 = safeJSON(store.wallets, {});
@@ -3026,13 +3038,11 @@ function renderBudgetChart() {
     if(isCurrentMonth) {
         if(el) el.textContent = `إجمالي: ${fix(tUSD + tSHK/rate)}$ | ${fix(tUSD*rate + tSHK)}₪`;
     } else {
-        // عرض رصيد نهاية الشهر المحدد
         let endUSD = endBalance;
         if(el) el.textContent = `إجمالي: ${fix(endUSD)}$ | ${fix(endUSD*rate)}₪`;
     }
 
     // ─── إنشاء/تحديث الـ Chart ───────────────────────────────────
-    // دائماً destroy الـ chart قبل إعادة إنشائه لمنع خلل الـ canvas
     if(myBudgetChart) {
         myBudgetChart.destroy();
         myBudgetChart = null;
@@ -3041,14 +3051,12 @@ function renderBudgetChart() {
     let canvas = document.getElementById('budgetChart');
     if(!canvas) return;
 
-    // إعادة تعيين أبعاد الـ canvas يدوياً قبل إنشاء Chart جديد
     let wrapper = document.getElementById('budgetChartWrapper');
     if(wrapper) {
         canvas.width  = wrapper.offsetWidth  || wrapper.clientWidth  || 600;
         canvas.height = wrapper.offsetHeight || wrapper.clientHeight || 350;
     }
 
-    // تعطيل الـ animation عند البيانات الكبيرة لتحسين الأداء
     let useAnimation = dataValues.length <= 100;
 
     myBudgetChart = new Chart(canvas.getContext('2d'), {
@@ -3088,17 +3096,20 @@ function renderBudgetChart() {
             responsive: true,
             maintainAspectRatio: false,
             animation: useAnimation ? { duration: 400 } : false,
-            interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+            interaction: { mode: 'nearest', intersect: true, axis: 'xy' },
             onClick: (evt, elements) => {
                 if(elements.length > 0) {
                     let idx = elements[0].index;
                     let pt = chartPoints[idx];
-                    if(pt?.event) openBudgetEventModal(pt.event);
+                    // فتح النافذة فقط إذا كانت النقطة مفعلة (ليست مخفية)
+                    if(pt?.event && showTypes[pt.event.type]) openBudgetEventModal(pt.event);
                 }
             },
             onHover: (evt, elements) => {
                 if(evt.native?.target) {
-                    let hasEvent = elements.length > 0 && chartPoints[elements[0]?.index]?.event;
+                    let hasEvent = elements.length > 0 
+                        && chartPoints[elements[0]?.index]?.event
+                        && showTypes[chartPoints[elements[0]?.index]?.event.type];
                     evt.native.target.style.cursor = hasEvent ? 'pointer' : 'default';
                 }
             },
@@ -3109,6 +3120,12 @@ function renderBudgetChart() {
                     titleFont: { family: 'Tajawal', size: 13, weight: 'bold' },
                     padding: 12,
                     boxPadding: 4,
+                    // إخفاء التولتيب للنقاط المخفية
+                    filter: (item) => {
+                        let pt = chartPoints[item.dataIndex];
+                        if(pt?.event && !showTypes[pt.event.type]) return false;
+                        return true;
+                    },
                     callbacks: {
                         title: (items) => {
                             let idx = items[0].dataIndex;
@@ -3131,7 +3148,7 @@ function renderBudgetChart() {
                         },
                         afterLabel: (item) => {
                             let pt = chartPoints[item.dataIndex];
-                            return pt?.event ? '  ← اضغط لرؤية التفاصيل' : '';
+                            return pt?.event && showTypes[pt.event.type] ? '  ← اضغط لرؤية التفاصيل' : '';
                         }
                     }
                 },
@@ -3154,6 +3171,28 @@ function renderBudgetChart() {
 
     // تفعيل الـ ResizeObserver
     _initBudgetResizeObserver();
+}
+
+// ─── حفظ واستعادة حالة فلاتر مسار الميزانية ─────────────────────
+function saveBudgetFilters() {
+    let state = {};
+    ['purchase','stock_buy','transfer','withdrawal','set_wallet'].forEach(t => {
+        let el = document.getElementById('bf_' + t);
+        if(el) state[t] = el.checked;
+    });
+    localStorage.setItem('budgetFiltersState', JSON.stringify(state));
+}
+
+function loadBudgetFilters() {
+    let savedRaw = localStorage.getItem('budgetFiltersState');
+    if(!savedRaw) return;
+    try {
+        let state = JSON.parse(savedRaw);
+        ['purchase','stock_buy','transfer','withdrawal','set_wallet'].forEach(t => {
+            let el = document.getElementById('bf_' + t);
+            if(el && state[t] !== undefined) el.checked = state[t];
+        });
+    } catch(e) {}
 }
 
 function openBudgetEventModal(ev) {
@@ -3863,6 +3902,11 @@ function applyRBAC() {
         safeToggle("btnExportCSV", "add"); // <--- إخفاء عن المشاهد
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
+        
+        // إخفاء زر الإحصائيات وقسم فلاتر مسار الميزانية عن المشاهد العادي
+        safeToggle("btnAnalytics", "add");
+        let budgetFiltersEl = document.getElementById('budgetFilters');
+        if(budgetFiltersEl) budgetFiltersEl.style.display = 'none';
         
         let gnText = document.querySelector("#generalNotes textarea");
         if(gnText) gnText.style.display = "none";
@@ -5334,6 +5378,9 @@ function refreshAnalytics() {
     let invest = safeJSON(store.invest, {}), purchases = safeJSON(store.purchases, []);
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+
+    // استعادة حالة فلاتر مسار الميزانية من localStorage
+    loadBudgetFilters();
 
     if (myProfitChart) myProfitChart.destroy();
     
