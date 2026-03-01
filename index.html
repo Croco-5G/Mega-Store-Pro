@@ -3665,8 +3665,8 @@ async function attemptLogin() {
 function checkExpiringOnLogin() {
     let p = safeJSON(store.purchases, []);
     let now = new Date().getTime();
-    let days7 = 3 * 86400000;
-    // نحسب المنتهية + القادمة خلال 7 أيام بدون أي حد زمني للإخفاء
+    let days7 = 1 * 86400000;
+    // نحسب المنتهية + القادمة خلال يوم واحد بدون أي حد زمني للإخفاء
     let allAlerts = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - now) < days7);
     let expiredNow = allAlerts.filter(x => x.expiry <= now);
     let soonList  = allAlerts.filter(x => x.expiry > now);
@@ -3689,7 +3689,7 @@ function startExpiryPeriodicCheck() {
         if(!currentUser) { clearInterval(_expiryCheckInterval); return; }
         let p = safeJSON(store.purchases, []);
         let now = new Date().getTime();
-        let days7 = 3 * 86400000;
+        let days7 = 1 * 86400000;
         let freshExpired = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp
             && x.expiry <= now && x.expiry > now - 3600000); // انتهت خلال آخر ساعة
         if(freshExpired.length > 0) {
@@ -4781,10 +4781,10 @@ function refreshAll(){
     updateMonthSalesStat();
     
     // تحديث badge التنبيهات دائماً بغض النظر عن الصفحة المرئية
-    let days3 = 3 * 86400000, nowMs2 = now.getTime();
+    let days3 = 1 * 86400000, nowMs2 = now.getTime();
     let expiryBadge2 = document.getElementById("expiryBadge");
     if(expiryBadge2) {
-        // المنتهية + القادمة خلال 7 أيام — بدون حد زمني للإخفاء
+        // المنتهية + القادمة خلال يوم واحد — بدون حد زمني للإخفاء
         let expiringCount2 = p.filter(x => x.expiry && !x.expiryDismissed && !x.reminded && !x.isComp && (x.expiry - nowMs2) < days3).length;
         expiryBadge2.textContent = expiringCount2;
         expiryBadge2.style.display = expiringCount2 > 0 ? "inline-flex" : "none";
@@ -4866,12 +4866,12 @@ function refreshExpiring() {
     let p = safeJSON(store.purchases, []);
     let body = document.getElementById("expiringBody"); 
     if(!body) return;
-    let now = new Date().getTime(), days7 = 3 * 86400000;
+    let now = new Date().getTime(), days7 = 1 * 86400000;
     
-    // نُظهر: المنتهية + يلي باقيلها 3 أيام أو أقل — بدون أي حد زمني للإخفاء التلقائي
+    // نُظهر: المنتهية + يلي باقيلها يوم واحد أو أقل — بدون أي حد زمني للإخفاء التلقائي
     let filtered = p.map((d, i) => ({ d, i })).filter(x => 
         x.d.expiry && !x.d.expiryDismissed && !x.d.isComp && 
-        (x.d.expiry - now) < days7  // ينتهي خلال 7 أيام أو انتهى بالفعل
+        (x.d.expiry - now) < days7  // ينتهي خلال يوم واحد أو انتهى بالفعل
     );
     filtered.sort((a, b) => a.d.expiry - b.d.expiry);
     
@@ -4888,10 +4888,10 @@ function refreshExpiring() {
 
     paginated.forEach(x => {
         let item = x.d, daysLeft = Math.ceil((item.expiry - now) / 86400000);
-        let status = daysLeft <= 0 ? 'منتهي' : daysLeft + ' يوم';
+        let status = daysLeft <= 0 ? 'منتهي' : 'يوم';
         let cleanPhone = (item.phone||'').replace(/\D/g, '');
         
-        let expiryPhrase = daysLeft <= 0 ? 'منتهي' : `باقي على إنتهائه ${status}`;
+        let expiryPhrase = daysLeft <= 0 ? 'منتهي' : 'متبقي على إنتهائه يوم واحد';
         let waMsg = `${greeting} ${item.customer}\nحابين نذكرك ان اشتراكك في ${item.sub} ${expiryPhrase}\nهل عجبتك الخدمة و حابب تجدد اشتراكك مرة تانية؟`;
         
         let wa = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
