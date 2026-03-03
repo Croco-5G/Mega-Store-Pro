@@ -4388,6 +4388,12 @@ function addPurchase(){
     let walletVal = document.getElementById("wallet").value;
     
     if(!walletVal) { notify("يرجى اختيار المحفظة", "error"); return; }
+    
+    let _wallets = safeJSON(store.wallets, {});
+    if(_wallets[walletVal] && _wallets[walletVal].cur !== paidCur) {
+        notify(`عملة الدفع (${paidCur}) لا تتطابق مع عملة المحفظة المختارة (${_wallets[walletVal].cur}) — يرجى اختيار محفظة بنفس العملة`, "error");
+        return;
+    }
 
     document.getElementById("purchaseConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
@@ -6865,7 +6871,7 @@ async function resetBudgetMonth() {
     let today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     history.push({
         id: 'be_anchor_' + Date.now(),
-        ts: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0).getTime(),
+        ts: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0).getTime() - 1,
         date: today,
         type: 'set_wallet',
         label: 'بداية الشهر (إعادة تعيين)',
@@ -6883,6 +6889,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
