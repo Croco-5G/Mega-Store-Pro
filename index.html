@@ -6850,7 +6850,7 @@ async function resetBudgetMonth() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     let ok = await showConfirm(
         "إعادة تعيين مسار الشهر الحالي",
-        "سيتم حذف جميع أحداث الشهر الحالي من منحنى الميزانية. لا يؤثر على الأرصدة أو السجلات المالية الفعلية.",
+        "سيتم حذف جميع أحداث الشهر الحالي واعتبار الرصيد الحالي هو نقطة البداية. لن تظهر أي أرباح أو خسائر.",
         "تأكيد الإعادة", "إلغاء",
         '<i class="fas fa-undo" style="color:var(--danger)"></i>'
     );
@@ -6858,7 +6858,21 @@ async function resetBudgetMonth() {
     let now = new Date();
     let curMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     let history = safeJSON(store.budgetHistory, []);
+    // حذف كل أحداث الشهر الحالي
     history = history.filter(x => !x.date || !x.date.startsWith(curMonthStr));
+    // إضافة نقطة ترسيخ واحدة بالرصيد الحالي كبداية للشهر
+    let currentUSD = getTotalBalanceUSD();
+    let today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    history.push({
+        id: 'be_anchor_' + Date.now(),
+        ts: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0).getTime(),
+        date: today,
+        type: 'set_wallet',
+        label: 'بداية الشهر (إعادة تعيين)',
+        totalUSD: currentUSD,
+        deltaUSD: 0,
+        details: { reason: 'إعادة تعيين بداية الشهر يدوياً' }
+    });
     store.budgetHistory = JSON.stringify(history);
     fbSave('budgetHistory', history);
     logAction('إعادة تعيين مسار الميزانية للشهر الحالي', 'danger');
@@ -6869,6 +6883,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
