@@ -1356,6 +1356,14 @@
             </div>
         </div>
 
+        <div id="sec-budget-reset" style="margin-bottom:20px; margin-top:20px;">
+            <h3><i class="fas fa-chart-line" style="color:var(--primary)"></i> إعادة تعيين مسار الميزانية</h3>
+            <div class="inner-box" style="border-style:dashed!important;">
+                <p style="color:var(--text-muted); font-size:13px; margin-top:0; line-height:1.7;">يجعل هذا الزر الرصيدَ الحالي نقطةَ بداية الشهر في منحنى الميزانية، وكأنه لم تجرِ أي عمليات في هذا الشهر. <b>لا يؤثر على الأرصدة أو السجلات المالية.</b></p>
+                <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger);" onclick="resetBudgetMonth()"><i class="fas fa-undo"></i> إعادة تعيين بداية الشهر الحالي</button>
+            </div>
+        </div>
+
         <hr class="editor-only" style="margin: 40px 0; border: 0; border-top: 2px dashed var(--border-color);">
 
         <h2 class="admin-only" style="color:var(--info); border-bottom:2px solid var(--info); padding-bottom:10px;"><i class="fas fa-wallet"></i> إدارة و هيكلة المحافظ</h2>
@@ -1524,10 +1532,11 @@
         </div>
         <div class="input-group"><label>البريد الإلكتروني</label><div style="display:flex; gap:8px;"><input id="stEmail" placeholder="email@example.com" style="flex:1"><button type="button" class="btn btn-primary" style="padding:10px 14px; flex-shrink:0;" onclick="copyField('stEmail', this)" title="نسخ الإيميل"><i class="fas fa-copy"></i></button></div></div>
         <div class="input-group"><label>كلمة المرور</label><div style="display:flex; gap:8px;"><input id="stPass" placeholder="Password" style="flex:1"><button type="button" class="btn btn-primary" style="padding:10px 14px; flex-shrink:0;" onclick="copyField('stPass', this)" title="نسخ كلمة المرور"><i class="fas fa-copy"></i></button></div></div>
+        <div class="input-group" id="stPurposeGroup"><label>الغرض من الاشتراك</label><select id="stPurpose"><option value="sale"> للبيع (يظهر في قائمة البيع)</option><option value="test"> للتجربة (لن يُعرض للبيع)</option></select></div>
         <div class="input-group"><label>ملاحظات (قابل للتعديل لاحقاً)</label><textarea id="stNotes" style="height:80px; resize:vertical;"></textarea></div>
         
         <button id="btnSaveStock" class="btn btn-primary" style="width:100%; margin-top:10px" onclick="verifyStockAdd()"><i class="fas fa-save"></i> حفظ وشراء</button>
-        <button id="btnUpdateNote" class="btn btn-warning hidden" style="width:100%; margin-top:10px" onclick="updateStockNote()"><i class="fas fa-edit"></i> تحديث الملاحظات فقط</button>
+        <button id="btnUpdateNote" class="btn btn-warning hidden" style="width:100%; margin-top:10px" onclick="updateStockNote()"><i class="fas fa-edit"></i> تحديث الملاحظات والغرض</button>
         
         <button class="btn" style="width:100%; margin-top:10px; background:transparent; color:var(--text-muted); border:1px solid var(--border-color)" onclick="closeStockModal('force')">إلغاء</button>
     </div>
@@ -4236,7 +4245,7 @@ function loadPurchaseStock() {
                 if(expD.getTime() <= new Date().getTime()) isExpired = true;
             }
             
-            if(!isExpired) {
+            if(!isExpired && s.purpose !== 'test') {
                 let sp = s.soldProfiles || 0;
                 let tp = s.totalProfiles || 1;
                 html += `<option value="${s.id}">${esc(s.displayName || s.service)} (${sp}/${tp})</option>`;
@@ -6163,6 +6172,7 @@ function openAddStockModal() {
     document.getElementById("stVendor").value = "";
     ["stEmail","stPass","stNotes"].forEach(id => document.getElementById(id).value = "");
     document.getElementById("stDuration").value = "1";
+    document.getElementById("stPurpose").value = "sale";
     
     document.getElementById("stockPurchaseInputs").style.display = "block";
     document.getElementById("btnSaveStock").classList.remove("hidden");
@@ -6260,7 +6270,8 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
         timestamp: nd.getTime(),
         cost: stCost,           
         costCurrency: w.cur,    
-        sourceWallet: stWallet  
+        sourceWallet: stWallet,
+        purpose: document.getElementById("stPurpose").value || 'sale'
     };
     
     stock.unshift(s);
@@ -6308,11 +6319,11 @@ function updateStockNote() {
     let stock = safeJSON(store.stock, []);
     let index = stock.findIndex(x => x.id === id);
     if(index === -1) return;
-
     stock[index].notes = document.getElementById("stNotes").value;
+    stock[index].purpose = document.getElementById("stPurpose").value || 'sale';
     
     store.stock = JSON.stringify(stock); fbSave("stock", stock);
-    logAction(`تحديث ملاحظات المخزون: ${stock[index].displayName || stock[index].service}`, 'general');
+    logAction(`تحديث ملاحظات/غرض المخزون: ${stock[index].displayName || stock[index].service}`, 'general');
     
     document.getElementById("stockModal").classList.add("hidden");
     refreshStock();
@@ -6365,7 +6376,22 @@ async function deleteActiveStock(id) {
     logAction("حذف اشتراك منتهي من المخزون المتاح", 'danger');
     refreshStock(); loadPurchaseStock(); notify("تم الحذف بنجاح");
 }
-
+async function moveTestToArchive(id) {
+    let ok = await showConfirm("نقل الاشتراك التجريبي", "سيتم نقل هذا الاشتراك التجريبي إلى أرشيف المباع. هل أنت متأكد؟", "نقل للأرشيف", "إلغاء", '<i class="fas fa-exchange-alt"></i>');
+    if(!ok) return;
+    let stock = safeJSON(store.stock, []);
+    let idx = stock.findIndex(x => x.id === id);
+    if(idx !== -1) {
+        stock[idx].status = 'sold';
+        let nd = new Date();
+        let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+        let ndd = nd.getDate().toString().padStart(2,'0');
+        stock[idx].soldDate = `${nd.getFullYear()}-${nmm}-${ndd}`;
+        store.stock = JSON.stringify(stock); fbSave("stock", stock);
+        logAction(`نقل اشتراك تجريبي إلى الأرشيف: ${stock[idx].displayName || stock[idx].service}`, 'danger');
+        refreshStock(); loadPurchaseStock(); notify("تم نقل الاشتراك للأرشيف بنجاح");
+    }
+}
 async function moveToSold(id) {
     let ok = await showConfirm("نقل للمباع", "هذا الاشتراك انتهت صلاحيته وتم بيع جزء منه. هل تريد نقله لأرشيف المباع للاحتفاظ ببياناته؟", "نقل للأرشيف", "إلغاء", '<i class="fas fa-exchange-alt"></i>');
     if(!ok) return;
@@ -6461,6 +6487,8 @@ function refreshStock() {
         if(currentStockTab === 'active') {
             let detailsBtn = `<button class="btn btn-primary" style="padding:5px 10px" onclick="editStock('${item.id}')"><i class="fas fa-eye"></i></button>`;
             let actionBtn = "";
+            let isTest = item.purpose === 'test';
+            let tS = isTest ? ' style="color:#eab308;font-weight:bold;"' : '';
             if(canControl) {
                 if(isExpired) {
                     if((item.soldProfiles || 0) > 0) {
@@ -6468,15 +6496,17 @@ function refreshStock() {
                     } else {
                         actionBtn = `<td><button class="btn btn-danger" style="padding:5px 10px;" onclick="deleteActiveStock('${item.id}')"><i class="fas fa-trash-alt"></i> حذف</button></td>`;
                     }
+                } else if(isTest) {
+                    actionBtn = `<td><button class="btn btn-warning" style="padding:5px 10px;background:#eab308;color:white;" onclick="moveTestToArchive('${item.id}')"><i class="fas fa-exchange-alt"></i> نقل</button></td>`;
                 } else {
                     actionBtn = `<td><button class="btn" style="padding:5px 10px; background:var(--success); color:#fff" onclick="sellStock('${item.id}')"><i class="fas fa-check"></i> بيع</button></td>`;
                 }
             }
             rows += `<tr>
                 <td><span class="badge badge-info">${esc(item.displayName || item.service)}</span></td>
-                <td class="wide-col" title="${esc(item.email)}">${esc(item.email)}</td>
-                <td>${esc(item.vendor) || '-'}</td>
-                <td class="eng-num" style="font-weight:bold;">${profStr}</td>
+                <td class="wide-col"${tS} title="${esc(item.email)}">${esc(item.email)}</td>
+                <td${tS}>${esc(item.vendor) || '-'}</td>
+                <td class="eng-num"${tS}>${profStr}</td>
                 <td class="eng-num">${timeBadge}</td>
                 <td>${detailsBtn}</td>
                 ${actionBtn}
@@ -6531,10 +6561,12 @@ function editStock(id) {
     document.getElementById("stEmail").value = item.email;
     document.getElementById("stPass").value = item.pass;
     document.getElementById("stNotes").value = item.notes;
+    document.getElementById("stPurpose").value = item.purpose || 'sale';
 
-    let inputs = document.querySelectorAll("#stockModal input, #stockModal select");
+    let inputs = document.querySelectorAll("#stockModal input, #stockModal select, #stockModal textarea");
     inputs.forEach(inp => inp.disabled = true);
     document.getElementById("stNotes").disabled = false;
+    document.getElementById("stPurpose").disabled = false;
 
     document.getElementById("stockModal").classList.remove("hidden");
 }
@@ -6548,8 +6580,8 @@ function viewSoldDetails(id) {
     body.innerHTML = "";
     
     body.innerHTML += row("الخدمة", esc(item.displayName || item.service));
-    body.innerHTML += row("الإيميل", esc(item.email));
-    body.innerHTML += row("كلمة المرور", esc(item.pass));
+    body.innerHTML += `<div class="detail-row"><span style="color:var(--text-muted)">الإيميل</span><span style="display:flex;align-items:center;gap:8px;direction:ltr;"><span id="_dEmail">${esc(item.email)}</span><button class="btn btn-primary" style="padding:3px 8px;font-size:11px;" onclick="navigator.clipboard.writeText(document.getElementById('_dEmail').textContent).then(()=>notify('تم نسخ الإيميل'))"><i class='fas fa-copy'></i></button></span></div>`;
+    body.innerHTML += `<div class="detail-row"><span style="color:var(--text-muted)">كلمة المرور</span><span style="display:flex;align-items:center;gap:8px;direction:ltr;"><span id="_dPass">${esc(item.pass)}</span><button class="btn btn-primary" style="padding:3px 8px;font-size:11px;" onclick="navigator.clipboard.writeText(document.getElementById('_dPass').textContent).then(()=>notify('تم نسخ كلمة المرور'))"><i class='fas fa-copy'></i></button></span></div>`;
     body.innerHTML += row("البائع", esc(item.vendor) || "-");
     body.innerHTML += row("البروفايلات", `${item.soldProfiles || 0} / ${item.totalProfiles || 1}`);
     body.innerHTML += row("تكلفة الشراء", (item.cost || 0) + " " + (item.costCurrency || ''));
@@ -6814,9 +6846,40 @@ window.addEventListener('resize', () => {
         if(mySalesChart) mySalesChart.resize();
     }, 150);
 });
-
+async function resetBudgetMonth() {
+    if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let ok = await showConfirm(
+        "إعادة تعيين مسار الشهر الحالي",
+        "سيتم حذف جميع أحداث منحنى الميزانية للشهر الحالي واعتبار الرصيد الحالي هو رصيد البداية. لا يؤثر على الأرصدة أو السجلات المالية الفعلية.",
+        "تأكيد الإعادة", "إلغاء",
+        '<i class="fas fa-undo" style="color:var(--danger)"></i>'
+    );
+    if(!ok) return;
+    let now = new Date();
+    let curMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    let history = safeJSON(store.budgetHistory, []);
+    history = history.filter(x => !x.date || !x.date.startsWith(curMonthStr));
+    let currentUSD = getTotalBalanceUSD();
+    let today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    history.push({
+        id: 'be_reset_' + Date.now(),
+        ts: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 1).getTime(),
+        date: today,
+        type: 'set_wallet',
+        label: 'إعادة تعيين بداية الشهر',
+        totalUSD: currentUSD,
+        deltaUSD: 0,
+        details: { reason: 'إعادة تعيين بداية الشهر يدوياً' }
+    });
+    store.budgetHistory = JSON.stringify(history);
+    fbSave('budgetHistory', history);
+    logAction('إعادة تعيين مسار الميزانية للشهر الحالي', 'danger');
+    notify("تم إعادة تعيين مسار الشهر بنجاح");
+    renderBudgetChart();
+}
 window.onload = init;
 </script>
 </body>
 </html>
+
 
