@@ -1399,25 +1399,69 @@
         <h2 style="color:var(--text-main); border-bottom:2px solid var(--text-main); padding-bottom:10px;"><i class="fas fa-cogs"></i> إعدادات الحساب و النظام</h2>
 
         <div id="sec-storage" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 40px; margin-top:20px;">
-            <h3 style="color: var(--text-main); margin-top:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (Firebase)</h3>
-            <div style="background: var(--bg-input); border-radius: 10px; padding: 15px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; font-weight:700;">
-                    <span><i class="fas fa-database"></i> الحجم: <span id="storageUsed" style="color:var(--primary)" dir="ltr">0.00 KB</span></span>
-                    <span id="storageFree">جاري الفحص..</span>
-                </div>
-                
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:var(--text-muted);" dir="ltr">
-                    <span id="storagePercentText">0%</span>
-                    <span id="storageSizeText">0 KB / 1024 KB</span>
-                </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+                <h3 style="color: var(--text-main); margin:0"><i class="fas fa-cloud" style="color:var(--primary)"></i> حالة التخزين السحابي (Firebase)</h3>
+                <span id="storageFree" style="font-size:13px; font-weight:700; padding:4px 12px; border-radius:20px; background:var(--bg-input); border:1px solid var(--border-color);">جاري الفحص..</span>
+            </div>
 
-                <div style="width:100%; background:var(--border-color); height:12px; border-radius:10px; overflow:hidden; margin-bottom:8px;">
-                    <div id="storageBar" style="width:0%; background:var(--success); height:100%; transition: width 0.5s ease;"></div>
+            <!-- البيانات الحساسة -->
+            <div style="background: var(--bg-input); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px;">
+                        <i class="fas fa-shield-alt" style="color:#f59e0b;"></i> البيانات الحساسة
+                        <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(إعدادات · محافظ · VIP)</span>
+                    </span>
+                    <span style="font-size:12px; font-weight:700;" dir="ltr">
+                        <span id="scalarUsedText" style="color:var(--primary)">0 KB</span>
+                        <span style="color:var(--text-muted);"> / 1,024 KB</span>
+                    </span>
                 </div>
-                
-                <p style="font-size:11px; color:var(--text-muted); margin:0;">
-                    تنبيه: الحد الأقصى المسموح هو 1 ميجابايت (1024 كيلوبايت). إذا وصل المؤشر للون الأحمر، قم بتصدير الأرشيف ومسح السجلات القديمة.
-                </p>
+                <div style="width:100%; background:var(--border-color); height:10px; border-radius:10px; overflow:hidden; margin-bottom:5px;">
+                    <div id="scalarBar" style="width:0%; background:var(--success); height:100%; transition: width 0.6s ease; border-radius:10px;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+                    <span id="scalarPercentText">0%</span>
+                    <span>MegaByte</span>
+                </div>
+            </div>
+
+            <!-- البيانات الكبيرة -->
+            <div style="background: var(--bg-input); border-radius: 12px; padding: 16px; border: 1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px;">
+                        <i class="fas fa-layer-group" style="color:#6366f1;"></i> البيانات الكبيرة
+                        <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(مشتريات · مخزون · سجلات)</span>
+                    </span>
+                    <span style="font-size:12px; font-weight:700;" dir="ltr">
+                        <span id="arrayUsedText" style="color:var(--primary)">0 KB</span>
+                        <span style="color:var(--text-muted);"> / 1,048,576 KB</span>
+                    </span>
+                </div>
+                <div style="width:100%; background:var(--border-color); height:10px; border-radius:10px; overflow:hidden; margin-bottom:5px;">
+                    <div id="arrayBar" style="width:0%; background:#6366f1; height:100%; transition: width 0.6s ease; border-radius:10px;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+                    <span id="arrayPercentText">0%</span>
+                    <span>GigaByte</span>
+                </div>
+            </div>
+
+            <!-- عناصر مخفية للتوافق مع الكود القديم -->
+            <span id="storageUsed" style="display:none">0</span>
+            <span id="storageSizeText" style="display:none">0</span>
+            <span id="storagePercentText" style="display:none">0</span>
+            <div id="storageBar" style="display:none"></div>
+        </div>
+
+        <!-- اختبار التخزين — للادمن فقط -->
+        <div id="sec-storage-test" class="hidden" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 40px;">
+            <h3 style="color: var(--text-main); margin-top:0;"><i class="fas fa-vial" style="color:var(--danger)"></i> اختبار التخزين</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">يضيف بيانات وهمية بسجل النشاط باستمرار لاختبار حساب المساحة — اضغط "إيقاف وحذف" لإزالتها نهائياً من Firebase.</p>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                <button id="btnToggleStressTest" onclick="toggleStorageTest()" class="btn btn-danger" style="display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-play"></i> بدء الرفع
+                </button>
+                <span id="stressTestStatus" style="font-size:13px; color:var(--text-muted);"></span>
             </div>
         </div>
 
@@ -1532,12 +1576,11 @@
         </div>
         <div class="input-group"><label>البريد الإلكتروني</label><div style="display:flex; gap:8px;"><input id="stEmail" placeholder="email@example.com" style="flex:1"><button type="button" class="btn btn-primary" style="padding:10px 14px; flex-shrink:0;" onclick="copyField('stEmail', this)" title="نسخ الإيميل"><i class="fas fa-copy"></i></button></div></div>
         <div class="input-group"><label>كلمة المرور</label><div style="display:flex; gap:8px;"><input id="stPass" placeholder="Password" style="flex:1"><button type="button" class="btn btn-primary" style="padding:10px 14px; flex-shrink:0;" onclick="copyField('stPass', this)" title="نسخ كلمة المرور"><i class="fas fa-copy"></i></button></div></div>
-        <div class="input-group" id="stPurposeGroup"><label>الغرض من الاشتراك</label><select id="stPurpose"><option value="sale"> للبيع (يظهر في قائمة البيع)</option><option value="test"> للتجربة (لن يُعرض للبيع)</option></select></div>
+        <div class="input-group" id="stPurposeGroup"><label>الغرض من الاشتراك</label><select id="stPurpose"><option value="sale">للبيع (يظهر في قائمة البيع)</option><option value="test">للتجربة (لن يُعرض للبيع)</option></select></div>
         <div class="input-group"><label>ملاحظات (قابل للتعديل لاحقاً)</label><textarea id="stNotes" style="height:80px; resize:vertical;"></textarea></div>
         
         <button id="btnSaveStock" class="btn btn-primary" style="width:100%; margin-top:10px" onclick="verifyStockAdd()"><i class="fas fa-save"></i> حفظ وشراء</button>
         <button id="btnUpdateNote" class="btn btn-warning hidden" style="width:100%; margin-top:10px" onclick="updateStockNote()"><i class="fas fa-edit"></i> تحديث الملاحظات والغرض</button>
-        
         <button class="btn" style="width:100%; margin-top:10px; background:transparent; color:var(--text-muted); border:1px solid var(--border-color)" onclick="closeStockModal('force')">إلغاء</button>
     </div>
 </div>
@@ -1650,7 +1693,7 @@ function processVipDowngrades() {
         let customer = vips[phone];
         if (customer.rankIndex > 0) {
             let daysPassed = Math.floor((now - customer.lastPurchaseTime) / (1000 * 60 * 60 * 24));
-            let drops = Math.floor(daysPassed / 60);
+            let drops = Math.floor(daysPassed / 40);
             if (drops > 0) {
                 for (let i = 0; i < drops && customer.rankIndex > 0; i++) {
                     let currentRank = VIP_RANKS[customer.rankIndex];
@@ -1663,7 +1706,7 @@ function processVipDowngrades() {
                     
                     customer.target = customer.count + diff;
                     customer.rankIndex--;
-                    customer.lastPurchaseTime += (60 * 86400000); 
+                    customer.lastPurchaseTime += (40 * 86400000); 
                 }
                 updated = true;
             }
@@ -1704,7 +1747,7 @@ function refreshVip() {
         let countDisplay = c.rankIndex < 4 ? `${c.count} / ${c.target}` : `${c.count} (ماكس)`;
         
         let daysPassed = Math.floor((now - c.lastPurchaseTime) / (1000 * 60 * 60 * 24));
-        let daysLeft = Math.max(0, 60 - daysPassed);
+        let daysLeft = Math.max(0, 40 - daysPassed);
         let timeText = c.rankIndex > 0 ? `${daysLeft} يوم` : '-';
         
         let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px" onclick="deleteVip('${c.phone}')"><i class="fas fa-trash"></i></button>` : '-';
@@ -3448,87 +3491,85 @@ function init(){
 }
 
 function updateStorageUI() {
-    // ─── حساب دقيق لحجم البيانات المخزنة في Firebase ───────────────
-    // Firebase Firestore يحسب الحجم بطريقة محددة:
-    // - المستندات الـ Scalar: حقول في مستند واحد (wallets, settings, invest, services, vipCustomers)
-    // - المستندات الـ Array: كل عنصر وثيقة Firestore مستقلة (purchases, stock, users, activityLog, todoList, generalNotes, discounts, budgetHistory)
-    // تكلفة كل مستند Firestore = 32 bytes (overhead ثابت) + اسم المسار (~50 bytes) + حجم البيانات المُضغَّطة
+    const FIRESTORE_DOC_OVERHEAD = 82;
 
-    const FIRESTORE_DOC_OVERHEAD = 82; // bytes ثابتة لكل وثيقة (metadata + path)
-    let totalBytes = 0;
-
-    // ① الـ Scalar keys — مخزنة كحقول في مستند main واحد
+    // ① البيانات الحساسة — Scalar Keys (مستند رئيسي واحد، حد 1 MB)
+    let scalarBytes = FIRESTORE_DOC_OVERHEAD;
     SCALAR_KEYS.forEach(k => {
         if (store[k]) {
-            // حجم اسم الحقل (field name) + حجم القيمة الفعلية
-            let fieldNameSize = new Blob([k]).size + 1;
-            let fieldValueSize = new Blob([store[k]]).size + 1;
-            totalBytes += fieldNameSize + fieldValueSize;
+            scalarBytes += new Blob([k]).size + 1;
+            scalarBytes += new Blob([store[k]]).size + 1;
         }
     });
-    totalBytes += FIRESTORE_DOC_OVERHEAD; // overhead المستند الرئيسي الواحد
 
-    // ② الـ Array keys — كل عنصر وثيقة Firestore مستقلة
+    // ② البيانات الكبيرة — Array Keys (subcollections، حد 1 GiB)
+    let arrayBytes = ARRAY_KEYS.length * 20;
     ARRAY_KEYS.forEach(k => {
         if (store[k]) {
             try {
                 let arr = JSON.parse(store[k]);
                 if (Array.isArray(arr)) {
                     arr.forEach(item => {
-                        // حجم بيانات العنصر + overhead الوثيقة المستقلة
-                        let itemSize = new Blob([JSON.stringify(item)]).size;
-                        totalBytes += itemSize + FIRESTORE_DOC_OVERHEAD;
+                        arrayBytes += new Blob([JSON.stringify(item)]).size + FIRESTORE_DOC_OVERHEAD;
                     });
                 } else {
-                    // ليست مصفوفة — نعاملها كـ scalar
-                    totalBytes += new Blob([store[k]]).size + FIRESTORE_DOC_OVERHEAD;
+                    arrayBytes += new Blob([store[k]]).size + FIRESTORE_DOC_OVERHEAD;
                 }
             } catch(e) {
-                totalBytes += new Blob([store[k]]).size + FIRESTORE_DOC_OVERHEAD;
+                arrayBytes += new Blob([store[k]]).size + FIRESTORE_DOC_OVERHEAD;
             }
         }
     });
 
-    // ③ إضافة حجم أسماء المجموعات (Collection names overhead)
-    totalBytes += ARRAY_KEYS.length * 20; // ~20 bytes لكل اسم collection
-
-    // ─── تحويل وعرض ─────────────────────────────────────────────
-    let totalKB = totalBytes / 1024;
-    // حد Firestore الفعلي للبيانات: 1 GB مجاناً — نعرض نسبة من 1 MB (حد المستند الواحد هو 1MB)
-    // لكن المنطقي هو مقارنتها بـ 1 MB وهو حد البيانات العملي لهذا النوع من الأنظمة
-    const MAX_KB = 1024; // 1 MB كحد مرجعي عملي
-    let percentage = Math.min((totalKB / MAX_KB) * 100, 100).toFixed(1);
-
-    let displaySize;
-    if (totalKB < 1) {
-        displaySize = totalBytes.toFixed(0) + " B";
-    } else if (totalKB < 1024) {
-        displaySize = totalKB.toFixed(2) + " KB";
-    } else {
-        displaySize = (totalKB / 1024).toFixed(2) + " MB";
-    }
-
+    // ─── حالة الاتصال ───────────────────────────────────────────
     let statusEl = document.getElementById("storageFree");
     if (statusEl) {
-        statusEl.innerText = fbConnected ? "متصل (Online)" : "غير متصل (Offline)";
-        statusEl.style.color = fbConnected ? "var(--success)" : "var(--danger)";
+        statusEl.innerHTML = fbConnected
+            ? '<i class="fas fa-circle" style="color:var(--success); font-size:10px;"></i> متصل'
+            : '<i class="fas fa-circle" style="color:var(--danger); font-size:10px;"></i> غير متصل';
+        statusEl.style.color = "var(--text-main)";
     }
 
-    let usedEl = document.getElementById("storageUsed");
-    if (usedEl) usedEl.innerText = displaySize;
+    // ─── شريط البيانات الحساسة (حد 1 MB = 1,024 KB) ─────────────
+    const SCALAR_MAX_KB = 1024;
+    let scalarKB = scalarBytes / 1024;
+    let scalarPct = Math.min((scalarKB / SCALAR_MAX_KB) * 100, 100).toFixed(1);
+    let scalarDisplay = scalarKB < 1 ? scalarBytes.toFixed(0) + " B"
+                      : scalarKB < 1024 ? scalarKB.toFixed(2) + " KB"
+                      : (scalarKB / 1024).toFixed(2) + " MB";
 
-    let sizeText = document.getElementById("storageSizeText");
-    let percentText = document.getElementById("storagePercentText");
-    let bar = document.getElementById("storageBar");
+    let scalarBarEl   = document.getElementById("scalarBar");
+    let scalarUsedEl  = document.getElementById("scalarUsedText");
+    let scalarPctEl   = document.getElementById("scalarPercentText");
 
-    if (sizeText) sizeText.innerText = `${totalKB.toFixed(2)} KB / ${MAX_KB} KB`;
-    if (percentText) percentText.innerText = `${percentage}%`;
+    if (scalarUsedEl)  scalarUsedEl.innerText  = scalarDisplay;
+    if (scalarPctEl)   scalarPctEl.innerText   = scalarPct + "%";
+    if (scalarBarEl) {
+        scalarBarEl.style.width = scalarPct + "%";
+        scalarBarEl.style.background =
+            scalarPct < 50 ? "var(--success)" :
+            scalarPct < 80 ? "var(--accent)"  : "var(--danger)";
+    }
 
-    if (bar) {
-        bar.style.width = `${percentage}%`;
-        if (percentage < 50) bar.style.background = "var(--success)";
-        else if (percentage < 80) bar.style.background = "var(--accent)";
-        else bar.style.background = "var(--danger)";
+    // ─── شريط البيانات الكبيرة (حد 1 GiB = 1,048,576 KB) ────────
+    const ARRAY_MAX_KB = 1024 * 1024;
+    let arrayKB  = arrayBytes / 1024;
+    let arrayPct = Math.min((arrayKB / ARRAY_MAX_KB) * 100, 100).toFixed(2);
+    let arrayDisplay = arrayKB < 1 ? arrayBytes.toFixed(0) + " B"
+                     : arrayKB < 1024 ? arrayKB.toFixed(2) + " KB"
+                     : (arrayKB / 1024).toFixed(2) + " MB";
+
+    let arrayBarEl  = document.getElementById("arrayBar");
+    let arrayUsedEl = document.getElementById("arrayUsedText");
+    let arrayPctEl  = document.getElementById("arrayPercentText");
+
+    if (arrayUsedEl)  arrayUsedEl.innerText  = arrayDisplay;
+    if (arrayPctEl)   arrayPctEl.innerText   = arrayPct + "%";
+    if (arrayBarEl) {
+        arrayBarEl.style.width = arrayPct + "%";
+        arrayBarEl.style.background =
+            arrayPct < 50 ? "#6366f1" :
+            arrayPct < 80 ? "var(--accent)" : "var(--danger)";
     }
 }
 
@@ -3789,6 +3830,7 @@ function applyRBAC() {
     safeToggle("btnBackup", "add");
     safeToggle("btnLogs", "add");
     safeToggle("demo-mode-section", "add");
+    safeToggle("sec-storage-test", "add");
     safeToggle("btnInvestment", "add"); 
     
     safeToggle("sec-manual-wallet", "add");
@@ -3798,6 +3840,7 @@ function applyRBAC() {
     safeToggle("sec-profit-settings", "add");
     safeToggle("sec-discount-settings", "add");
     safeToggle("todoSection", "add");
+    safeToggle("sec-budget-reset", "add");
     safeToggle("todoInputArea", "add");
     safeToggle("btnAddStock", "add");
     safeToggle("sec-manage-services", "add");
@@ -3827,6 +3870,7 @@ function applyRBAC() {
         safeToggle("btnClearLogs", "remove"); 
         safeToggle("btnVisLogs", "remove"); 
         safeToggle("demo-mode-section", "remove");
+        safeToggle("sec-storage-test", "remove");
         safeToggle("btnInvestment", "remove");
         
         safeToggle("sec-manual-wallet", "remove");
@@ -3838,6 +3882,7 @@ function applyRBAC() {
         safeToggle("sec-manage-services", "remove");
         
         safeToggle("todoSection", "remove");
+        safeToggle("sec-budget-reset", "remove");
         safeToggle("todoInputArea", "remove");
         safeToggle("btnAddStock", "remove");
         
@@ -6325,6 +6370,7 @@ function updateStockNote() {
     let stock = safeJSON(store.stock, []);
     let index = stock.findIndex(x => x.id === id);
     if(index === -1) return;
+
     stock[index].notes = document.getElementById("stNotes").value;
     stock[index].purpose = document.getElementById("stPurpose").value || 'sale';
     
@@ -6333,7 +6379,7 @@ function updateStockNote() {
     
     document.getElementById("stockModal").classList.add("hidden");
     refreshStock();
-    notify("تم تحديث الملاحظات");
+    notify("تم التحديث");
 }
 
 function switchStockTab(tab, btn) {
@@ -6852,6 +6898,109 @@ window.addEventListener('resize', () => {
         if(mySalesChart) mySalesChart.resize();
     }, 150);
 });
+
+// ─────────────────────────────────────────────
+// اختبار التخزين — للادمن فقط
+// ─────────────────────────────────────────────
+let _stressTestInterval = null;
+let _stressTestIds = [];
+let _stressTestCount = 0;
+
+function toggleStorageTest() {
+    if (_stressTestInterval) {
+        stopStorageTest();
+    } else {
+        startStorageTest();
+    }
+}
+
+function startStorageTest() {
+    if (_stressTestInterval) return;
+    _stressTestCount = 0;
+    _stressTestIds = [];
+
+    let btn = document.getElementById("btnToggleStressTest");
+    if (btn) btn.innerHTML = '<i class="fas fa-stop"></i> إيقاف وحذف';
+
+    _stressTestInterval = setInterval(async () => {
+        if (!fbDocRef) return;
+
+        const batchSize = 20;
+        const batch = db.batch();
+        const collRef = fbDocRef.collection("activityLog");
+        const newIds = [];
+
+        for (let i = 0; i < batchSize; i++) {
+            const id = "stress_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+            const fakeEntry = {
+                id,
+                action: "اختبار التخزين — بيانات وهمية",
+                type: "general",
+                user: "stress-test",
+                date: new Date().toISOString(),
+                payload: "x".repeat(500)
+            };
+            batch.set(collRef.doc(id), fakeEntry);
+            newIds.push(id);
+        }
+
+        try {
+            await batch.commit();
+            _stressTestIds.push(...newIds);
+            _stressTestCount += batchSize;
+
+            let logs = safeJSON(store.activityLog, []);
+            newIds.forEach(id => logs.push({
+                id,
+                action: "اختبار التخزين — بيانات وهمية",
+                type: "general",
+                user: "stress-test",
+                date: new Date().toISOString(),
+                payload: "x".repeat(500)
+            }));
+            store.activityLog = JSON.stringify(logs);
+
+            let statusEl = document.getElementById("stressTestStatus");
+            if (statusEl) statusEl.innerHTML = `<i class="fas fa-circle-notch fa-spin" style="color:var(--danger)"></i> تمت إضافة <strong>${_stressTestCount}</strong> سجل وهمي`;
+
+            updateStorageUI();
+        } catch(e) {
+            console.error("Stress test error:", e);
+        }
+    }, 800);
+}
+
+async function stopStorageTest() {
+    clearInterval(_stressTestInterval);
+    _stressTestInterval = null;
+
+    let btn = document.getElementById("btnToggleStressTest");
+    if (btn) btn.innerHTML = '<i class="fas fa-trash fa-spin" style="color:white"></i> جاري الحذف...';
+
+    let statusEl = document.getElementById("stressTestStatus");
+    if (statusEl) statusEl.innerHTML = `<i class="fas fa-trash" style="color:var(--danger)"></i> جاري الحذف...`;
+
+    if (_stressTestIds.length > 0 && fbDocRef) {
+        const collRef = fbDocRef.collection("activityLog");
+        for (let i = 0; i < _stressTestIds.length; i += 400) {
+            const batch = db.batch();
+            _stressTestIds.slice(i, i + 400).forEach(id => batch.delete(collRef.doc(id)));
+            try { await batch.commit(); } catch(e) { console.error("Delete batch error:", e); }
+        }
+    }
+
+    _stressTestIds = [];
+    _stressTestCount = 0;
+
+    let logs = safeJSON(store.activityLog, []);
+    store.activityLog = JSON.stringify(logs.filter(l => !l.id || !l.id.startsWith("stress_")));
+
+    if (btn) btn.innerHTML = '<i class="fas fa-play"></i> بدء الرفع';
+    if (statusEl) statusEl.innerHTML = `<i class="fas fa-check-circle" style="color:var(--success)"></i> تم الحذف بنجاح`;
+    setTimeout(() => { if (statusEl) statusEl.innerHTML = ""; }, 3000);
+
+    updateStorageUI();
+}
 async function resetBudgetMonth() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     let ok = await showConfirm(
@@ -6889,8 +7038,4 @@ window.onload = init;
 </script>
 </body>
 </html>
-
-
-
-
 
