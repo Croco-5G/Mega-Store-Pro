@@ -1102,11 +1102,11 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
                     <input type="checkbox" id="bf_stock_buy" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f97316;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f97316; margin-left:2px;"></span> شراء
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#eab308; margin-left:2px;"></span> شراء
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
                     <input type="checkbox" id="bf_transfer" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#f59e0b;">
-                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f59e0b; margin-left:2px;"></span> تحويلات
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ec4899; margin-left:2px;"></span> تحويلات
                 </label>
                 <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600; background:var(--bg-input); border:1px solid var(--border-color); padding:5px 12px; border-radius:20px; color:var(--text-main); margin-bottom:0;">
                     <input type="checkbox" id="bf_withdrawal" checked onchange="saveBudgetFilters(); renderBudgetChart()" style="width:14px; height:14px; margin:0; accent-color:#ef4444;">
@@ -3055,8 +3055,8 @@ function renderBudgetChart() {
     let dataValues = chartPoints.map(p => p.y);
 
     const typeColors = {
-        purchase: '#10b981', stock_buy: '#f97316',
-        transfer: '#f59e0b', withdrawal: '#ef4444', set_wallet: '#3b82f6'
+    purchase: '#10b981', stock_buy: '#eab308',
+    transfer: '#ec4899', withdrawal: '#ef4444', set_wallet: '#3b82f6'
     };
 
     let pointColors = chartPoints.map(p => {
@@ -7038,4 +7038,5 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
