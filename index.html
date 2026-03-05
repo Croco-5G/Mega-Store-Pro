@@ -723,6 +723,10 @@
                 <label>رقم الكود (اختياري — 9 أرقام)</label>
                 <input type="text" id="mcCustomCode" placeholder="اتركه فارغاً للتوليد التلقائي" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             </div>
+            <div class="input-group">
+                <label>عدد مرات الاستعمال (الحد الأقصى)</label>
+                <input type="number" id="mcUses" placeholder="مثال: 5" value="1">
+            </div>
         </div>
         
         <div id="mcPreview" style="display:none; background:var(--yellow-bg); border:2px dashed var(--yellow-border); padding:15px; border-radius:12px; margin-bottom:20px; text-align:center;">
@@ -1464,7 +1468,14 @@
                 <span id="stressTestStatus" style="font-size:13px; color:var(--text-muted);"></span>
             </div>
         </div>
-
+        <div style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 40px;">
+            <h3 style="color: var(--text-main); margin-top:0;"><i class="fas fa-history" style="color:var(--primary)"></i> التراجع عن آخر خطوة (Undo)</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">يحفظ آخر 5 خطوات في الذاكرة المؤقتة فقط — تُمسح تلقائياً عند تحديث الصفحة.</p>
+            <p id="undoStackInfo" style="font-size:12px; color:var(--text-muted); margin-bottom:16px; font-style:italic;">لا توجد خطوات محفوظة في الذاكرة المؤقتة</p>
+            <button id="btnUndoAction" onclick="undoLastStep()" class="btn btn-primary" disabled style="opacity:0.4; cursor:not-allowed; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-undo"></i> التراجع عن آخر خطوة
+            </button>
+        </div>
         <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 25px; border-radius: var(--radius-lg); margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -1655,6 +1666,10 @@ const firebaseConfig = {
 
 // ─── In-Memory Store (replaces localStorage for app data) ────────
 let store = {};
+let _undoStack = [];              // سجل التراجع — RAM فقط، يُحذف عند الريفرش
+let _lastStoreCopy = {};          // نسخة سابقة لاكتشاف التغييرات
+let _undoInProgress = false;      // منع التقاط لقطة أثناء التراجع نفسه
+const _UNDO_KEYS = ['purchases','wallets','invest','discounts','stock','budgetHistory','services','vipCustomers','generalNotes','todoList'];
 let db = null;                   // مرجع Firestore العالمي
 let fbDocRef = null;             // مرجع المستند الرئيسي megastore/data
 let fbConnected = false;
@@ -2046,6 +2061,22 @@ function debouncedRefreshAll() {
 //  يُوجِّه الطلب إلى المنطق المناسب حسب نوع المفتاح
 // ══════════════════════════════════════════════════════════════
 function fbSave(key, val) {
+    // التقاط لقطة للتراجع (RAM فقط)
+    if (!_undoInProgress && _UNDO_KEYS.includes(key) && _lastStoreCopy[key] !== undefined) {
+        let snapshot = {};
+        _UNDO_KEYS.forEach(k => { if(store[k]) snapshot[k] = store[k]; });
+        snapshot._label = key;
+        snapshot._time = new Date().toLocaleTimeString('ar');
+        // فقط نضيف لقطة جديدة إذا تغيّر شيء فعلاً
+        if (!_undoStack[0] || _undoStack[0][key] !== snapshot[key]) {
+            _undoStack.unshift(snapshot);
+            if (_undoStack.length > 5) _undoStack.pop();
+            _updateUndoBtnUI();
+        }
+    }
+    if (_UNDO_KEYS.includes(key)) {
+        _lastStoreCopy[key] = JSON.stringify(val);
+    }
     if (isDemoMode) {
         localStorage.setItem('demo_' + key, JSON.stringify(val));
         return Promise.resolve();
@@ -3438,6 +3469,9 @@ function tryAutoLogin() {
     loginLayer.style.display = "none";
     document.body.classList.remove("locked");
     loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+    _UNDO_KEYS.forEach(k => { if(store[k]) _lastStoreCopy[k] = store[k]; });
+    _undoStack = [];
+    _updateUndoBtnUI();
     document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
     resetSessionTimer();
     checkExpiringOnLogin();
@@ -3642,6 +3676,9 @@ async function attemptLogin() {
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+        _UNDO_KEYS.forEach(k => { if(store[k]) _lastStoreCopy[k] = store[k]; });
+        _undoStack = [];
+        _updateUndoBtnUI();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -3682,6 +3719,9 @@ async function attemptLogin() {
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+        _UNDO_KEYS.forEach(k => { if(store[k]) _lastStoreCopy[k] = store[k]; });
+        _undoStack = [];
+        _updateUndoBtnUI();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -5009,6 +5049,52 @@ async function deleteExpired() {
     currentPage.expiring = 1; 
     refreshAll();
     notify(`تم إخفاء ${expiredCount} اشتراك منتهي من التنبيهات`);
+}
+function _updateUndoBtnUI() {
+    let btn = document.getElementById("btnUndoAction");
+    let info = document.getElementById("undoStackInfo");
+    if (!btn) return;
+    let count = _undoStack.length;
+    if (count === 0) {
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
+        btn.style.cursor = "not-allowed";
+        if (info) info.textContent = "لا توجد خطوات محفوظة في الذاكرة المؤقتة";
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+        let labels = _undoStack.map((s, i) => `${i+1}. ${s._time || ''}`).join(' | ');
+        if (info) info.textContent = `${count} خطوة محفوظة: ${labels}`;
+    }
+}
+
+async function undoLastStep() {
+    if (_undoStack.length === 0) return notify("لا توجد خطوات للتراجع عنها (تُمسح عند الريفرش)", "error");
+    let ok = await showConfirm(
+        "التراجع عن آخر خطوة",
+        `سيتم استعادة الحالة من ${_undoStack[0]._time || 'قبل آخر تغيير'}. هذا الإجراء لا يمكن التراجع عنه.`,
+        "تراجع الآن", "إلغاء",
+        '<i class="fas fa-undo"></i>'
+    );
+    if (!ok) return;
+    let snapshot = _undoStack.shift();
+    _undoInProgress = true;
+    let updates = {};
+    _UNDO_KEYS.forEach(k => {
+        if (snapshot[k] !== undefined) {
+            store[k] = snapshot[k];
+            try { updates[k] = JSON.parse(snapshot[k]); } catch(e) {}
+        }
+    });
+    // تحديث _lastStoreCopy للحالة المستعادة
+    _UNDO_KEYS.forEach(k => { if(store[k]) _lastStoreCopy[k] = store[k]; });
+    fbSaveMultiple(updates);
+    _undoInProgress = false;
+    _updateUndoBtnUI();
+    refreshAll();
+    logAction("التراجع عن آخر خطوة (Undo)", "danger");
+    notify("تم التراجع بنجاح ✓");
 }
 function refreshWallets(){
     let w=safeJSON(store.wallets, {}), td=0, ts=0;
@@ -7051,6 +7137,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
