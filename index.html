@@ -5999,7 +5999,7 @@ function importData(){
             });
             
             if(Object.keys(scalarUpdates).length > 0 && !isDemoMode && fbDocRef) {
-                await fbDocRef.set(scalarUpdates, {merge:true});
+                await fbDocRef.update(scalarUpdates);
             }
             
             // حفظ المصفوفات كـ Subcollections — مع حذف القديم أولاً
@@ -7055,6 +7055,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
