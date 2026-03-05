@@ -1476,6 +1476,14 @@
                 <i class="fas fa-undo"></i> التراجع عن آخر خطوة
             </button>
         </div>
+        <div style="background-color:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:25px; margin-bottom:40px;">
+            <h3 style="color:var(--text-main); margin-top:0;"><i class="fas fa-history" style="color:var(--primary)"></i> التراجع عن آخر خطوة (Undo)</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">يحفظ آخر 5 خطوات في الذاكرة المؤقتة فقط — تُمسح تلقائياً عند تحديث الصفحة.</p>
+            <p id="undoStackInfo" style="font-size:12px; color:var(--text-muted); margin-bottom:16px; font-style:italic; line-height:1.8;">لا توجد خطوات محفوظة (تُمسح عند الريفرش)</p>
+            <button id="btnGlobalUndo" onclick="undoGlobalStep()" class="btn btn-primary" disabled style="opacity:0.4; cursor:not-allowed; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-undo"></i> التراجع عن آخر خطوة
+            </button>
+        </div>
         <div id="demo-mode-section" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 25px; border-radius: var(--radius-lg); margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
@@ -1666,6 +1674,9 @@ const firebaseConfig = {
 
 // ─── In-Memory Store (replaces localStorage for app data) ────────
 let store = {};
+let _undoStack = [];         // آخر 5 لقطات — RAM فقط، تُمسح عند الريفرش
+let _undoCapturing = false;  // يمنع التراجع من تسجيل نفسه كخطوة
+const _UNDO_KEYS = ['purchases','wallets','invest','discounts','stock','budgetHistory','services','vipCustomers','generalNotes','todoList'];
 let _undoStack = [];              // سجل التراجع — RAM فقط، يُحذف عند الريفرش
 let _lastStoreCopy = {};          // نسخة سابقة لاكتشاف التغييرات
 let _undoInProgress = false;      // منع التقاط لقطة أثناء التراجع نفسه
@@ -2060,22 +2071,66 @@ function debouncedRefreshAll() {
 //  fbSave — نقطة الدخول الرئيسية للحفظ
 //  يُوجِّه الطلب إلى المنطق المناسب حسب نوع المفتاح
 // ══════════════════════════════════════════════════════════════
-function fbSave(key, val) {
-    // التقاط لقطة للتراجع (RAM فقط)
-    if (!_undoInProgress && _UNDO_KEYS.includes(key) && _lastStoreCopy[key] !== undefined) {
-        let snapshot = {};
-        _UNDO_KEYS.forEach(k => { if(store[k]) snapshot[k] = store[k]; });
-        snapshot._label = key;
-        snapshot._time = new Date().toLocaleTimeString('ar');
-        // فقط نضيف لقطة جديدة إذا تغيّر شيء فعلاً
-        if (!_undoStack[0] || _undoStack[0][key] !== snapshot[key]) {
-            _undoStack.unshift(snapshot);
-            if (_undoStack.length > 5) _undoStack.pop();
-            _updateUndoBtnUI();
-        }
+function _captureUndoSnapshot(label) {
+    if (_undoCapturing) return;
+    let snapshot = { _label: label, _time: new Date().toLocaleTimeString('ar') };
+    _UNDO_KEYS.forEach(k => { snapshot[k] = store[k] || 'null'; });
+    // تجنب تسجيل لقطة مكررة
+    if (_undoStack.length > 0) {
+        let isSame = _UNDO_KEYS.every(k => _undoStack[0][k] === snapshot[k]);
+        if (isSame) return;
     }
-    if (_UNDO_KEYS.includes(key)) {
-        _lastStoreCopy[key] = JSON.stringify(val);
+    _undoStack.unshift(snapshot);
+    if (_undoStack.length > 5) _undoStack.pop();
+    _refreshUndoUI();
+}
+
+function _refreshUndoUI() {
+    let btn = document.getElementById('btnGlobalUndo');
+    let info = document.getElementById('undoStackInfo');
+    if (!btn) return;
+    if (_undoStack.length === 0) {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+        if (info) info.textContent = 'لا توجد خطوات محفوظة (تُمسح عند الريفرش)';
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        if (info) info.textContent = `${_undoStack.length} خطوة: ${_undoStack.map((s,i)=>`${i+1}. ${s._label} (${s._time})`).join(' — ')}`;
+    }
+}
+
+async function undoGlobalStep() {
+    if (_undoStack.length === 0) return notify('لا توجد خطوات للتراجع عنها (تُمسح عند الريفرش)', 'error');
+    let snap = _undoStack[0];
+    let ok = await showConfirm(
+        'التراجع عن: ' + snap._label,
+        `سيتم استعادة الحالة من ${snap._time}. هذا لا يمكن التراجع عنه.`,
+        'تراجع الآن', 'إلغاء', '<i class="fas fa-history"></i>'
+    );
+    if (!ok) return;
+    _undoStack.shift();
+    _undoCapturing = true;
+    let updates = {};
+    _UNDO_KEYS.forEach(k => {
+        let val = snap[k];
+        if (val && val !== 'null') {
+            store[k] = val;
+            try { updates[k] = JSON.parse(val); } catch(e) {}
+        }
+    });
+    fbSaveMultiple(updates);
+    _undoCapturing = false;
+    _refreshUndoUI();
+    refreshAll();
+    logAction('تراجع عن: ' + snap._label, 'danger', { type: 'undo' });
+    notify('تم التراجع بنجاح ✓');
+}
+function fbSave(key, val) {
+    if (!_undoCapturing && _UNDO_KEYS.includes(key)) {
+        _captureUndoSnapshot(key);
     }
     if (isDemoMode) {
         localStorage.setItem('demo_' + key, JSON.stringify(val));
@@ -2092,6 +2147,10 @@ function fbSave(key, val) {
 
 // ── حفظ متعدد في طلب واحد (لعمليات تُعدِّل عدة مفاتيح دفعة) ─
 function fbSaveMultiple(updates) {
+    if (!_undoCapturing) {
+        let keys = Object.keys(updates).filter(k => _UNDO_KEYS.includes(k));
+        if (keys.length > 0) _captureUndoSnapshot(keys.join('+'));
+    }
     if (isDemoMode) {
         Object.entries(updates).forEach(([key, val]) => {
             localStorage.setItem('demo_' + key, JSON.stringify(val));
@@ -7137,6 +7196,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
