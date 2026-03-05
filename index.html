@@ -720,8 +720,8 @@
                 </div>
             </div>
             <div class="input-group">
-                <label>عدد مرات الاستعمال (الحد الأقصى)</label>
-                <input type="number" id="mcUses" placeholder="مثال: 5" value="1">
+                <label>رقم الكود (اختياري — 9 أرقام)</label>
+                <input type="text" id="mcCustomCode" placeholder="اتركه فارغاً للتوليد التلقائي" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             </div>
         </div>
         
@@ -4762,9 +4762,16 @@ function generateManualCoupon() {
     if(uses <= 0) return notify("عدد الاستعمالات يجب أن يكون 1 على الأقل", "error");
     
     let dList = safeJSON(store.discounts, []);
+    let customCode = document.getElementById("mcCustomCode").value.trim();
     let code;
-    do { code = Math.floor(100000000 + Math.random() * 900000000).toString(); } 
-    while (dList.some(x => x.code === code));
+    if (customCode) {
+        if (!/^\d{9}$/.test(customCode)) return notify("رقم الكود يجب أن يكون 9 أرقام فقط", "error");
+        if (dList.some(x => x.code === customCode)) return notify("هذا الرقم موجود مسبقاً، اختر رقماً آخر", "error");
+        code = customCode;
+    } else {
+        do { code = Math.floor(100000000 + Math.random() * 900000000).toString(); } 
+        while (dList.some(x => x.code === code));
+    }
     
     let expTime = new Date().getTime() + (days * 86400000);
     
@@ -4796,6 +4803,7 @@ function backManualCoupon() {
     document.getElementById("btnGenerateMC").style.display = "block";
     document.getElementById("btnBackMC").style.display = "none";
     document.getElementById("btnSaveMC").style.display = "none";
+    document.getElementById("mcCustomCode").value = "";
 }
 
 function saveManualCoupon() {
@@ -4981,21 +4989,26 @@ async function deleteExpired() {
     if(currentUser.role === 'viewer' || currentUser.role === 'viewer_plus') return; 
     let p = safeJSON(store.purchases, []), now = new Date().getTime();
     let expiredCount = p.filter(x => x.expiry && x.expiry < now && !x.expiryDismissed && !x.isComp).length;
-    if(expiredCount === 0) return notify("لا توجد اشتراكات منتهية لحذفها", "error");
+    if(expiredCount === 0) return notify("لا توجد اشتراكات منتهية لإخفائها", "error");
     let ok = await showConfirm(
-        "حذف الاشتراكات المنتهية",
-        `سيتم حذف ${expiredCount} اشتراك منتهي الصلاحية نهائياً من القائمة. الاشتراكات القادمة لن تتأثر.`,
-        "حذف نهائي", "إلغاء", '<i class="fas fa-trash-alt"></i>'
+        "إخفاء الاشتراكات المنتهية",
+        `سيتم إخفاء ${expiredCount} اشتراك منتهي الصلاحية من التنبيهات. ستبقى محفوظة في السجل المالي.`,
+        "إخفاء من التنبيهات", "إلغاء", '<i class="fas fa-eye-slash"></i>'
     );
     if(!ok) return;
-    // نحذف المنتهية فقط من السجل المالي (purchases) — نبقي يلي ما انتهى بعد
-    p = p.filter(x => !(x.expiry && x.expiry < now && !x.isComp));
+    // نضيف علامة إخفاء فقط — بدون حذف من السجل المالي
+    p = p.map(x => {
+        if(x.expiry && x.expiry < now && !x.expiryDismissed && !x.isComp) {
+            return { ...x, expiryDismissed: true };
+        }
+        return x;
+    });
     store.purchases = JSON.stringify(p); 
     fbSave("purchases", p); 
-    logAction(`حذف ${expiredCount} اشتراك منتهي من قائمة التنبيهات`, 'danger'); 
+    logAction(`إخفاء ${expiredCount} اشتراك منتهي من قائمة التنبيهات`, 'danger'); 
     currentPage.expiring = 1; 
     refreshAll();
-    notify(`تم حذف ${expiredCount} اشتراك منتهي`);
+    notify(`تم إخفاء ${expiredCount} اشتراك منتهي من التنبيهات`);
 }
 function refreshWallets(){
     let w=safeJSON(store.wallets, {}), td=0, ts=0;
@@ -7038,6 +7051,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
