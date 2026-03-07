@@ -798,6 +798,36 @@
         </div>
     </div>
 </div>
+<!-- ─── Modal تأكيد الحجز ─── -->
+<div id="confirmBookingModal" class="dialog-modal" style="display:none; z-index:5500;">
+    <div class="dialog-box" style="text-align:right; max-width:460px;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-bookmark" style="color:var(--warning)"></i> تأكيد الحجز
+        </h3>
+        <input type="hidden" id="cbOrderId">
+        <input type="hidden" id="cbServiceId">
+        <input type="hidden" id="cbBranchCode">
+        <div class="input-group">
+            <label>المحفظة المستخدمة *</label>
+            <select id="cbWallet" onchange="updateCbCurrency()"></select>
+        </div>
+        <div class="input-group">
+            <label>المبلغ المدفوع *</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="cbAmount" placeholder="0.00" style="flex:1; min-width:0;">
+                <span id="cbCurrencyLabel" style="font-weight:800; font-size:16px; color:var(--primary); white-space:nowrap; min-width:24px;"></span>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>كود الخصم (اختياري)</label>
+            <input id="cbDiscount" placeholder="9 أرقام اختياري" maxlength="9">
+        </div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn btn-warning" style="color:#000;" onclick="executeConfirmBooking()"><i class="fas fa-bookmark"></i> تأكيد الحجز</button>
+            <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('confirmBookingModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
 <div id="bookingDeliveryModal" class="dialog-modal" style="display:none; z-index:5500;">
     <div class="dialog-box" style="text-align:right; max-width:460px;">
         <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
@@ -7097,6 +7127,7 @@ async function saveNewService() {
     }
 
     try {
+        document.getElementById("addServiceModal").style.display = "none";
         await dbOrder.collection("services").add(svcObj);
         // تحديث store.services (أسماء فقط للمخزون)
         let list = safeJSON(store.services, []);
@@ -7106,7 +7137,6 @@ async function saveNewService() {
             fbSave("services", list);
         }
         logAction(`إضافة خدمة جديدة: ${name}`, 'general');
-        document.getElementById("addServiceModal").style.display = "none";
         notify("تمت إضافة الخدمة بنجاح");
     } catch(e) {
         console.error(e);
@@ -7188,11 +7218,11 @@ function refreshOrders() {
         let confirmBtn = '—';
         if (isAdmin) {
             if (isBookingBranch && o.status !== 'booked') {
-                confirmBtn = `<button class="btn btn-warning" style="padding:5px 10px; font-size:12px; color:#000; font-weight:bold;" onclick="confirmBooking('${o._docId}', '${targetService._docId}', '${o.serviceCode}')"><i class="fas fa-bookmark"></i> تأكيد حجز</button>`;
+                confirmBtn = `<button class="btn btn-warning" style="padding:5px 10px; font-size:12px; color:#000; font-weight:bold;" onclick="openConfirmBookingModal('${o._docId}', '${targetService._docId}', '${o.serviceCode}')"><i class="fas fa-bookmark"></i> تأكيد حجز</button>`;
             } else if (o.status === 'booked') {
                 confirmBtn = `<span class="badge" style="background:var(--warning); color:#000; font-size:11px;"><i class="fas fa-clock"></i> محجوز</span>`;
             } else {
-                confirmBtn = `<button class="btn btn-success" style="padding:5px 10px; font-size:12px;" onclick="openDeliveryModal('${o._docId}')"><i class="fas fa-check"></i> تأكيد</button>`;
+                confirmBtn = `<button class="btn btn-success" style="padding:5px 10px; font-size:12px;" onclick="promptDelivery('${o._docId}', '${esc(o.customerName||'')}', '${esc(o.serviceName||'')}')"><i class="fas fa-check"></i> تأكيد</button>`;
             }
         }
 
@@ -7256,27 +7286,120 @@ function refreshOrders() {
 
 let activeBookingGroup = null;
 
-async function confirmBooking(orderId, serviceId, branchCode) {
+function openConfirmBookingModal(orderId, serviceId, branchCode) {
     if (!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let order = ordersCache.find(o => o._docId === orderId);
+    document.getElementById("cbOrderId").value = orderId;
+    document.getElementById("cbServiceId").value = serviceId;
+    document.getElementById("cbBranchCode").value = branchCode;
+    document.getElementById("cbAmount").value = order ? (order.amount || "") : "";
+    document.getElementById("cbDiscount").value = "";
+    let wallets = safeJSON(store.wallets, {});
+    let sel = document.getElementById("cbWallet");
+    sel.innerHTML = '<option value="">اختر المحفظة...</option>';
+    Object.keys(wallets).filter(k => wallets[k].active !== false).forEach(k => {
+        sel.innerHTML += `<option value="${esc(k)}">${esc(k)} (${wallets[k].cur})</option>`;
+    });
+    updateCbCurrency();
+    document.getElementById("confirmBookingModal").style.display = "flex";
+}
+
+function updateCbCurrency() {
+    let wName = document.getElementById("cbWallet").value;
+    let wallets = safeJSON(store.wallets, {});
+    let cur = (wName && wallets[wName]) ? wallets[wName].cur : '';
+    document.getElementById("cbCurrencyLabel").textContent = cur;
+}
+
+async function executeConfirmBooking() {
+    let orderId = document.getElementById("cbOrderId").value;
+    let serviceId = document.getElementById("cbServiceId").value;
+    let branchCode = document.getElementById("cbBranchCode").value;
+    let walletName = document.getElementById("cbWallet").value;
+    let amount = parseFloat(document.getElementById("cbAmount").value);
+    let discountCode = document.getElementById("cbDiscount").value.trim();
+
+    if (!walletName) return notify("اختر المحفظة", "error");
+    if (isNaN(amount) || amount < 0) return notify("أدخل المبلغ", "error");
+
+    let wallets = safeJSON(store.wallets, {});
+    let wallet = wallets[walletName];
+    if (!wallet) return;
+    let paidCur = wallet.cur;
+
+    // التحقق من كود الخصم
+    let appliedDiscountPct = 0;
+    if (discountCode) {
+        let discountsList = safeJSON(store.discounts, []);
+        let dObj = discountsList.find(x => x.code === discountCode);
+        if (!dObj || new Date().getTime() > dObj.expiry || (dObj.usedCount||0) >= (dObj.maxUses||1)) {
+            return notify("كود الخصم غير صالح أو منتهي", "error");
+        }
+        appliedDiscountPct = dObj.percentage;
+        amount = amount * (1 - appliedDiscountPct / 100);
+        // تحديث استخدام الكود
+        let discountsList2 = safeJSON(store.discounts, []);
+        let dIdx = discountsList2.findIndex(x => x.code === discountCode);
+        if (dIdx !== -1) {
+            discountsList2[dIdx].usedCount = (discountsList2[dIdx].usedCount || 0) + 1;
+            store.discounts = JSON.stringify(discountsList2);
+            fbSave("discounts", discountsList2);
+        }
+    }
+
+    let invest = safeJSON(store.invest, {});
+    let shareType = paidCur === '$' ? 'd' : 's';
+    wallets[walletName].bal += amount;
+    invest.store[shareType] += amount;
+
     try {
-        await dbOrder.collection("orders").doc(orderId).update({ status: 'booked' });
+        let order = ordersCache.find(o => o._docId === orderId);
+        // تحديث الطلب: booked + حفظ بيانات الدفع
+        await dbOrder.collection("orders").doc(orderId).update({
+            status: 'booked',
+            paidWallet: walletName,
+            paidStr: `${amount}${paidCur}`,
+            paidAmount: amount
+        });
+
+        // تحديث عداد الحجز في الخدمة (من ordersCache الفعلي)
         let svcDoc = await dbOrder.collection("services").doc(serviceId).get();
         if(svcDoc.exists) {
             let data = svcDoc.data();
             if(data.branches) {
                 let targetIdx = data.branches.findIndex(b => String(b.code) === String(branchCode));
                 if(targetIdx > -1) {
-                    data.branches[targetIdx].currentBookings = (parseInt(data.branches[targetIdx].currentBookings)||0) + 1;
+                    // نعدّ الحجوزات الفعلية بدل الزيادة
+                    let bookedCount = ordersCache.filter(o => o.status === 'booked' && String(o.serviceCode) === String(branchCode)).length + 1;
+                    data.branches[targetIdx].currentBookings = bookedCount;
                     await dbOrder.collection("services").doc(serviceId).update({ branches: data.branches });
                 }
             }
         }
-        notify("تم تأكيد الحجز بنجاح", "success");
-        logAction("تأكيد حجز", "warning");
+
+        // إيداع الأموال في المحفظة
+        store.wallets = JSON.stringify(wallets);
+        store.invest = JSON.stringify(invest);
+        fbAtomicWalletInvest({ [walletName]: +amount }, { [`store.${shareType}`]: +amount }, wallets, invest);
+
+        document.getElementById("confirmBookingModal").style.display = "none";
+        notify("تم تأكيد الحجز وإيداع الأموال بنجاح", "success");
+        logAction(`تأكيد حجز: ${order?.serviceName || ''} - ${walletName} - ${amount}${paidCur}`, "warning");
+        refreshAll();
     } catch(e) {
         console.error(e);
-        notify("خطأ في تأكيد الحجز", "error");
+        notify("خطأ في تأكيد الحجز: " + e.message, "error");
     }
+}
+
+async function promptDelivery(orderId, customerName, serviceName) {
+    let ok = await showConfirm(
+        "تأكيد التسليم",
+        `هل تريد تسليم طلب "${serviceName}" للعميل ${customerName}؟`,
+        "تأكيد التسليم", "إلغاء",
+        '<i class="fas fa-check-circle"></i>'
+    );
+    if (ok) openDeliveryModal(orderId);
 }
 
 function deliverBookingGroup(grp) {
@@ -7932,6 +8055,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
