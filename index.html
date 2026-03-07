@@ -1772,8 +1772,18 @@ const firebaseConfig = {
 
 // ─── In-Memory Store (replaces localStorage for app data) ────────
 let store = {};
-let db = null;                   // مرجع Firestore العالمي
+let db = null;                   // مرجع Firestore العالمي للنظام المالي
+let dbOrder = null;              // مرجع Firestore الخاص بموقع الطلبات
 let fbDocRef = null;             // مرجع المستند الرئيسي megastore/data
+
+const firebaseOrderConfig = {
+    apiKey: "AIzaSyAjJ_t5-S68q-zTRkSQNMZPlW1buNJbHxM",
+    authDomain: "order-58d22.firebaseapp.com",
+    projectId: "order-58d22",
+    storageBucket: "order-58d22.firebasestorage.app",
+    messagingSenderId: "535350206918",
+    appId: "1:535350206918:web:e98ed31054004a20c452c7"
+};           // مرجع المستند الرئيسي megastore/data
 let fbConnected = false;
 let lastServerState = {};        // آخر حالة مؤكدة من الخادم — أساس عملية الـ Diff
 let _syncStatusTimer = null;
@@ -2535,6 +2545,10 @@ function initFirebase() {
     const app = firebase.initializeApp(firebaseConfig);
     db       = firebase.firestore(app);
     fbDocRef = db.collection("megastore").doc("data");
+
+    // تهيئة قاعدة بيانات موقع الطلبات للعمل معاً في نفس الوقت
+    const appOrder = firebase.initializeApp(firebaseOrderConfig, "OrderApp");
+    dbOrder = firebase.firestore(appOrder);
 
     updateSyncStatus("جاري الاتصال...", "loading");
 
@@ -6837,8 +6851,8 @@ let _svcUnsubscribe = null;
 let _ordUnsubscribe = null;
 
 function _initServicesListener() {
-    if (_svcUnsubscribe || !db) return;
-    _svcUnsubscribe = db.collection("services").onSnapshot(snap => {
+    if (_svcUnsubscribe || !dbOrder) return;
+    _svcUnsubscribe = dbOrder.collection("services").onSnapshot(snap => {
         adminServicesCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
         renderServicesSettings();
         loadServices();
@@ -6847,8 +6861,8 @@ function _initServicesListener() {
 }
 
 function _initOrdersListener() {
-    if (_ordUnsubscribe || !db) return;
-    _ordUnsubscribe = db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
+    if (_ordUnsubscribe || !dbOrder) return;
+    _ordUnsubscribe = dbOrder.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
         ordersCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
         updateOrdersBadge();
         if (document.getElementById("orders") && !document.getElementById("orders").classList.contains("hidden")) {
@@ -6856,7 +6870,7 @@ function _initOrdersListener() {
         }
     }, err => {
         // قد لا يوجد index — جرّب بدون orderBy
-        db.collection("orders").onSnapshot(snap2 => {
+        dbOrder.collection("orders").onSnapshot(snap2 => {
             ordersCache = snap2.docs.map(d => ({ _docId: d.id, ...d.data() }));
             ordersCache.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
             updateOrdersBadge();
@@ -7021,7 +7035,7 @@ async function saveNewService() {
     }
 
     try {
-        await db.collection("services").add(svcObj);
+        await dbOrder.collection("services").add(svcObj);
         // تحديث store.services (أسماء فقط للمخزون)
         let list = safeJSON(store.services, []);
         if (!list.includes(name)) {
@@ -7043,7 +7057,7 @@ async function deleteServiceById(docId, name) {
     let ok = await showConfirm("حذف الخدمة", `هل تريد حذف خدمة "${name}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
     if (!ok) return;
     try {
-        await db.collection("services").doc(docId).delete();
+        await dbOrder.collection("services").doc(docId).delete();
         // تحديث store.services
         let list = safeJSON(store.services, []).filter(s => s !== name);
         store.services = JSON.stringify(list);
@@ -7133,7 +7147,7 @@ async function deleteOrder(docId) {
     let ok = await showConfirm("حذف الطلب", "هل تريد حذف هذا الطلب نهائياً من السجل؟", "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
     if (!ok) return;
     try {
-        await db.collection("orders").doc(docId).delete();
+        await dbOrder.collection("orders").doc(docId).delete();
         logAction("حذف طلب وارد", 'danger');
         notify("تم حذف الطلب");
     } catch(e) {
@@ -7278,7 +7292,7 @@ async function executeDelivery() {
     fbSave("vipCustomers", vips);
 
     // حذف الطلب من orders
-    try { await db.collection("orders").doc(docId).delete(); } catch(e) {}
+    try { await dbOrder.collection("orders").doc(docId).delete(); } catch(e) {}
 
     logAction(`تأكيد تسليم طلب: ${serviceName} للعميل ${customerName||customerPhone}`, 'financial', {
         type: 'order_delivery', serviceName, customerName, customerPhone, amount, paidCur, wallet: walletName
@@ -7598,6 +7612,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
