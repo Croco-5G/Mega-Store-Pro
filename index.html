@@ -770,6 +770,18 @@
             </select>
         </div>
         <div class="input-group">
+            <label>رابط أيقونة مخصصة (URL — اختياري، يُعرض بدل أيقونة Font Awesome)</label>
+            <input id="svcIconUrl" placeholder="مثلاً: https://example.com/logo.png">
+        </div>
+        <div class="input-group" style="flex-direction:row; align-items:center; gap:10px;">
+            <input type="checkbox" id="svcHasDiscount" onchange="document.getElementById('svcOriginalPriceDiv').style.display=this.checked?'block':'none'" style="width:20px; height:20px; margin:0;">
+            <label for="svcHasDiscount" style="margin:0; cursor:pointer; font-weight:bold; color:var(--success);">هذه الخدمة عليها خصم؟</label>
+        </div>
+        <div class="input-group" id="svcOriginalPriceDiv" style="display:none; border:1px dashed var(--success); padding:10px; border-radius:8px;">
+            <label style="color:var(--success);">السعر الأصلي قبل الخصم (₪)</label>
+            <input type="number" id="svcOriginalPrice" placeholder="مثلاً: 50">
+        </div>
+        <div class="input-group">
             <label>عدد الأفرع (1 = خدمة ثابتة بدون أفرع)</label>
             <select id="svcBranchCount" onchange="renderBranchInputs()">
                 <option value="1">1 — خدمة ثابتة</option>
@@ -1758,7 +1770,10 @@
         <h3 id="stockModalTitle" style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">إضافة اشتراك للمخزون</h3>
         <input type="hidden" id="stockIndexId">
         <div class="input-group"><label>نوع الخدمة</label>
-            <select id="stService"><option value="">اختر الخدمة...</option></select>
+            <select id="stService" onchange="document.getElementById('stManualName').value=this.value"><option value="">اختر الخدمة...</option></select>
+        </div>
+        <div class="input-group"><label>الاسم في المخزون (قابل للتعديل)</label>
+            <input id="stManualName" placeholder="يُملأ تلقائياً عند اختيار الخدمة، يمكن تعديله">
         </div>
         
         <div id="stockPurchaseInputs">
@@ -3657,6 +3672,7 @@ function tryAutoLogin() {
     loginLayer.style.display = "none";
     document.body.classList.remove("locked");
     loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+    setTimeout(checkOverdueBookings, 3000);
     document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
     resetSessionTimer();
     checkExpiringOnLogin();
@@ -3899,6 +3915,7 @@ async function attemptLogin() {
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+        setTimeout(checkOverdueBookings, 3000);
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -3939,6 +3956,7 @@ async function attemptLogin() {
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
         loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+        setTimeout(checkOverdueBookings, 3000);
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -4452,16 +4470,29 @@ async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
 
     if (currentLogsTab === 'orderActivity') {
-        let ok = await showConfirm("مسح نشاط الطلبات", "سيتم حذف جميع سجلات نشاط الطلبات نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>');
-        if (!ok) return;
+        let res = await showConfirm("مسح نشاط الطلبات", "اختر نوع المسح:", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>', "مسح آخر 50 سجل");
+        if (!res) return;
         try {
-            let snap = await dbOrder.collection("orderActivity").limit(500).get();
-            let batch = dbOrder.batch();
-            snap.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-            orderActivityCache = [];
+            if (res === 'third') {
+                // مسح آخر 50 (الأقدم في الكاش — مرتبة desc)
+                let toDelete = orderActivityCache.slice(-50);
+                let batch = dbOrder.batch();
+                toDelete.forEach(a => { if(a._docId) batch.delete(dbOrder.collection("orderActivity").doc(a._docId)); });
+                await batch.commit();
+                orderActivityCache = orderActivityCache.slice(0, orderActivityCache.length - 50);
+            } else {
+                // مسح الكل دفعة دفعة
+                let snap = await dbOrder.collection("orderActivity").limit(500).get();
+                while (!snap.empty) {
+                    let batch = dbOrder.batch();
+                    snap.docs.forEach(d => batch.delete(d.ref));
+                    await batch.commit();
+                    snap = await dbOrder.collection("orderActivity").limit(500).get();
+                }
+                orderActivityCache = [];
+            }
             refreshLogs();
-            notify("تم مسح نشاط الطلبات");
+            notify("تم المسح بنجاح");
         } catch(e) { notify("خطأ: " + e.message, "error"); }
         return;
     }
@@ -6607,6 +6638,7 @@ function openAddStockModal() {
     document.getElementById("stockIndexId").value = "new";
     
     document.getElementById("stService").value = "";
+    document.getElementById("stManualName").value = "";
     document.getElementById("stCost").value = "";
     document.getElementById("stProfiles").value = "1";
     document.getElementById("stVendor").value = "";
@@ -6630,6 +6662,7 @@ function verifyStockAdd() {
     let stWallet = document.getElementById("stWallet").value;
 
     if(!stService) return notify("يرجى اختيار الخدمة", "error");
+    let stManualName = (document.getElementById("stManualName").value.trim()) || stService;
     if(isNaN(stCost) || stCost < 0) return notify("يرجى إدخال التكلفة بشكل صحيح", "error");
     if(!stWallet) return notify("يرجى اختيار محفظة الدفع", "error");
     
@@ -6639,7 +6672,7 @@ function verifyStockAdd() {
     if(w.bal < stCost) return notify("رصيد المحفظة غير كافي", "error");
     
     let wAfter = w.bal - stCost;
-    let cleanName = stService + ((document.getElementById("stProfiles").value > 1) ? " Shared" : "");
+    let cleanName = stManualName + ((document.getElementById("stProfiles").value > 1) ? " Shared" : "");
     
     document.getElementById("stockConfirmBody").innerHTML = `
         <div style="display:grid; gap:8px;">
@@ -6679,7 +6712,8 @@ function executeStockAdd(stService, stCost, stWallet, wallets) {
     let shareType = (w.cur === '$') ? 'd' : 's';
     invest.store[shareType] -= stCost;
     
-    let baseName = stService + (stProfiles > 1 ? " Shared" : "");
+    let manualName = (document.getElementById("stManualName")?.value.trim()) || stService;
+    let baseName = manualName + (stProfiles > 1 ? " Shared" : "");
     let stock = safeJSON(store.stock, []);
     let activeStock = stock.filter(x => x.status === 'active');
     let finalName = baseName;
@@ -7196,6 +7230,10 @@ function openAddServiceModal() {
     document.getElementById("svcName").value = "";
     document.getElementById("svcDesc").value = "";
     document.getElementById("svcIcon").value = "";
+    document.getElementById("svcIconUrl").value = "";
+    document.getElementById("svcHasDiscount").checked = false;
+    document.getElementById("svcOriginalPriceDiv").style.display = "none";
+    document.getElementById("svcOriginalPrice").value = "";
     document.getElementById("svcBadge").value = "";
     document.getElementById("svcBranchCount").value = "1";
     renderBranchInputs();
@@ -7212,6 +7250,10 @@ function openEditServiceModal(docId) {
     document.getElementById("svcName").value = s.name || "";
     document.getElementById("svcDesc").value = s.description || "";
     document.getElementById("svcIcon").value = s.icon || "";
+    document.getElementById("svcIconUrl").value = s.iconUrl || "";
+    document.getElementById("svcHasDiscount").checked = !!s.hasDiscount;
+    document.getElementById("svcOriginalPriceDiv").style.display = s.hasDiscount ? "block" : "none";
+    document.getElementById("svcOriginalPrice").value = s.originalPrice || "";
     document.getElementById("svcBadge").value = s.badge || "";
 
     let branchCount = (s.branches && s.branches.length > 1) ? s.branches.length : 1;
@@ -7262,7 +7304,10 @@ async function saveServiceModal() {
         let badge = document.getElementById("svcBadge").value;
         let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
         let mainDesc = document.getElementById("svcDesc")?.value.trim() || "";
-        let svcObj = { name, icon, badge, description: mainDesc };
+        let iconUrl = document.getElementById("svcIconUrl")?.value.trim() || "";
+        let hasDiscount = document.getElementById("svcHasDiscount")?.checked || false;
+        let originalPrice = hasDiscount ? (parseFloat(document.getElementById("svcOriginalPrice")?.value) || 0) : 0;
+        let svcObj = { name, icon, badge, description: mainDesc, iconUrl, hasDiscount, originalPrice };
         let bookingBranchesCount = 0;
         if (count === 1) {
             let price = parseFloat(document.getElementById("b_price_0").value) || 0;
@@ -7379,7 +7424,10 @@ async function saveNewService() {
     let badge = document.getElementById("svcBadge").value;
     let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
 
-    let svcObj = { name, icon, badge };
+    let iconUrl = document.getElementById("svcIconUrl")?.value.trim() || "";
+    let hasDiscount = document.getElementById("svcHasDiscount")?.checked || false;
+    let originalPrice = hasDiscount ? (parseFloat(document.getElementById("svcOriginalPrice")?.value) || 0) : 0;
+    let svcObj = { name, icon, badge, iconUrl, hasDiscount, originalPrice };
 
     // جلب الوصف العام من الحقل الجديد
     let mainDesc = document.getElementById("svcDesc") ? document.getElementById("svcDesc").value.trim() : "";
@@ -7499,6 +7547,7 @@ function refreshOrders() {
                     branchCode: o.serviceCode,
                     capacity: parseInt(targetBranch.bookingCapacity) || 0,
                     currentBookings: parseInt(targetBranch.currentBookings) || 0,
+                    deadline: targetBranch.bookingDeadline || null,
                     orders: []
                 };
             }
@@ -7552,9 +7601,31 @@ function refreshOrders() {
                     </div>
                 `).join('');
 
+                let grpDeadline = grp.deadline || null;
+                let timerCardHtml = '';
+                if (grpDeadline) {
+                    let rem = Number(grpDeadline) - Date.now();
+                    let tColor = rem <= 0 ? 'var(--danger)' : (rem < 3600000 ? 'var(--accent)' : 'var(--warning)');
+                    let tId = 'admbkt_' + grp.branchCode;
+                    timerCardHtml = `<div style="font-size:12px; color:${tColor}; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:5px; direction:ltr; justify-content:center; background:rgba(0,0,0,0.2); border-radius:8px; padding:6px;"><i class="fas fa-clock"></i> <span id="${tId}">جاري التحميل...</span></div>`;
+                    setTimeout(() => {
+                        const fmtT = (ms) => {
+                            if(ms<=0) return '<span style="color:var(--danger);">انتهى العداد — يجب التسليم الآن</span>';
+                            let ts=Math.floor(ms/1000),h=Math.floor(ts/3600),m=Math.floor((ts%3600)/60),s=ts%60;
+                            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                        };
+                        const el = document.getElementById(tId);
+                        if(el) {
+                            el.innerHTML = fmtT(Number(grpDeadline)-Date.now());
+                            setInterval(() => { const e2=document.getElementById(tId); if(e2) e2.innerHTML=fmtT(Number(grpDeadline)-Date.now()); }, 1000);
+                        }
+                    }, 50);
+                }
+
                 let card = document.createElement('div');
                 card.style = `background:var(--bg-input); border:1px solid var(--warning); border-radius:12px; padding:16px; position:relative; overflow:hidden;`;
                 card.innerHTML = `
+                    ${timerCardHtml}
                     <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
                         <div>
                             <h4 style="color:var(--warning); font-size:16px; margin-bottom:4px; margin-top:0;">${esc(grp.serviceName)}</h4>
@@ -7577,7 +7648,22 @@ function refreshOrders() {
         }
     }
 }
-
+function checkOverdueBookings() {
+    if (!adminServicesCache || adminServicesCache.length === 0) return;
+    let now = Date.now();
+    let overdueList = [];
+    adminServicesCache.forEach(svc => {
+        if (!svc.branches) return;
+        svc.branches.forEach(b => {
+            if (b.isBooking && b.bookingDeadline && now > Number(b.bookingDeadline) && parseInt(b.currentBookings) > 0) {
+                overdueList.push(`${svc.name}${svc.hasBranches ? ' - ' + b.name : ''} (${b.currentBookings} حجز)`);
+            }
+        });
+    });
+    if (overdueList.length > 0) {
+        notify(` يوجد ${overdueList.length} حجز${overdueList.length > 1 ? 'ات' : ''} متأخر${overdueList.length > 1 ? 'ة' : ''}: ${overdueList.join(' | ')}`, "warning");
+    }
+}
 let activeBookingGroup = null;
 
 function openConfirmBookingModal(orderId, serviceId, branchCode) {
@@ -7673,9 +7759,12 @@ async function executeConfirmBooking() {
             if(data.branches) {
                 let targetIdx = data.branches.findIndex(b => String(b.code) === String(branchCode));
                 if(targetIdx > -1) {
-                    // نعدّ الحجوزات الفعلية بدل الزيادة
                     let bookedCount = ordersCache.filter(o => o.status === 'booked' && String(o.serviceCode) === String(branchCode)).length + 1;
                     data.branches[targetIdx].currentBookings = bookedCount;
+                    // تعيين bookingDeadline عند أول حجز فقط
+                    if (bookedCount === 1 && !data.branches[targetIdx].bookingDeadline) {
+                        data.branches[targetIdx].bookingDeadline = Date.now() + (3 * 24 * 60 * 60 * 1000);
+                    }
                     await dbOrder.collection("services").doc(serviceId).update({ branches: data.branches });
                 }
             }
@@ -8486,6 +8575,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
