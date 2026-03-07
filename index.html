@@ -758,10 +758,6 @@
             <input id="svcDesc" placeholder="مثلاً: وصف عام يظهر للعميل">
         </div>
         <div class="input-group">
-            <label>أيقونة (Font Awesome — اختياري)</label>
-            <input id="svcIcon" placeholder="مثلاً: robot أو crown">
-        </div>
-        <div class="input-group">
             <label>نوع الشارة</label>
             <select id="svcBadge">
                 <option value="">بدون شارة</option>
@@ -7759,7 +7755,7 @@ async function executeConfirmBooking() {
             if(data.branches) {
                 let targetIdx = data.branches.findIndex(b => String(b.code) === String(branchCode));
                 if(targetIdx > -1) {
-                    let bookedCount = ordersCache.filter(o => o.status === 'booked' && String(o.serviceCode) === String(branchCode)).length + 1;
+                    let bookedCount = ordersCache.filter(o => o._docId !== orderId && o.status === 'booked' && String(o.serviceCode) === String(branchCode)).length + 1;
                     data.branches[targetIdx].currentBookings = bookedCount;
                     // تعيين bookingDeadline عند أول حجز فقط
                     if (bookedCount === 1 && !data.branches[targetIdx].bookingDeadline) {
@@ -8025,6 +8021,22 @@ async function deleteOrder(docId) {
     let ok = await showConfirm("حذف الطلب", "هل تريد حذف هذا الطلب نهائياً من السجل؟", "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
     if (!ok) return;
     try {
+        let order = ordersCache.find(o => o._docId === docId);
+        if (order && order.status === 'booked' && order.serviceCode) {
+            let svcObj = adminServicesCache.find(s => s.branches && s.branches.some(b => String(b.code) === String(order.serviceCode)));
+            if (svcObj) {
+                let svcDoc = await dbOrder.collection("services").doc(svcObj._docId).get();
+                if (svcDoc.exists) {
+                    let data = svcDoc.data();
+                    let idx = data.branches.findIndex(b => String(b.code) === String(order.serviceCode));
+                    if (idx > -1) {
+                        let newCount = ordersCache.filter(o => o._docId !== docId && o.status === 'booked' && String(o.serviceCode) === String(order.serviceCode)).length;
+                        data.branches[idx].currentBookings = Math.max(0, newCount);
+                        await dbOrder.collection("services").doc(svcObj._docId).update({ branches: data.branches });
+                    }
+                }
+            }
+        }
         await dbOrder.collection("orders").doc(docId).delete();
         logAction("حذف طلب وارد", 'danger');
         notify("تم حذف الطلب");
@@ -8575,6 +8587,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
