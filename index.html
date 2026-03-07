@@ -798,7 +798,26 @@
         </div>
     </div>
 </div>
-
+<div id="bookingDeliveryModal" class="dialog-modal" style="display:none; z-index:5500;">
+    <div class="dialog-box" style="text-align:right; max-width:460px;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-check-double" style="color:var(--success)"></i> تسليم الحجوزات
+        </h3>
+        <div id="bookingDeliveryInfo" style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);"></div>
+        <div class="input-group">
+            <label>اختر الاشتراك من المخزون *</label>
+            <select id="bdStock"></select>
+        </div>
+        <div class="input-group">
+            <label>محفظة إيداع الأموال *</label>
+            <select id="bdWallet"></select>
+        </div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn btn-success" onclick="executeBookingDelivery()"><i class="fas fa-check"></i> تأكيد وحفظ الدفعة</button>
+            <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('bookingDeliveryModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
 <!-- ─── Modal تأكيد التسليم ─── -->
 <div id="deliveryModal" class="dialog-modal" style="display:none; z-index:5500;">
     <div class="dialog-box" style="text-align:right; max-width:460px;">
@@ -1143,8 +1162,15 @@
             </table>
         </div>
         <div id="ordersPagination" class="pagination"></div>
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <h3 style="margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-bookmark" style="color:var(--warning)"></i> الحجوزات النشطة
+            </h3>
+            <div id="bookingsContainer" style="display:grid; gap:20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <div style="color:var(--text-muted); padding:20px;">لا يوجد حجوزات حالياً...</div>
+            </div>
+        </div>
     </div>
-
     <div id="analytics" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
             <h3 style="margin:0;"><i class="fas fa-chart-bar" style="color:var(--primary)"></i> الإحصائيات</h3>
@@ -6950,8 +6976,64 @@ function renderBranchInputs() {
     let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
     let container = document.getElementById("branchInputsContainer");
     container.innerHTML = "";
-
     if (count === 1) {
+        container.innerHTML = `
+        <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
+            <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-cube"></i> بيانات الخدمة</div>
+            <div class="input-group">
+                <label>السعر (₪) *</label>
+                <input type="number" id="b_price_0" placeholder="0">
+            </div>
+            <div class="input-group">
+                <label>كود الخدمة (9 أرقام)</label>
+                <div style="display:flex; gap:8px;">
+                    <input id="b_code_0" placeholder="سيتم توليده تلقائياً" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    <button type="button" class="btn btn-warning" style="padding:8px 12px; white-space:nowrap;" onclick="genCode('b_code_0')"><i class="fas fa-dice"></i></button>
+                </div>
+            </div>
+            <div class="input-group" style="flex-direction:row; align-items:center; gap:10px; margin-top:15px;">
+                <input type="checkbox" id="b_isBooking_0" onchange="document.getElementById('cap_div_0').style.display=this.checked?'block':'none'" style="width:20px; height:20px; margin:0;">
+                <label for="b_isBooking_0" style="margin:0; cursor:pointer; font-weight:bold; color:var(--warning);">هذا الفرع عبارة عن حجز؟</label>
+            </div>
+            <div class="input-group" id="cap_div_0" style="display:none; margin-top:10px; border:1px dashed var(--warning); padding:10px; border-radius:8px;">
+                <label style="color:var(--warning);">سعة الحجز (عدد الأشخاص) *</label>
+                <input type="number" id="b_capacity_0" placeholder="مثلاً: 5">
+            </div>
+        </div>`;
+        genCode('b_code_0');
+    } else {
+        for (let i = 0; i < count; i++) {
+            container.innerHTML += `
+            <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
+                <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-code-branch"></i> الفرع ${i+1}</div>
+                <div class="input-group">
+                    <label>اسم الفرع *</label>
+                    <input id="b_name_${i}" placeholder="مثلاً: شهري">
+                </div>
+                <div class="input-group">
+                    <label>السعر (₪) *</label>
+                    <input type="number" id="b_price_${i}" placeholder="0">
+                </div>
+                <div class="input-group">
+                    <label>كود الخدمة (9 أرقام)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input id="b_code_${i}" placeholder="سيتم توليده تلقائياً" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                        <button type="button" class="btn btn-warning" style="padding:8px 12px; white-space:nowrap;" onclick="genCode('b_code_${i}')"><i class="fas fa-dice"></i></button>
+                    </div>
+                </div>
+                <div class="input-group" style="flex-direction:row; align-items:center; gap:10px; margin-top:15px;">
+                    <input type="checkbox" id="b_isBooking_${i}" onchange="document.getElementById('cap_div_${i}').style.display=this.checked?'block':'none'" style="width:20px; height:20px; margin:0;">
+                    <label for="b_isBooking_${i}" style="margin:0; cursor:pointer; font-weight:bold; color:var(--warning);">هذا الفرع عبارة عن حجز؟</label>
+                </div>
+                <div class="input-group" id="cap_div_${i}" style="display:none; margin-top:10px; border:1px dashed var(--warning); padding:10px; border-radius:8px;">
+                    <label style="color:var(--warning);">سعة الحجز (عدد الأشخاص) *</label>
+                    <input type="number" id="b_capacity_${i}" placeholder="مثلاً: 5">
+                </div>
+            </div>`;
+        }
+        for(let i=0; i<count; i++) genCode(`b_code_${i}`);
+    }
+}
         // خدمة ثابتة
         container.innerHTML = `
             <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
@@ -7018,24 +7100,35 @@ async function saveNewService() {
     let mainDesc = document.getElementById("svcDesc") ? document.getElementById("svcDesc").value.trim() : "";
     svcObj.description = mainDesc;
 
+    let bookingBranchesCount = 0;
     if (count === 1) {
         let price = parseFloat(document.getElementById("b_price_0").value) || 0;
         let code = document.getElementById("b_code_0").value.trim();
+        let isBooking = document.getElementById("b_isBooking_0").checked;
+        let capacity = parseInt(document.getElementById("b_capacity_0").value) || 0;
         if (!code || code.length !== 9) return notify("الكود يجب أن يكون 9 أرقام", "error");
+        if (isBooking && capacity < 1) return notify("يجب تحديد سعة حجز صحيحة", "error");
         svcObj.hasBranches = false;
         svcObj.price = price;
         svcObj.code = code;
-        svcObj.branches = [{ name: name, price: price, code: code }];
+        svcObj.branches = [{ name: name, price: price, code: code, isBooking: isBooking, bookingCapacity: capacity, currentBookings: 0 }];
     } else {
         let branches = [];
         for (let i = 0; i < count; i++) {
             let bName = (document.getElementById(`b_name_${i}`)?.value||'').trim();
             let bPrice = parseFloat(document.getElementById(`b_price_${i}`)?.value) || 0;
             let bCode = (document.getElementById(`b_code_${i}`)?.value||'').trim();
+            let isBooking = document.getElementById(`b_isBooking_${i}`).checked;
+            let capacity = parseInt(document.getElementById(`b_capacity_${i}`).value) || 0;
             if (!bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
             if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
-            branches.push({ name: bName, price: bPrice, code: bCode });
+            if (isBooking) {
+                if(capacity < 1) return notify(`حدد سعة الحجز للفرع ${i+1}`, "error");
+                bookingBranchesCount++;
+            }
+            branches.push({ name: bName, price: bPrice, code: bCode, isBooking: isBooking, bookingCapacity: capacity, currentBookings: 0 });
         }
+        if(bookingBranchesCount > 1) return notify("لا يمكن تحديد أكثر من فرع واحد كحجز في نفس الخدمة", "error");
         svcObj.hasBranches = true;
         svcObj.price = branches[0].price;
         svcObj.code = branches[0].code;
@@ -7087,29 +7180,63 @@ function deleteService(idx) { notify("استخدم زر الحذف بجانب ك
 function refreshOrders() {
     let search = (document.getElementById("ordersSearch")?.value||"").toLowerCase();
     let tbody = document.getElementById("ordersBody");
+    let bookingsContainer = document.getElementById("bookingsContainer");
     if (!tbody) return;
+    
     let isAdmin = currentUser && currentUser.role === 'admin';
-
     let filtered = ordersCache.filter(o => {
         if (!search) return true;
-        return (o.customerName||'').toLowerCase().includes(search)
-            || (o.phone||'').toLowerCase().includes(search)
-            || (o.serviceCode||'').includes(search)
-            || (o.serviceName||'').toLowerCase().includes(search);
+        return (o.customerName||'').toLowerCase().includes(search) || (o.phone||'').toLowerCase().includes(search) || (o.serviceCode||'').includes(search) || (o.serviceName||'').toLowerCase().includes(search);
     });
-
+    
     renderPagination(filtered.length, 'orders', refreshOrders, 'ordersPagination');
     let page = currentPage.orders || 1;
     let paginated = filtered.slice((page-1)*ITEMS_PER_PAGE, page*ITEMS_PER_PAGE);
-
+    
+    let bookingsMap = {};
     let rows = "";
+    
     paginated.forEach(o => {
+        let isBookingBranch = false;
+        let targetService = adminServicesCache.find(s => s.branches && s.branches.some(b => String(b.code) === String(o.serviceCode)));
+        let targetBranch = null;
+        if(targetService) {
+            targetBranch = targetService.branches.find(b => String(b.code) === String(o.serviceCode));
+            if(targetBranch && targetBranch.isBooking) isBookingBranch = true;
+        }
+
+        if (o.status === 'booked' && isBookingBranch) {
+            if(!bookingsMap[o.serviceCode]) {
+                bookingsMap[o.serviceCode] = {
+                    serviceId: targetService._docId,
+                    serviceName: targetService.name,
+                    branchName: targetBranch.name,
+                    branchCode: o.serviceCode,
+                    capacity: parseInt(targetBranch.bookingCapacity) || 0,
+                    currentBookings: parseInt(targetBranch.currentBookings) || 0,
+                    orders: []
+                };
+            }
+            bookingsMap[o.serviceCode].orders.push(o);
+        }
+
         let codeCell = `<span style="cursor:pointer; color:var(--primary); font-weight:800; letter-spacing:1px; text-decoration:underline;" onclick="showBranchDetail('${esc(o.serviceCode||'')}','${esc(o.serviceName||'')}')">${esc(o.serviceCode||'—')}</span>`;
         let price = o.amount !== undefined ? `${o.amount}₪` : '—';
         let notes = o.notes ? `<span title="${esc(o.notes)}" style="cursor:help; color:var(--text-muted);"><i class="fas fa-sticky-note"></i></span>` : '—';
-        let confirmBtn = isAdmin ? `<button class="btn btn-success" style="padding:5px 10px; font-size:12px;" onclick="openDeliveryModal('${o._docId}')"><i class="fas fa-check"></i> تأكيد</button>` : '—';
-        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteOrder('${o._docId}')"><i class="fas fa-trash"></i></button>` : '—';
+        
+        let confirmBtn = '—';
+        if (isAdmin) {
+            if (isBookingBranch && o.status !== 'booked') {
+                confirmBtn = `<button class="btn btn-warning" style="padding:5px 10px; font-size:12px; color:#000; font-weight:bold;" onclick="confirmBooking('${o._docId}', '${targetService._docId}', '${o.serviceCode}')"><i class="fas fa-bookmark"></i> تأكيد حجز</button>`;
+            } else if (o.status === 'booked') {
+                confirmBtn = `<span class="badge" style="background:var(--warning); color:#000; font-size:11px;"><i class="fas fa-clock"></i> محجوز</span>`;
+            } else {
+                confirmBtn = `<button class="btn btn-success" style="padding:5px 10px; font-size:12px;" onclick="openDeliveryModal('${o._docId}')"><i class="fas fa-check"></i> تأكيد</button>`;
+            }
+        }
 
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteOrder('${o._docId}')"><i class="fas fa-trash"></i></button>` : '—';
+        
         rows += `<tr>
             <td style="font-weight:bold;">${esc(o.customerName||'—')}</td>
             <td dir="ltr">${esc(o.phone||'—')}</td>
@@ -7120,7 +7247,195 @@ function refreshOrders() {
             <td>${delBtn}</td>
         </tr>`;
     });
+    
     tbody.innerHTML = rows || `<tr><td colspan='7' style='text-align:center; padding:20px; color:var(--text-muted);'>لا توجد طلبات حالياً</td></tr>`;
+    
+    if (bookingsContainer) {
+        let bookingsKeys = Object.keys(bookingsMap);
+        if (bookingsKeys.length === 0) {
+            bookingsContainer.innerHTML = `<div style="color:var(--text-muted); padding:20px;">لا يوجد حجوزات نشطة حالياً...</div>`;
+        } else {
+            bookingsContainer.innerHTML = '';
+            bookingsKeys.forEach(code => {
+                let grp = bookingsMap[code];
+                let listHtml = grp.orders.map((ord, idx) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:13px;">
+                        <div>
+                            <span style="font-weight:bold; color:var(--text-main);">${idx+1}. ${esc(ord.customerName)}</span>
+                            <div style="color:var(--text-muted); font-size:11px;">${esc(ord.phone)} - ${ord.amount} ₪</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                let card = document.createElement('div');
+                card.style = `background:var(--bg-input); border:1px solid var(--warning); border-radius:12px; padding:16px; position:relative; overflow:hidden;`;
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <div>
+                            <h4 style="color:var(--warning); font-size:16px; margin-bottom:4px; margin-top:0;">${esc(grp.serviceName)}</h4>
+                            <div style="font-size:12px; color:var(--text-muted);">${esc(grp.branchName)} - كود: ${grp.branchCode}</div>
+                        </div>
+                        <div style="text-align:center; background:rgba(245,158,11,0.1); border-radius:8px; padding:6px 12px; border:1px solid rgba(245,158,11,0.2);">
+                            <div style="font-size:10px; color:var(--warning);">المحجوز</div>
+                            <div style="font-weight:900; font-size:18px; color:var(--warning);">${grp.orders.length} / ${grp.capacity}</div>
+                        </div>
+                    </div>
+                    <div style="max-height:150px; overflow-y:auto; margin-bottom:16px; padding-right:5px;" class="custom-scroll">
+                        ${listHtml}
+                    </div>
+                    <button class="btn btn-success" style="width:100%; font-weight:bold; justify-content:center; padding:12px;" onclick='deliverBookingGroup(${JSON.stringify(grp)})'>
+                        <i class="fas fa-check-circle"></i> تأكيد تسليم الدفعة
+                    </button>
+                `;
+                bookingsContainer.appendChild(card);
+            });
+        }
+    }
+}
+
+let activeBookingGroup = null;
+
+async function confirmBooking(orderId, serviceId, branchCode) {
+    if (!checkAuth()) return;
+    try {
+        await dbOrder.collection("orders").doc(orderId).update({ status: 'booked' });
+        let svcDoc = await dbOrder.collection("services").doc(serviceId).get();
+        if(svcDoc.exists) {
+            let data = svcDoc.data();
+            if(data.branches) {
+                let targetIdx = data.branches.findIndex(b => String(b.code) === String(branchCode));
+                if(targetIdx > -1) {
+                    data.branches[targetIdx].currentBookings = (parseInt(data.branches[targetIdx].currentBookings)||0) + 1;
+                    await dbOrder.collection("services").doc(serviceId).update({ branches: data.branches });
+                }
+            }
+        }
+        notify("تم تأكيد الحجز بنجاح", "success");
+        logAction("تأكيد حجز", "warning");
+    } catch(e) {
+        console.error(e);
+        notify("خطأ في تأكيد الحجز", "error");
+    }
+}
+
+function deliverBookingGroup(grp) {
+    if (!checkAuth()) return;
+    activeBookingGroup = grp;
+    
+    let stockItems = safeJSON(store.stock, []);
+    let validStock = stockItems.filter(st => {
+        let remaining = (parseInt(st.totalProfiles)||1) - (parseInt(st.soldProfiles)||0);
+        return remaining >= grp.orders.length; 
+    });
+
+    if(validStock.length === 0) return notify("لا يوجد اشتراكات في المخزون تكفي لعدد هؤلاء المحجوزين! قم بإضافة مخزون أولاً.", "error");
+
+    let bdStock = document.getElementById("bdStock");
+    bdStock.innerHTML = '';
+    validStock.forEach(st => {
+        let remaining = (parseInt(st.totalProfiles)||1) - (parseInt(st.soldProfiles)||0);
+        bdStock.innerHTML += `<option value="${st.id}">${esc(st.displayName || st.service)} - متبقي ${remaining}</option>`;
+    });
+
+    let bdWallet = document.getElementById("bdWallet");
+    bdWallet.innerHTML = '';
+    let wallets = safeJSON(store.wallets, {});
+    Object.keys(wallets).forEach(w => {
+        bdWallet.innerHTML += `<option value="${w}">${esc(w)} (${wallets[w].cur})</option>`;
+    });
+
+    document.getElementById("bookingDeliveryInfo").innerHTML = `أنت على وشك تسليم وتسجيل الأرباح لعدد <b>${grp.orders.length}</b> عملاء دفعة واحدة للخدمة (<b>${esc(grp.serviceName)}</b>).`;
+    document.getElementById("bookingDeliveryModal").style.display = "flex";
+}
+
+async function executeBookingDelivery() {
+    let grp = activeBookingGroup;
+    let selId = document.getElementById("bdStock").value;
+    let walletName = document.getElementById("bdWallet").value;
+    if(!selId || !walletName) return notify("يرجى إكمال البيانات", "error");
+
+    let wallets = safeJSON(store.wallets, {});
+    let wallet = wallets[walletName];
+    if (!wallet) return;
+
+    let settings = safeJSON(store.settings, {});
+    let invest = safeJSON(store.invest, {});
+    let purchases = safeJSON(store.purchases, []);
+    let stockItems = safeJSON(store.stock, []);
+    let vips = safeJSON(store.vipCustomers, {});
+    let paidCur = wallet.cur;
+
+    try {
+        document.getElementById("bookingDeliveryModal").style.display = "none";
+        
+        let stkIdx = stockItems.findIndex(s => s.id === selId);
+        let stItem = stockItems[stkIdx];
+        if(stkIdx > -1) {
+            stockItems[stkIdx].soldProfiles = (parseInt(stockItems[stkIdx].soldProfiles)||0) + grp.orders.length;
+            if(stockItems[stkIdx].soldProfiles >= stockItems[stkIdx].totalProfiles) {
+                stockItems[stkIdx].status = 'sold';
+                let nd = new Date();
+                stockItems[stkIdx].soldDate = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
+            }
+        }
+
+        let totalAmount = 0;
+        let todayStr = new Date().toISOString().split('T')[0];
+
+        // تسجيل كل طلب مالياً وحذفه من الطلبات
+        for(let ord of grp.orders) {
+            let amount = parseFloat(ord.amount) || 0;
+            totalAmount += amount;
+
+            let purchaseId = genId();
+            let newPurchase = {
+                id: purchaseId,
+                date: todayStr,
+                customer: ord.customerName || '—',
+                phone: ord.phone || '',
+                sub: grp.serviceName,
+                duration: stItem ? stItem.duration : '0',
+                paid: `${amount}${paidCur}`,
+                cost: '0',
+                wallet: walletName,
+                isComp: false,
+                canBeUndone: false
+            };
+            purchases.unshift(newPurchase);
+            await dbOrder.collection("orders").doc(ord._docId).delete();
+        }
+
+        // إيداع الأرباح في المحفظة
+        wallets[walletName].bal += totalAmount;
+        let shareType = paidCur === '$' ? 'd' : 's';
+        invest.store[shareType] += totalAmount;
+
+        // تصفير عداد الحجز في الخدمة
+        let svcDoc = await dbOrder.collection("services").doc(grp.serviceId).get();
+        if(svcDoc.exists) {
+            let data = svcDoc.data();
+            let targetIdx = data.branches.findIndex(b => String(b.code) === String(grp.branchCode));
+            if(targetIdx > -1) {
+                data.branches[targetIdx].currentBookings = 0;
+                await dbOrder.collection("services").doc(grp.serviceId).update({ branches: data.branches });
+            }
+        }
+
+        store.wallets = JSON.stringify(wallets);
+        store.invest = JSON.stringify(invest);
+        store.purchases = JSON.stringify(purchases);
+        store.stock = JSON.stringify(stockItems);
+
+        fbAtomicWalletInvest({ [walletName]: +totalAmount }, { [`store.${shareType}`]: +totalAmount }, wallets, invest);
+        fbSave("purchases", purchases);
+        fbSave("stock", stockItems);
+
+        notify("تم التسليم والتحصيل لجميع الحجوزات بنجاح!", "success");
+        refreshAll();
+    } catch(e) {
+        console.error(e);
+        notify("حدث خطأ أثناء التسليم", "error");
+    }
 }
 
 function showBranchDetail(code, serviceName) {
@@ -7620,6 +7935,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
