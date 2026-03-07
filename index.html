@@ -745,7 +745,8 @@
 <!-- ─── Modal إضافة خدمة جديدة ─── -->
 <div id="addServiceModal" class="dialog-modal" style="display:none; z-index:5500;">
     <div class="dialog-box" style="text-align:right; max-width:560px; max-height:85vh; overflow-y:auto;">
-        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+        <input type="hidden" id="editServiceDocId" value="">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;" id="addServiceModalTitle">
             <i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة خدمة جديدة
         </h3>
         <div class="input-group">
@@ -780,7 +781,7 @@
         </div>
         <div id="branchInputsContainer"></div>
         <div class="dialog-actions" style="margin-top:20px;">
-            <button class="btn btn-primary" onclick="saveNewService()"><i class="fas fa-check"></i> حفظ الخدمة</button>
+            <button class="btn btn-primary" onclick="saveServiceModal()"><i class="fas fa-check"></i> حفظ الخدمة</button>
             <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('addServiceModal').style.display='none'">إلغاء</button>
         </div>
     </div>
@@ -4106,6 +4107,7 @@ function applyRBAC() {
         safeToggle("todoSection", "remove");
         safeToggle("todoInputArea", "remove");
         safeToggle("sec-manage-services", "remove"); 
+        safeToggle("btnOrders", "remove");
         
         safeToggle("btnStock", "remove");
         safeToggle("btnUndo", "remove");
@@ -4325,25 +4327,65 @@ function toggleLogDetails(uid) {
 function showOrderActivityDetails(a) {
     const body = document.getElementById("modalBody");
     body.innerHTML = "";
-    const skip = ['_docId'];
-    const labels = {
-        eventType: 'نوع الحدث', timestamp: 'الوقت (UTC)', timeLocal: 'الوقت المحلي',
-        device: 'الجهاز', os: 'نظام التشغيل', browser: 'المتصفح', browserVersion: 'إصدار المتصفح',
-        userAgent: 'User Agent', screen: 'الشاشة', viewport: 'حجم النافذة', pixelRatio: 'دقة البكسل',
-        language: 'اللغة', languages: 'اللغات', timezone: 'المنطقة الزمنية', timezoneOffset: 'فارق التوقيت',
-        referrer: 'مصدر الزيارة', url: 'الرابط',
-        network: 'الشبكة', ip: 'عنوان IP', country: 'الدولة', city: 'المدينة',
-        region: 'المنطقة', isp: 'مزود الإنترنت',
-        cookiesEnabled: 'الكوكيز مفعّلة', doNotTrack: 'عدم التتبع',
-        touchPoints: 'نقاط اللمس', platform: 'المنصة',
-        selectedService: 'الخدمة المختارة', serviceName: 'اسم الخدمة',
-        serviceCode: 'كود الخدمة', amount: 'المبلغ'
+
+    const section = (icon, title, entries) => {
+        let rows = entries.filter(([k]) => a[k] !== undefined && a[k] !== null && String(a[k]) !== '')
+            .map(([k, label]) => {
+                let val = typeof a[k] === 'object' ? JSON.stringify(a[k]) : String(a[k]||'—');
+                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);gap:10px;font-size:13px;">
+                    <span style="color:var(--text-muted);flex-shrink:0;">${label}</span>
+                    <span style="font-weight:600;text-align:left;direction:ltr;word-break:break-all;">${esc(val)}</span>
+                </div>`;
+            }).join('');
+        if (!rows) return '';
+        return `<div style="text-align:center;font-weight:800;color:var(--primary);font-size:13px;margin:14px 0 6px;">
+                    <i class="fas fa-${icon}" style="margin-left:6px;"></i>${title}
+                </div>${rows}
+                <div style="border-top:1px dashed var(--border-color);margin:12px 0;"></div>`;
     };
-    Object.entries(a).filter(([k])=>!skip.includes(k)).forEach(([k,v]) => {
-        let val = typeof v === 'object' ? JSON.stringify(v) : String(v||'—');
-        let label = labels[k] || k;
-        body.innerHTML += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);gap:10px;font-size:13px;"><span style="color:var(--text-muted);flex-shrink:0;">${esc(label)}</span><span style="font-weight:600;text-align:left;direction:ltr;word-break:break-all;">${esc(val)}</span></div>`;
-    });
+
+    body.innerHTML += section('bell', 'معلومات الحدث', [
+        ['eventType',       'نوع الحدث'],
+        ['timeLocal',       'التوقيت المحلي'],
+        ['timestamp',       'التوقيت (UTC)'],
+        ['referrer',        'مصدر الزيارة'],
+        ['url',             'الرابط'],
+        ['selectedService', 'الخدمة المختارة'],
+        ['serviceName',     'اسم الخدمة'],
+        ['serviceCode',     'كود الخدمة'],
+        ['amount',          'المبلغ'],
+    ]);
+    body.innerHTML += section('mobile-alt', 'الجهاز والنظام', [
+        ['device',         'نوع الجهاز'],
+        ['os',             'نظام التشغيل'],
+        ['platform',       'المنصة'],
+        ['browser',        'المتصفح'],
+        ['browserVersion', 'إصدار المتصفح'],
+        ['touchPoints',    'نقاط اللمس'],
+        ['pixelRatio',     'دقة البكسل'],
+        ['screen',         'دقة الشاشة'],
+        ['viewport',       'حجم النافذة'],
+    ]);
+    body.innerHTML += section('globe', 'الشبكة والموقع', [
+        ['ip',      'عنوان IP'],
+        ['isp',     'مزود الإنترنت'],
+        ['country', 'الدولة'],
+        ['region',  'المنطقة'],
+        ['city',    'المدينة'],
+        ['network', 'بيانات الشبكة'],
+    ]);
+    body.innerHTML += section('language', 'اللغة والتوقيت', [
+        ['language',       'اللغة الرئيسية'],
+        ['languages',      'اللغات المدعومة'],
+        ['timezone',       'المنطقة الزمنية'],
+        ['timezoneOffset', 'فارق التوقيت'],
+    ]);
+    body.innerHTML += section('sliders-h', 'إعدادات المتصفح', [
+        ['cookiesEnabled', 'الكوكيز مفعّلة'],
+        ['doNotTrack',     'عدم التتبع'],
+        ['userAgent',      'User Agent'],
+    ]);
+
     document.getElementById("detailsModal").classList.remove("hidden");
 }
 
@@ -7076,10 +7118,12 @@ function renderServicesSettings() {
             : `<span style="font-size:11px; color:var(--text-muted);">${s.price||0}₪</span>`;
 
         let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteServiceById('${s._docId}','${esc(s.name)}')"><i class="fas fa-trash"></i></button>` : '';
+        let editBtn = isAdmin ? `<button class="btn btn-warning" style="padding:4px 10px; font-size:12px; color:#000;" onclick="openEditServiceModal('${s._docId}')"><i class="fas fa-edit"></i></button>` : '';
 
         div.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap;">
             <span class="badge badge-info" style="font-size:13px;">${esc(s.name)}</span>
             <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${branchInfo}</div>
+            ${editBtn}
             ${delBtn}
         </div>`;
     });
@@ -7088,6 +7132,8 @@ function renderServicesSettings() {
 // ─── open add service modal ───────────────────────────────────
 function openAddServiceModal() {
     if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    document.getElementById("editServiceDocId").value = "";
+    document.getElementById("addServiceModalTitle").innerHTML = '<i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة خدمة جديدة';
     document.getElementById("svcName").value = "";
     document.getElementById("svcDesc").value = "";
     document.getElementById("svcIcon").value = "";
@@ -7095,6 +7141,108 @@ function openAddServiceModal() {
     document.getElementById("svcBranchCount").value = "1";
     renderBranchInputs();
     document.getElementById("addServiceModal").style.display = "flex";
+}
+
+function openEditServiceModal(docId) {
+    if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let s = adminServicesCache.find(x => x._docId === docId);
+    if (!s) return notify("لم يُعثر على الخدمة", "error");
+
+    document.getElementById("editServiceDocId").value = docId;
+    document.getElementById("addServiceModalTitle").innerHTML = '<i class="fas fa-edit" style="color:var(--warning)"></i> تعديل خدمة';
+    document.getElementById("svcName").value = s.name || "";
+    document.getElementById("svcDesc").value = s.description || "";
+    document.getElementById("svcIcon").value = s.icon || "";
+    document.getElementById("svcBadge").value = s.badge || "";
+
+    let branchCount = (s.branches && s.branches.length > 1) ? s.branches.length : 1;
+    branchCount = Math.min(branchCount, 5);
+    let sel = document.getElementById("svcBranchCount");
+    sel.value = String(branchCount);
+    renderBranchInputs();
+
+    // تعبئة بيانات الأفرع بعد render
+    setTimeout(() => {
+        if (branchCount === 1) {
+            let b = s.branches?.[0] || {};
+            document.getElementById("b_price_0").value = b.price || 0;
+            document.getElementById("b_code_0").value = b.code || "";
+            document.getElementById("b_isBooking_0").checked = !!b.isBooking;
+            if (b.isBooking) {
+                document.getElementById("cap_div_0").style.display = "block";
+                document.getElementById("b_capacity_0").value = b.bookingCapacity || 0;
+            }
+        } else {
+            (s.branches || []).forEach((b, i) => {
+                if (i >= branchCount) return;
+                let nameEl = document.getElementById(`b_name_${i}`);
+                let priceEl = document.getElementById(`b_price_${i}`);
+                let codeEl = document.getElementById(`b_code_${i}`);
+                let bookEl = document.getElementById(`b_isBooking_${i}`);
+                let capEl = document.getElementById(`b_capacity_${i}`);
+                let capDiv = document.getElementById(`cap_div_${i}`);
+                if (nameEl) nameEl.value = b.name || "";
+                if (priceEl) priceEl.value = b.price || 0;
+                if (codeEl) codeEl.value = b.code || "";
+                if (bookEl) { bookEl.checked = !!b.isBooking; if (b.isBooking && capDiv) capDiv.style.display = "block"; }
+                if (capEl) capEl.value = b.bookingCapacity || 0;
+            });
+        }
+    }, 50);
+
+    document.getElementById("addServiceModal").style.display = "flex";
+}
+
+async function saveServiceModal() {
+    let editDocId = document.getElementById("editServiceDocId").value.trim();
+    if (editDocId) {
+        // وضع التعديل — نفس منطق saveNewService لكن update بدل add
+        let name = document.getElementById("svcName").value.trim();
+        if (!name) return notify("أدخل اسم الخدمة", "error");
+        let icon = document.getElementById("svcIcon").value.trim() || "cube";
+        let badge = document.getElementById("svcBadge").value;
+        let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
+        let mainDesc = document.getElementById("svcDesc")?.value.trim() || "";
+        let svcObj = { name, icon, badge, description: mainDesc };
+        let bookingBranchesCount = 0;
+        if (count === 1) {
+            let price = parseFloat(document.getElementById("b_price_0").value) || 0;
+            let code = document.getElementById("b_code_0").value.trim();
+            let isBooking = document.getElementById("b_isBooking_0").checked;
+            let capacity = parseInt(document.getElementById("b_capacity_0").value) || 0;
+            if (!code || code.length !== 9) return notify("الكود يجب أن يكون 9 أرقام", "error");
+            if (isBooking && capacity < 1) return notify("يجب تحديد سعة حجز صحيحة", "error");
+            let existing = adminServicesCache.find(x => x._docId === editDocId);
+            let curBookings = existing?.branches?.[0]?.currentBookings || 0;
+            svcObj.hasBranches = false; svcObj.price = price; svcObj.code = code;
+            svcObj.branches = [{ name, price, code, isBooking, bookingCapacity: capacity, currentBookings: curBookings }];
+        } else {
+            let branches = [];
+            for (let i = 0; i < count; i++) {
+                let bName = (document.getElementById(`b_name_${i}`)?.value||'').trim();
+                let bPrice = parseFloat(document.getElementById(`b_price_${i}`)?.value) || 0;
+                let bCode = (document.getElementById(`b_code_${i}`)?.value||'').trim();
+                let isBooking = document.getElementById(`b_isBooking_${i}`).checked;
+                let capacity = parseInt(document.getElementById(`b_capacity_${i}`).value) || 0;
+                if (!bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
+                if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
+                if (isBooking) { if(capacity < 1) return notify(`حدد سعة الحجز للفرع ${i+1}`, "error"); bookingBranchesCount++; }
+                let existing = adminServicesCache.find(x => x._docId === editDocId);
+                let curBook = existing?.branches?.[i]?.currentBookings || 0;
+                branches.push({ name: bName, price: bPrice, code: bCode, isBooking, bookingCapacity: capacity, currentBookings: curBook });
+            }
+            if(bookingBranchesCount > 1) return notify("لا يمكن تحديد أكثر من فرع واحد كحجز", "error");
+            svcObj.hasBranches = true; svcObj.price = branches[0].price; svcObj.code = branches[0].code; svcObj.branches = branches;
+        }
+        try {
+            document.getElementById("addServiceModal").style.display = "none";
+            await dbOrder.collection("services").doc(editDocId).update(svcObj);
+            logAction(`تعديل خدمة: ${name}`, 'general');
+            notify("تم تحديث الخدمة بنجاح");
+        } catch(e) { console.error(e); notify("خطأ أثناء الحفظ: " + e.message, "error"); }
+    } else {
+        saveNewService();
+    }
 }
 
 function renderBranchInputs() {
@@ -8279,6 +8427,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
