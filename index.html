@@ -742,6 +742,92 @@
         </div>
     </div>
 </div>
+<!-- ─── Modal إضافة خدمة جديدة ─── -->
+<div id="addServiceModal" class="dialog-modal" style="display:none; z-index:5500;">
+    <div class="dialog-box" style="text-align:right; max-width:560px; max-height:85vh; overflow-y:auto;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة خدمة جديدة
+        </h3>
+        <div class="input-group">
+            <label>اسم الخدمة *</label>
+            <input id="svcName" placeholder="مثلاً: ChatGPT">
+        </div>
+        <div class="input-group">
+            <label>أيقونة (Font Awesome — اختياري)</label>
+            <input id="svcIcon" placeholder="مثلاً: robot أو crown">
+        </div>
+        <div class="input-group">
+            <label>نوع الشارة</label>
+            <select id="svcBadge">
+                <option value="">بدون شارة</option>
+                <option value="hot">🔥 الأكثر طلباً</option>
+                <option value="new">✨ جديد</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>عدد الأفرع (1 = خدمة ثابتة بدون أفرع)</label>
+            <select id="svcBranchCount" onchange="renderBranchInputs()">
+                <option value="1">1 — خدمة ثابتة</option>
+                <option value="2">2 أفرع</option>
+                <option value="3">3 أفرع</option>
+                <option value="4">4 أفرع</option>
+                <option value="5">5 أفرع</option>
+            </select>
+        </div>
+        <div id="branchInputsContainer"></div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn btn-primary" onclick="saveNewService()"><i class="fas fa-check"></i> حفظ الخدمة</button>
+            <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('addServiceModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Modal تفاصيل فرع الخدمة ─── -->
+<div id="branchDetailModal" class="dialog-modal" style="display:none; z-index:5500;">
+    <div class="dialog-box" style="text-align:right; max-width:420px;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-info-circle" style="color:var(--primary)"></i> تفاصيل الخدمة
+        </h3>
+        <div id="branchDetailBody" style="display:grid; gap:12px; font-size:15px;"></div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn btn-primary" style="width:100%" onclick="document.getElementById('branchDetailModal').style.display='none'">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Modal تأكيد التسليم ─── -->
+<div id="deliveryModal" class="dialog-modal" style="display:none; z-index:5500;">
+    <div class="dialog-box" style="text-align:right; max-width:460px;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-check-circle" style="color:var(--success)"></i> تأكيد التسليم
+        </h3>
+        <input type="hidden" id="dlvOrderId">
+        <input type="hidden" id="dlvCustomerName">
+        <input type="hidden" id="dlvCustomerPhone">
+        <input type="hidden" id="dlvServiceName">
+
+        <div class="input-group">
+            <label>المحفظة المستخدمة *</label>
+            <select id="dlvWallet" onchange="updateDlvCurrency()"></select>
+        </div>
+        <div class="input-group">
+            <label>المبلغ المدفوع من العميل *</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="dlvAmount" placeholder="0.00" style="flex:1; min-width:0;">
+                <span id="dlvCurrencyLabel" style="font-weight:800; font-size:16px; color:var(--primary); white-space:nowrap; min-width:24px;"></span>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>كود الخصم (اختياري)</label>
+            <input id="dlvDiscount" placeholder="9 أرقام اختياري" maxlength="9">
+        </div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn btn-success" onclick="executeDelivery()"><i class="fas fa-check"></i> تأكيد وحفظ</button>
+            <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('deliveryModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
+
 <div id="vipUpgradeModal" class="dialog-modal" style="display:none; z-index: 6000;">
     <div class="dialog-box" style="text-align:center; max-width:450px">
         <div style="font-size:60px; margin-bottom:15px" id="vipModalIcon"></div>
@@ -811,6 +897,7 @@
     <div class="menu-items">
         <button onclick="showPage('purchase', this)" class="active" id="btnPurchase"><i class="fas fa-cart-plus"></i> عملية شراء</button>
         <button onclick="showPage('stock', this)" id="btnStock" class="hidden"><i class="fas fa-cubes"></i> المخزون</button>
+        <button onclick="showPage('orders', this)" id="btnOrders"><i class="fas fa-inbox"></i> الطلبات <span id="ordersBadge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none; margin-right:4px;"></span></button>
         <button onclick="showPage('expiring', this)" id="btnExpiring"><i class="fas fa-hourglass-half"></i> التنبيهات <span id="expiryBadge" class="notif-badge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none"></span></button>
         <button onclick="showPage('discounts', this)" id="btnDiscounts"><i class="fas fa-ticket-alt"></i> الخصومات <span id="discountBadge" style="background:var(--accent); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none; margin-right:4px;"></span></button>
         <button onclick="showPage('vip', this)" id="btnVip"><i class="fas fa-star"></i> العملاء المميزين</button>
@@ -1025,6 +1112,33 @@
             </table>
         </div>
         <div id="stockPagination" class="pagination"></div>
+    </div>
+
+    <div id="orders" class="card hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+            <h3 style="margin:0"><i class="fas fa-inbox" style="color:var(--primary)"></i> الطلبات الواردة</h3>
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+            <div style="position:relative;">
+                <input id="ordersSearch" onkeyup="refreshOrders()" placeholder="بحث باسم العميل أو الرقم أو كود الخدمة..." style="padding-right:40px;">
+                <i class="fas fa-search" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr>
+                    <th>اسم العميل</th>
+                    <th>رقم الواتساب</th>
+                    <th>كود الخدمة</th>
+                    <th>السعر</th>
+                    <th>ملاحظات</th>
+                    <th>تأكيد التسليم</th>
+                    <th>حذف</th>
+                </tr></thead>
+                <tbody id="ordersBody"></tbody>
+            </table>
+        </div>
+        <div id="ordersPagination" class="pagination"></div>
     </div>
 
     <div id="analytics" class="card hidden">
@@ -1304,11 +1418,11 @@
         <div id="sec-manage-services">
             <h3 style="margin-top:20px"><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
             <div class="inner-box" style="margin-bottom:40px">
-                <div style="display:flex; gap:10px; margin-bottom:15px">
-                    <input id="newServiceName" placeholder="اسم الخدمة (مثلاً: ChatGPT)">
-                    <button class="btn btn-primary" onclick="addService()">إضافة</button>
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                    <button class="btn btn-primary" onclick="openAddServiceModal()"><i class="fas fa-plus"></i> إضافة خدمة</button>
+                    <span style="font-size:13px; color:var(--text-muted);">يتم حفظها في Firebase وتظهر تلقائياً في موقع الطلبات</span>
                 </div>
-                <div id="servicesList" style="display:flex; flex-wrap:wrap; gap:10px"></div>
+                <div id="servicesList" style="display:flex; flex-direction:column; gap:10px;"></div>
             </div>
         </div>
 
@@ -1673,7 +1787,7 @@ let isDemoMode = false;
 
 let currentStockTab = 'active';
 let currentLogsTab = 'financial';
-let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1, vip: 1 };
+let currentPage = { logs: 1, expiring: 1, stock: 1, history: 1, discounts: 1, vip: 1, orders: 1 };
 const ITEMS_PER_PAGE = 50;
 const VIP_RANKS = [
     { id: 'normal',   name: 'زبون عادي',    min: 1,  color: '#94a3b8', chance: 0,  discount: 0,  days: 0,  uses: 1, icon: '<i class="fas fa-user"></i>' },
@@ -3440,7 +3554,7 @@ function tryAutoLogin() {
 
     loginLayer.style.display = "none";
     document.body.classList.remove("locked");
-    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); refreshAll(); applyRBAC();
     document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
     resetSessionTimer();
     checkExpiringOnLogin();
@@ -3644,7 +3758,7 @@ async function attemptLogin() {
         currentUser = demoUser;
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -3684,7 +3798,7 @@ async function attemptLogin() {
 
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -4845,6 +4959,7 @@ function refreshAll(){
             'stock': refreshStock,
             'discounts': refreshDiscounts,
             'vip': refreshVip,
+            'orders': refreshOrders,
             'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
         };
     processVipDowngrades();
@@ -6713,46 +6828,474 @@ async function sellStock(id) {
     refreshStock(); loadPurchaseStock();  notify("تم نقل الاشتراك إلى المباع");
 }
 
+// ══════════════════════════════════════════════════════════════
+//  إدارة الخدمات (Firebase collection: "services")
+// ══════════════════════════════════════════════════════════════
+let adminServicesCache = []; // cache من db.collection("services")
+let ordersCache = [];        // cache من db.collection("orders")
+let _svcUnsubscribe = null;
+let _ordUnsubscribe = null;
+
+function _initServicesListener() {
+    if (_svcUnsubscribe || !db) return;
+    _svcUnsubscribe = db.collection("services").onSnapshot(snap => {
+        adminServicesCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+        renderServicesSettings();
+        loadServices();
+        loadPurchaseStock();
+    }, err => console.error("services listener:", err));
+}
+
+function _initOrdersListener() {
+    if (_ordUnsubscribe || !db) return;
+    _ordUnsubscribe = db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
+        ordersCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+        updateOrdersBadge();
+        if (document.getElementById("orders") && !document.getElementById("orders").classList.contains("hidden")) {
+            refreshOrders();
+        }
+    }, err => {
+        // قد لا يوجد index — جرّب بدون orderBy
+        db.collection("orders").onSnapshot(snap2 => {
+            ordersCache = snap2.docs.map(d => ({ _docId: d.id, ...d.data() }));
+            ordersCache.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+            updateOrdersBadge();
+            if (document.getElementById("orders") && !document.getElementById("orders").classList.contains("hidden")) {
+                refreshOrders();
+            }
+        }, err2 => console.error("orders listener:", err2));
+    });
+}
+
+function updateOrdersBadge() {
+    let badge = document.getElementById("ordersBadge");
+    if (!badge) return;
+    let c = ordersCache.length;
+    badge.textContent = c;
+    badge.style.display = c > 0 ? "inline" : "none";
+}
+
+// ─── render services in settings ─────────────────────────────
 function renderServicesSettings() {
-    let list = safeJSON(store.services, []);
     let div = document.getElementById("servicesList");
-    let isAdmin = currentUser.role === 'admin';
-    div.innerHTML = "";
-    
+    if (!div) return;
+    let isAdmin = currentUser && currentUser.role === 'admin';
+
     let addArea = document.querySelector("#sec-manage-services .inner-box > div:first-child");
     if(addArea) addArea.style.display = isAdmin ? "flex" : "none";
 
-    list.forEach((s, idx) => {
-        let delIcon = isAdmin ? `<i class="fas fa-times" style="margin-right:8px; cursor:pointer; color:red" onclick="deleteService(${idx})"></i>` : '';
-        div.innerHTML += `<span class="badge badge-info" style="padding:10px; font-size:14px;">${esc(s)} ${delIcon}</span>`;
+    if (adminServicesCache.length === 0) {
+        div.innerHTML = `<div style="color:var(--text-muted); font-size:14px; padding:10px;"><i class="fas fa-store-slash"></i> لا توجد خدمات حاليا</div>`;
+        return;
+    }
+
+    div.innerHTML = "";
+    adminServicesCache.forEach(s => {
+        let hasBranches = s.hasBranches && s.branches && s.branches.length > 1;
+        let branchInfo = hasBranches
+            ? s.branches.map(b => `<span style="font-size:11px; color:var(--text-muted); background:var(--bg-input); padding:2px 8px; border-radius:6px;">${esc(b.name)}: ${b.price}₪</span>`).join(' ')
+            : `<span style="font-size:11px; color:var(--text-muted);">${s.price||0}₪</span>`;
+
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteServiceById('${s._docId}','${esc(s.name)}')"><i class="fas fa-trash"></i></button>` : '';
+
+        div.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap;">
+            <span class="badge badge-info" style="font-size:13px;">${esc(s.name)}</span>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${branchInfo}</div>
+            ${delBtn}
+        </div>`;
     });
 }
-function addService() {
-    let inp = document.getElementById("newServiceName");
-    let val = inp.value.trim();
-    if(!val) return notify("أدخل اسم الخدمة", "error");
-    let list = safeJSON(store.services, []);
-    if(list.includes(val)) return notify("الخدمة موجودة مسبقاً", "error");
-    list.push(val);
-    store.services = JSON.stringify(list); fbSave("services", list);
-    logAction(`إضافة خدمة جديدة: ${val}`, 'general');
-    renderServicesSettings();
-    loadServices();
-    loadPurchaseStock();
-    notify("تمت إضافة الخدمة بنجاح");
-    inp.value = "";
-}
-function deleteService(idx) {
-    let list = safeJSON(store.services, []);
-    let removed = list.splice(idx, 1);
-    store.services = JSON.stringify(list); fbSave("services", list);
-    logAction(`حذف خدمة: ${removed[0] || ''}`, 'danger');
-    renderServicesSettings();
-    loadServices();
-    loadPurchaseStock();
-    notify("تم حذف الخدمة");
+
+// ─── open add service modal ───────────────────────────────────
+function openAddServiceModal() {
+    if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    document.getElementById("svcName").value = "";
+    document.getElementById("svcIcon").value = "";
+    document.getElementById("svcBadge").value = "";
+    document.getElementById("svcBranchCount").value = "1";
+    renderBranchInputs();
+    document.getElementById("addServiceModal").style.display = "flex";
 }
 
+function renderBranchInputs() {
+    let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
+    let container = document.getElementById("branchInputsContainer");
+    container.innerHTML = "";
+
+    if (count === 1) {
+        // خدمة ثابتة
+        container.innerHTML = `
+            <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
+                <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-cube"></i> بيانات الخدمة</div>
+                <div class="input-group">
+                    <label>الوصف *</label>
+                    <input id="b_desc_0" placeholder="وصف الخدمة">
+                </div>
+                <div class="input-group">
+                    <label>السعر (₪) *</label>
+                    <input type="number" id="b_price_0" placeholder="0">
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>كود الخدمة (9 أرقام)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input id="b_code_0" placeholder="سيتم توليده تلقائياً" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                        <button type="button" class="btn btn-warning" style="padding:8px 12px; white-space:nowrap;" onclick="genCode('b_code_0')"><i class="fas fa-dice"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        genCode('b_code_0');
+    } else {
+        for (let i = 0; i < count; i++) {
+            container.innerHTML += `
+                <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
+                    <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-code-branch"></i> الفرع ${i+1}</div>
+                    <div class="input-group">
+                        <label>اسم الفرع *</label>
+                        <input id="b_name_${i}" placeholder="مثلاً: شهري">
+                    </div>
+                    <div class="input-group">
+                        <label>الوصف</label>
+                        <input id="b_desc_${i}" placeholder="وصف الفرع">
+                    </div>
+                    <div class="input-group">
+                        <label>السعر (₪) *</label>
+                        <input type="number" id="b_price_${i}" placeholder="0">
+                    </div>
+                    <div class="input-group" style="margin-bottom:0;">
+                        <label>كود الفرع (9 أرقام)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input id="b_code_${i}" placeholder="سيتم توليده تلقائياً" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                            <button type="button" class="btn btn-warning" style="padding:8px 12px;" onclick="genCode('b_code_${i}')"><i class="fas fa-dice"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        // توليد كود تلقائي لكل فرع
+        setTimeout(() => {
+            for (let i = 0; i < count; i++) genCode(`b_code_${i}`);
+        }, 50);
+    }
+}
+
+function genCode(inputId) {
+    let code = Math.floor(100000000 + Math.random() * 900000000).toString();
+    let el = document.getElementById(inputId);
+    if (el) el.value = code;
+}
+
+async function saveNewService() {
+    let name = document.getElementById("svcName").value.trim();
+    if (!name) return notify("أدخل اسم الخدمة", "error");
+    let icon = document.getElementById("svcIcon").value.trim() || "cube";
+    let badge = document.getElementById("svcBadge").value;
+    let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
+
+    let svcObj = { name, icon, badge };
+
+    if (count === 1) {
+        let desc = document.getElementById("b_desc_0").value.trim();
+        let price = parseFloat(document.getElementById("b_price_0").value) || 0;
+        let code = document.getElementById("b_code_0").value.trim();
+        if (!code || code.length !== 9) return notify("الكود يجب أن يكون 9 أرقام", "error");
+        svcObj.hasBranches = false;
+        svcObj.description = desc;
+        svcObj.price = price;
+        svcObj.code = code;
+        svcObj.branches = [{ name: name, description: desc, price: price, code: code }];
+    } else {
+        let branches = [];
+        for (let i = 0; i < count; i++) {
+            let bName = (document.getElementById(`b_name_${i}`)?.value||'').trim();
+            let bDesc = (document.getElementById(`b_desc_${i}`)?.value||'').trim();
+            let bPrice = parseFloat(document.getElementById(`b_price_${i}`)?.value) || 0;
+            let bCode = (document.getElementById(`b_code_${i}`)?.value||'').trim();
+            if (!bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
+            if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
+            branches.push({ name: bName, description: bDesc, price: bPrice, code: bCode });
+        }
+        svcObj.hasBranches = true;
+        svcObj.description = branches.map(b=>b.name).join(' / ');
+        svcObj.price = branches[0].price;
+        svcObj.code = branches[0].code;
+        svcObj.branches = branches;
+    }
+
+    try {
+        await db.collection("services").add(svcObj);
+        // تحديث store.services (أسماء فقط للمخزون)
+        let list = safeJSON(store.services, []);
+        if (!list.includes(name)) {
+            list.push(name);
+            store.services = JSON.stringify(list);
+            fbSave("services", list);
+        }
+        logAction(`إضافة خدمة جديدة: ${name}`, 'general');
+        document.getElementById("addServiceModal").style.display = "none";
+        notify("تمت إضافة الخدمة بنجاح");
+    } catch(e) {
+        console.error(e);
+        notify("خطأ أثناء الحفظ: " + e.message, "error");
+    }
+}
+
+async function deleteServiceById(docId, name) {
+    if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let ok = await showConfirm("حذف الخدمة", `هل تريد حذف خدمة "${name}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
+    if (!ok) return;
+    try {
+        await db.collection("services").doc(docId).delete();
+        // تحديث store.services
+        let list = safeJSON(store.services, []).filter(s => s !== name);
+        store.services = JSON.stringify(list);
+        fbSave("services", list);
+        logAction(`حذف خدمة: ${name}`, 'danger');
+        notify("تم حذف الخدمة");
+    } catch(e) {
+        notify("خطأ أثناء الحذف: " + e.message, "error");
+    }
+}
+
+// للتوافق مع الكود القديم
+function addService() { openAddServiceModal(); }
+function deleteService(idx) { notify("استخدم زر الحذف بجانب كل خدمة", "error"); }
+
+// ══════════════════════════════════════════════════════════════
+//  إدارة الطلبات (Firebase collection: "orders")
+// ══════════════════════════════════════════════════════════════
+function refreshOrders() {
+    let search = (document.getElementById("ordersSearch")?.value||"").toLowerCase();
+    let tbody = document.getElementById("ordersBody");
+    if (!tbody) return;
+    let isAdmin = currentUser && currentUser.role === 'admin';
+
+    let filtered = ordersCache.filter(o => {
+        if (!search) return true;
+        return (o.customerName||'').toLowerCase().includes(search)
+            || (o.phone||'').toLowerCase().includes(search)
+            || (o.serviceCode||'').includes(search)
+            || (o.serviceName||'').toLowerCase().includes(search);
+    });
+
+    renderPagination(filtered.length, 'orders', refreshOrders, 'ordersPagination');
+    let page = currentPage.orders || 1;
+    let paginated = filtered.slice((page-1)*ITEMS_PER_PAGE, page*ITEMS_PER_PAGE);
+
+    let rows = "";
+    paginated.forEach(o => {
+        let codeCell = `<span style="cursor:pointer; color:var(--primary); font-weight:800; letter-spacing:1px; text-decoration:underline;" onclick="showBranchDetail('${esc(o.serviceCode||'')}','${esc(o.serviceName||'')}')">${esc(o.serviceCode||'—')}</span>`;
+        let price = o.amount !== undefined ? `${o.amount}₪` : '—';
+        let notes = o.notes ? `<span title="${esc(o.notes)}" style="cursor:help; color:var(--text-muted);"><i class="fas fa-sticky-note"></i></span>` : '—';
+        let confirmBtn = isAdmin ? `<button class="btn btn-success" style="padding:5px 10px; font-size:12px;" onclick="openDeliveryModal('${o._docId}')"><i class="fas fa-check"></i> تأكيد</button>` : '—';
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="deleteOrder('${o._docId}')"><i class="fas fa-trash"></i></button>` : '—';
+
+        rows += `<tr>
+            <td style="font-weight:bold;">${esc(o.customerName||'—')}</td>
+            <td dir="ltr">${esc(o.phone||'—')}</td>
+            <td>${codeCell}</td>
+            <td style="color:var(--accent); font-weight:800;">${price}</td>
+            <td>${notes}</td>
+            <td>${confirmBtn}</td>
+            <td>${delBtn}</td>
+        </tr>`;
+    });
+    tbody.innerHTML = rows || `<tr><td colspan='7' style='text-align:center; padding:20px; color:var(--text-muted);'>لا توجد طلبات حالياً</td></tr>`;
+}
+
+function showBranchDetail(code, serviceName) {
+    // البحث في adminServicesCache عن الفرع بهذا الكود
+    let found = null;
+    for (let svc of adminServicesCache) {
+        let branches = svc.branches || [];
+        for (let b of branches) {
+            if (String(b.code) === String(code)) {
+                found = { svcName: svc.name, ...b };
+                break;
+            }
+        }
+        if (found) break;
+    }
+
+    let body = document.getElementById("branchDetailBody");
+    if (found) {
+        body.innerHTML = `
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">الخدمة</span><strong>${esc(found.svcName)}</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">الفرع</span><strong>${esc(found.name)}</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">الوصف</span><span>${esc(found.description||'—')}</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">السعر</span><strong style="color:var(--accent)">${found.price}₪</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">الكود</span><strong style="letter-spacing:2px; color:var(--primary);">${esc(code)}</strong></div>`;
+    } else {
+        body.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:20px;"><i class="fas fa-search"></i><br>كود ${esc(code)} — ${esc(serviceName)}<br><small>لم يُعثر على بيانات الفرع في قاعدة البيانات</small></div>`;
+    }
+    document.getElementById("branchDetailModal").style.display = "flex";
+}
+
+async function deleteOrder(docId) {
+    let ok = await showConfirm("حذف الطلب", "هل تريد حذف هذا الطلب نهائياً من السجل؟", "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
+    if (!ok) return;
+    try {
+        await db.collection("orders").doc(docId).delete();
+        logAction("حذف طلب وارد", 'danger');
+        notify("تم حذف الطلب");
+    } catch(e) {
+        notify("خطأ: " + e.message, "error");
+    }
+}
+
+function openDeliveryModal(docId) {
+    let order = ordersCache.find(o => o._docId === docId);
+    if (!order) return notify("الطلب غير موجود", "error");
+
+    document.getElementById("dlvOrderId").value = docId;
+    document.getElementById("dlvCustomerName").value = order.customerName || "";
+    document.getElementById("dlvCustomerPhone").value = order.phone || "";
+    document.getElementById("dlvServiceName").value = order.serviceName || "";
+    document.getElementById("dlvAmount").value = order.amount || "";
+    document.getElementById("dlvDiscount").value = "";
+
+    // تحميل المحافظ
+    let wallets = safeJSON(store.wallets, {});
+    let sel = document.getElementById("dlvWallet");
+    sel.innerHTML = '<option value="">اختر المحفظة...</option>';
+    Object.keys(wallets).filter(k => wallets[k].active !== false).forEach(k => {
+        sel.innerHTML += `<option value="${esc(k)}">${esc(k)} (${wallets[k].cur})</option>`;
+    });
+    updateDlvCurrency();
+    document.getElementById("deliveryModal").style.display = "flex";
+}
+
+function updateDlvCurrency() {
+    let wName = document.getElementById("dlvWallet").value;
+    let wallets = safeJSON(store.wallets, {});
+    let cur = (wName && wallets[wName]) ? wallets[wName].cur : '';
+    document.getElementById("dlvCurrencyLabel").textContent = cur;
+}
+
+async function executeDelivery() {
+    let docId = document.getElementById("dlvOrderId").value;
+    let customerName = document.getElementById("dlvCustomerName").value;
+    let customerPhone = document.getElementById("dlvCustomerPhone").value;
+    let serviceName = document.getElementById("dlvServiceName").value;
+    let walletName = document.getElementById("dlvWallet").value;
+    let amount = parseFloat(document.getElementById("dlvAmount").value);
+    let discountCode = document.getElementById("dlvDiscount").value.trim();
+
+    if (!walletName) return notify("اختر المحفظة", "error");
+    if (isNaN(amount) || amount < 0) return notify("أدخل المبلغ بشكل صحيح", "error");
+
+    let wallets = safeJSON(store.wallets, {});
+    let wallet = wallets[walletName];
+    if (!wallet) return notify("المحفظة غير موجودة", "error");
+    let paidCur = wallet.cur;
+
+    // التحقق من كود الخصم إن وُجد
+    let appliedDiscountPct = 0;
+    let usedDiscountObj = null;
+    if (discountCode) {
+        let discountsList = safeJSON(store.discounts, []);
+        let dObj = discountsList.find(x => x.code === discountCode);
+        if (!dObj || new Date().getTime() > dObj.expiry || (dObj.usedCount||0) >= (dObj.maxUses||1)) {
+            return notify("كود الخصم غير صالح أو منتهي", "error");
+        }
+        appliedDiscountPct = dObj.percentage;
+        usedDiscountObj = dObj;
+    }
+
+    let settings = safeJSON(store.settings, {});
+    let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
+    let invest = safeJSON(store.invest, {});
+    let purchases = safeJSON(store.purchases, []);
+    let vips = safeJSON(store.vipCustomers, {});
+
+    // إضافة المبلغ للمحفظة
+    wallets[walletName].bal += amount;
+    let shareType = paidCur === '$' ? 'd' : 's';
+    invest.store[shareType] += amount;
+
+    let nd = new Date();
+    let nmm = (nd.getMonth()+1).toString().padStart(2,'0');
+    let nddStr = nd.getDate().toString().padStart(2,'0');
+    let todayStr = `${nd.getFullYear()}-${nmm}-${nddStr}`;
+
+    let purchaseId = genId();
+    let newPurchase = {
+        id: purchaseId,
+        date: todayStr,
+        customer: customerName || '—',
+        phone: customerPhone || '',
+        sub: serviceName,
+        duration: '0',
+        paid: `${amount}${paidCur}`,
+        cost: '0',
+        wallet: walletName,
+        isComp: false,
+        discountCode: discountCode || null,
+        discountPct: appliedDiscountPct || 0,
+        canBeUndone: false
+    };
+    purchases.unshift(newPurchase);
+
+    // تحديث VIP
+    let vipRankChanged = false;
+    let vipNewRank = null;
+    let vipCustomerObj = null;
+    if (customerPhone) {
+        vipCustomerObj = vips[customerPhone] || { name: customerName, count: 0, rankIndex: 0, target: 3, lastPurchaseTime: nd.getTime() };
+        vipCustomerObj.count++;
+        vipCustomerObj.name = customerName;
+        vipCustomerObj.lastPurchaseTime = nd.getTime();
+        let oldRank = vipCustomerObj.rankIndex;
+        if (vipCustomerObj.rankIndex < 4 && vipCustomerObj.count >= vipCustomerObj.target) {
+            vipCustomerObj.rankIndex++;
+            if (vipCustomerObj.rankIndex < 4) {
+                let diff = VIP_RANKS[vipCustomerObj.rankIndex+1]?.min - VIP_RANKS[vipCustomerObj.rankIndex].min || 5;
+                vipCustomerObj.target = vipCustomerObj.count + diff;
+            }
+            vipRankChanged = true;
+            vipNewRank = VIP_RANKS[vipCustomerObj.rankIndex];
+        }
+        vips[customerPhone] = vipCustomerObj;
+    }
+
+    // تحديث كود الخصم إن وُجد
+    if (usedDiscountObj) {
+        let discountsList = safeJSON(store.discounts, []);
+        let dIdx = discountsList.findIndex(x => x.code === discountCode);
+        if (dIdx !== -1) {
+            discountsList[dIdx].usedCount = (discountsList[dIdx].usedCount || 0) + 1;
+            store.discounts = JSON.stringify(discountsList);
+            fbSave("discounts", discountsList);
+        }
+    }
+
+    // حفظ
+    store.wallets = JSON.stringify(wallets);
+    store.invest = JSON.stringify(invest);
+    store.purchases = JSON.stringify(purchases);
+    store.vipCustomers = JSON.stringify(vips);
+
+    fbAtomicWalletInvest({ [walletName]: +amount }, { [`store.${shareType}`]: +amount }, wallets, invest);
+    fbSave("purchases", purchases);
+    fbSave("vipCustomers", vips);
+
+    // حذف الطلب من orders
+    try { await db.collection("orders").doc(docId).delete(); } catch(e) {}
+
+    logAction(`تأكيد تسليم طلب: ${serviceName} للعميل ${customerName||customerPhone}`, 'financial', {
+        type: 'order_delivery', serviceName, customerName, customerPhone, amount, paidCur, wallet: walletName
+    });
+
+    recordBudgetEvent('purchase', `تسليم طلب: ${serviceName}`, paidCur === '$' ? amount : amount/rate, {
+        type: 'order_delivery', serviceName, amount, paidCur
+    });
+
+    document.getElementById("deliveryModal").style.display = "none";
+    notify("تم تأكيد التسليم وحفظ العملية بنجاح");
+    refreshAll();
+
+    if (vipRankChanged && vipCustomerObj && vipNewRank) {
+        setTimeout(() => showVipUpgradeModal(vipCustomerObj, vipNewRank, customerPhone), 400);
+    }
+}
 // ─────────────────────────────────────────────
 // Flatpickr — تقويم مخصص
 // ─────────────────────────────────────────────
@@ -7055,6 +7598,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
