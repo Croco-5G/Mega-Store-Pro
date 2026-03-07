@@ -820,7 +820,7 @@
         </div>
         <div class="input-group">
             <label>كود الخصم (اختياري)</label>
-            <input id="cbDiscount" placeholder="9 أرقام اختياري" maxlength="9">
+            <input id="cbDiscount" placeholder="9 أرقام اختياري" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
         <div class="dialog-actions" style="margin-top:20px;">
             <button class="btn btn-warning" style="color:#000;" onclick="executeConfirmBooking()"><i class="fas fa-bookmark"></i> تأكيد الحجز</button>
@@ -876,7 +876,7 @@
         </div>
         <div class="input-group">
             <label>كود الخصم (اختياري)</label>
-            <input id="dlvDiscount" placeholder="9 أرقام اختياري" maxlength="9">
+            <input id="dlvDiscount" placeholder="9 أرقام اختياري" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
         <div class="dialog-actions" style="margin-top:20px;">
             <button class="btn btn-success" onclick="executeDelivery()"><i class="fas fa-check"></i> تأكيد وحفظ</button>
@@ -1108,6 +1108,7 @@
             <button class="tab-btn active" onclick="switchLogsTab('financial', this)">حركات مالية وتفصيلية</button>
             <button class="tab-btn" onclick="switchLogsTab('danger', this)">حركات مهمة أو خطرة</button>
             <button class="tab-btn" onclick="switchLogsTab('general', this)">حركات عامة</button>
+            <button class="tab-btn" onclick="switchLogsTab('orderActivity', this)">نشاط الطلبات</button>
         </div>
         
         <div class="input-group" style="margin-bottom:20px;">
@@ -3633,7 +3634,7 @@ function tryAutoLogin() {
 
     loginLayer.style.display = "none";
     document.body.classList.remove("locked");
-    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); refreshAll(); applyRBAC();
+    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
     document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
     resetSessionTimer();
     checkExpiringOnLogin();
@@ -3837,7 +3838,7 @@ async function attemptLogin() {
         currentUser = demoUser;
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -3877,7 +3878,7 @@ async function attemptLogin() {
 
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
         checkExpiringOnLogin();
@@ -4257,10 +4258,32 @@ function getLogType(log) {
 }
 
 function refreshLogs() {
-    let logs = safeJSON(store.activityLog, []);
-    let search = document.getElementById("logsSearch").value.toLowerCase();
+    let search = (document.getElementById("logsSearch")?.value||"").toLowerCase();
     const tbody = document.getElementById("logsTableBody");
     let role = currentUser ? currentUser.role : 'viewer';
+
+    if (currentLogsTab === 'orderActivity') {
+        let filtered = orderActivityCache.filter(a => !search ||
+            (a.ip||'').includes(search)||(a.browser||'').toLowerCase().includes(search)||
+            (a.country||'').toLowerCase().includes(search)||(a.eventType||'').toLowerCase().includes(search)||
+            (a.city||'').toLowerCase().includes(search)||(a.device||'').toLowerCase().includes(search)
+        );
+        renderPagination(filtered.length, 'logs', refreshLogs, 'logsPagination');
+        let paginated = filtered.slice((currentPage.logs-1)*ITEMS_PER_PAGE, currentPage.logs*ITEMS_PER_PAGE);
+        const typeLabel = { page_visit:'دخول على الموقع', service_selected:'اختيار خدمة', order_submitted:'إرسال طلب' };
+        const typeBadge = { page_visit:'badge-primary', service_selected:'badge-warning', order_submitted:'badge-success' };
+        let rows = "";
+        paginated.forEach(a => {
+            let lbl = typeLabel[a.eventType]||a.eventType||'—';
+            let bdg = typeBadge[a.eventType]||'badge-primary';
+            let detBtn = role==='admin' ? `<button class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick='showOrderActivityDetails(${JSON.stringify(a)})'><i class="fas fa-eye"></i></button>` : '-';
+            rows += `<tr><td style="direction:ltr;text-align:right;font-size:12px;">${a.timeLocal||a.timestamp||'—'}</td><td><span class="badge ${bdg}" style="font-size:11px;">${lbl}</span></td><td style="font-size:12px;">${esc(a.device||'—')} / ${esc(a.browser||'—')} / ${esc(a.country||'—')}</td><td>${detBtn}</td></tr>`;
+        });
+        tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center;padding:20px;color:var(--text-muted)'>لا يوجد نشاط بعد</td></tr>`;
+        return;
+    }
+
+    let logs = safeJSON(store.activityLog, []);
     // المشاهدون: لا يرون زر التفاصيل نهائياً
     // الموظف: يرى التفاصيل في المالية فقط
     // الأدمن: يرى التفاصيل في كل التبويبات
@@ -4299,8 +4322,34 @@ function toggleLogDetails(uid) {
 
 
 
+function showOrderActivityDetails(a) {
+    const body = document.getElementById("modalBody");
+    body.innerHTML = "";
+    const skip = ['_docId'];
+    Object.entries(a).filter(([k])=>!skip.includes(k)).forEach(([k,v]) => {
+        let val = typeof v === 'object' ? JSON.stringify(v) : String(v||'—');
+        body.innerHTML += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);gap:10px;font-size:13px;"><span style="color:var(--text-muted);flex-shrink:0;">${esc(k)}</span><span style="font-weight:600;text-align:left;direction:ltr;word-break:break-all;">${esc(val)}</span></div>`;
+    });
+    document.getElementById("detailsModal").classList.remove("hidden");
+}
+
 async function clearLogs() {
     if(currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+
+    if (currentLogsTab === 'orderActivity') {
+        let ok = await showConfirm("مسح نشاط الطلبات", "سيتم حذف جميع سجلات نشاط الطلبات نهائياً.", "مسح الكل", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+        if (!ok) return;
+        try {
+            let snap = await dbOrder.collection("orderActivity").limit(500).get();
+            let batch = dbOrder.batch();
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            orderActivityCache = [];
+            refreshLogs();
+            notify("تم مسح نشاط الطلبات");
+        } catch(e) { notify("خطأ: " + e.message, "error"); }
+        return;
+    }
     
     const tabNames = { financial: "الحركات المالية", danger: "الحركات الخطرة", general: "الحركات العامة" };
     let tabName = tabNames[currentLogsTab] || "السجلات";
@@ -6925,6 +6974,29 @@ async function sellStock(id) {
 //  إدارة الخدمات (Firebase collection: "services")
 // ══════════════════════════════════════════════════════════════
 let adminServicesCache = []; // cache من db.collection("services")
+let orderActivityCache = [];
+let _actUnsubscribe = null;
+
+function _initOrderActivityListener() {
+    if (_actUnsubscribe || !dbOrder) return;
+    const applySnap = snap => {
+        orderActivityCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+        orderActivityCache.sort((a,b) => (b.timestamp||'').localeCompare(a.timestamp||''));
+        // حذف السجلات الزائدة إذا تجاوز الحجم 1GB (نظرياً — نحتفظ بأحدث 5000)
+        if (orderActivityCache.length > 5000) {
+            let toDelete = orderActivityCache.splice(5000);
+            toDelete.forEach(d => { try { dbOrder.collection("orderActivity").doc(d._docId).delete(); } catch(e){} });
+        }
+        if (currentLogsTab === 'orderActivity' && !document.getElementById("logs").classList.contains("hidden")) {
+            refreshLogs();
+        }
+    };
+    _actUnsubscribe = dbOrder.collection("orderActivity")
+        .orderBy("timestamp", "desc").limit(2000)
+        .onSnapshot(applySnap, () => {
+            dbOrder.collection("orderActivity").limit(2000).onSnapshot(applySnap, ()=>{});
+        });
+}
 let ordersCache = [];        // cache من db.collection("orders")
 let _svcUnsubscribe = null;
 let _ordUnsubscribe = null;
@@ -7322,6 +7394,16 @@ async function executeConfirmBooking() {
 
     if (!walletName) return notify("اختر المحفظة", "error");
     if (isNaN(amount) || amount < 0) return notify("أدخل المبلغ", "error");
+    if (discountCode && !/^\d{9}$/.test(discountCode)) return notify("كود الخصم يجب أن يكون 9 أرقام بالضبط", "error");
+
+    let order_preview = ordersCache.find(o => o._docId === orderId);
+    let discountNote = discountCode ? ` (خصم: ${discountCode})` : '';
+    let ok_cb = await showConfirm(
+        "تأكيد الحجز",
+        `هل تريد تأكيد حجز "${order_preview?.serviceName||''}" للعميل ${order_preview?.customerName||''}؟\nالمبلغ: ${amount}${discountNote}\nالمحفظة: ${walletName}`,
+        "تأكيد", "إلغاء", '<i class="fas fa-bookmark"></i>'
+    );
+    if (!ok_cb) return;
 
     let wallets = safeJSON(store.wallets, {});
     let wallet = wallets[walletName];
@@ -7383,10 +7465,73 @@ async function executeConfirmBooking() {
         store.invest = JSON.stringify(invest);
         fbAtomicWalletInvest({ [walletName]: +amount }, { [`store.${shareType}`]: +amount }, wallets, invest);
 
+        // تحديث VIP
+        let vips_cb = safeJSON(store.vipCustomers, {});
+        let vipRankChanged_cb = false;
+        let vipNewRank_cb = null;
+        let vipCustomerObj_cb = null;
+        let customerPhone_cb = order?.phone || '';
+        let customerName_cb = order?.customerName || '';
+        if (customerPhone_cb) {
+            vipCustomerObj_cb = vips_cb[customerPhone_cb] || { name: customerName_cb, count: 0, rankIndex: 0, target: 3, lastPurchaseTime: Date.now() };
+            vipCustomerObj_cb.count++;
+            vipCustomerObj_cb.name = customerName_cb;
+            vipCustomerObj_cb.lastPurchaseTime = Date.now();
+            let oldRank_cb = vipCustomerObj_cb.rankIndex;
+            if (vipCustomerObj_cb.rankIndex < 4 && vipCustomerObj_cb.count >= vipCustomerObj_cb.target) {
+                vipCustomerObj_cb.rankIndex++;
+                if (vipCustomerObj_cb.rankIndex < 4) {
+                    let diff_cb = (VIP_RANKS[vipCustomerObj_cb.rankIndex+1]?.min - VIP_RANKS[vipCustomerObj_cb.rankIndex].min) || 5;
+                    vipCustomerObj_cb.target = vipCustomerObj_cb.count + diff_cb;
+                }
+                vipRankChanged_cb = true;
+                vipNewRank_cb = VIP_RANKS[vipCustomerObj_cb.rankIndex];
+            }
+            vips_cb[customerPhone_cb] = vipCustomerObj_cb;
+            store.vipCustomers = JSON.stringify(vips_cb);
+            fbSave("vipCustomers", vips_cb);
+        }
+
+        // كود خصم تلقائي (فقط لو ما استعمل كود خصم)
+        let settings_cb = safeJSON(store.settings, {});
+        let generatedCoupon_cb = null;
+        if (settings_cb.discountEnabled !== false && amount > 0 && !discountCode) {
+            let baseChance_cb = settings_cb.discountChance !== undefined ? settings_cb.discountChance : 25;
+            let vipChance_cb = vipNewRank_cb ? vipNewRank_cb.chance : 0;
+            let finalChance_cb = baseChance_cb + vipChance_cb;
+            if (Math.random() * 100 <= finalChance_cb) {
+                let dMin_cb = settings_cb.discountMin || 10, dMax_cb = settings_cb.discountMax || 20;
+                let vMin_cb = settings_cb.validityMin || 15, vMax_cb = settings_cb.validityMax || 45;
+                let pct_cb = Math.floor(Math.random()*(dMax_cb-dMin_cb+1))+dMin_cb+(vipNewRank_cb?vipNewRank_cb.discount:0);
+                let days_cb = Math.floor(Math.random()*(vMax_cb-vMin_cb+1))+vMin_cb+(vipNewRank_cb?vipNewRank_cb.days:0);
+                let uses_cb = vipNewRank_cb ? vipNewRank_cb.uses : 1;
+                let dList_cb = safeJSON(store.discounts, []);
+                let code_cb;
+                do { code_cb = Math.floor(100000000+Math.random()*900000000).toString(); }
+                while (dList_cb.some(x => x.code === code_cb));
+                generatedCoupon_cb = { id:'id_'+Date.now(), code:code_cb, customer:customerName_cb||'عميل', service:order?.serviceName||'', percentage:pct_cb, expiry:Date.now()+(days_cb*86400000), days:days_cb, maxUses:uses_cb, usedCount:0, notified:false };
+                dList_cb.unshift(generatedCoupon_cb);
+                store.discounts = JSON.stringify(dList_cb);
+                fbSave("discounts", dList_cb);
+            }
+        }
+
         document.getElementById("confirmBookingModal").style.display = "none";
         notify("تم تأكيد الحجز وإيداع الأموال بنجاح", "success");
-        logAction(`تأكيد حجز: ${order?.serviceName || ''} - ${walletName} - ${amount}${paidCur}`, "warning");
+        logAction(`تأكيد حجز: ${order?.serviceName || ''} - ${walletName} - ${amount}${paidCur}`, "financial", {
+            type: 'booking_confirm', serviceName: order?.serviceName||'', customerName: customerName_cb, customerPhone: customerPhone_cb, amount, paidCur, wallet: walletName
+        });
+        let settings_rate = safeJSON(store.settings, {}); let rate_cb = settings_rate.exchangeRate > 0 ? settings_rate.exchangeRate : 3.5;
+        recordBudgetEvent('purchase', `تأكيد حجز: ${order?.serviceName||''}`, paidCur === '$' ? amount : amount/rate_cb, { type:'booking_confirm', serviceName:order?.serviceName||'', amount, paidCur });
         refreshAll();
+
+        if (generatedCoupon_cb && vipRankChanged_cb && vipCustomerObj_cb.rankIndex > 0) {
+            showCouponModal(generatedCoupon_cb, customerPhone_cb, () => { setTimeout(() => showVipUpgradeModal(vipCustomerObj_cb, vipNewRank_cb, customerPhone_cb), 5000); });
+        } else if (generatedCoupon_cb) {
+            showCouponModal(generatedCoupon_cb, customerPhone_cb, null);
+        } else if (vipRankChanged_cb && vipCustomerObj_cb.rankIndex > 0) {
+            setTimeout(() => showVipUpgradeModal(vipCustomerObj_cb, vipNewRank_cb, customerPhone_cb), 400);
+        }
     } catch(e) {
         console.error(e);
         notify("خطأ في تأكيد الحجز: " + e.message, "error");
@@ -7462,6 +7607,15 @@ async function executeBookingDelivery() {
             let walletName = ord.paidWallet || '';
 
             let purchaseId = genId();
+            let _bdDur = parseInt(stItem?.duration) || 0;
+            let _bdExp = null;
+            if (_bdDur > 0 && stItem?.timestamp) {
+                let _bdBase = new Date(stItem.timestamp);
+                let _bdExpD = new Date(_bdBase);
+                _bdExpD.setMonth(_bdExpD.getMonth() + _bdDur);
+                if (_bdExpD.getDate() !== _bdBase.getDate()) _bdExpD.setDate(0);
+                _bdExp = _bdExpD.getTime();
+            }
             purchases.unshift({
                 id: purchaseId,
                 date: todayStr,
@@ -7469,6 +7623,7 @@ async function executeBookingDelivery() {
                 phone: ord.phone || '',
                 sub: stItem ? (stItem.displayName || stItem.service) : grp.serviceName,
                 duration: stItem ? (stItem.duration || '0') : '0',
+                expiry: _bdExp,
                 paid: paidStr,
                 cost: '0',
                 wallet: walletName,
@@ -7496,6 +7651,16 @@ async function executeBookingDelivery() {
         fbSave("purchases", purchases);
         fbSave("stock", stockItems);
 
+        logAction(`تسليم حجوزات: ${grp.serviceName} (${grp.orders.length} عملاء)`, 'financial', {
+            type: 'booking_delivery', serviceName: grp.serviceName, count: grp.orders.length
+        });
+        let _bdSettings = safeJSON(store.settings, {});
+        let _bdRate = _bdSettings.exchangeRate > 0 ? _bdSettings.exchangeRate : 3.5;
+        let _bdTotal = grp.orders.reduce((s, o) => s + (parseFloat(o.paidAmount || o.amount) || 0), 0);
+        let _bdCur = (grp.orders[0]?.paidStr || '₪').replace(/[\d.]/g,'').trim() || '₪';
+        recordBudgetEvent('purchase', `تسليم حجوزات: ${grp.serviceName}`, _bdCur === '$' ? _bdTotal : _bdTotal / _bdRate, {
+            type: 'booking_delivery', serviceName: grp.serviceName, count: grp.orders.length
+        });
         notify("تم تسليم جميع الحجوزات وتسجيلها في السجل المالي بنجاح!", "success");
         refreshAll();
     } catch(e) {
@@ -7617,6 +7782,15 @@ async function executeDelivery() {
     if (!stockId) return notify("اختر اشتراكاً من المخزون", "error");
     if (!walletName) return notify("اختر المحفظة", "error");
     if (isNaN(amount) || amount < 0) return notify("أدخل المبلغ بشكل صحيح", "error");
+    if (discountCode && !/^\d{9}$/.test(discountCode)) return notify("كود الخصم يجب أن يكون 9 أرقام بالضبط", "error");
+
+    let discountNote_dlv = discountCode ? ` (خصم: ${discountCode})` : '';
+    let ok_dlv = await showConfirm(
+        "تأكيد التسليم",
+        `هل تريد تسليم "${serviceName}" للعميل ${customerName||customerPhone}؟\nالمبلغ: ${amount}${discountNote_dlv}\nالمحفظة: ${walletName}`,
+        "تأكيد", "إلغاء", '<i class="fas fa-check"></i>'
+    );
+    if (!ok_dlv) return;
 
     let wallets = safeJSON(store.wallets, {});
     let wallet = wallets[walletName];
@@ -7722,6 +7896,14 @@ async function executeDelivery() {
         // حفظ اسم الخدمة الحقيقي من المخزون في السجل المالي
         newPurchase.sub = stItem.displayName || stItem.service || serviceName;
         newPurchase.duration = stItem.duration || '0';
+        let _dlvDur = parseInt(stItem.duration) || 0;
+        if (_dlvDur > 0) {
+            let _dlvBase = stItem.timestamp ? new Date(stItem.timestamp) : new Date(nd);
+            let _dlvExp = new Date(_dlvBase);
+            _dlvExp.setMonth(_dlvExp.getMonth() + _dlvDur);
+            if (_dlvExp.getDate() !== _dlvBase.getDate()) _dlvExp.setDate(0);
+            newPurchase.expiry = _dlvExp.getTime();
+        }
     }
 
     store.wallets = JSON.stringify(wallets);
@@ -7746,11 +7928,38 @@ async function executeDelivery() {
         type: 'order_delivery', serviceName, amount, paidCur
     });
 
+    // كود خصم تلقائي (فقط لو ما استعمل كود خصم)
+    let generatedCoupon_dlv = null;
+    let settings_dlv = safeJSON(store.settings, {});
+    if (settings_dlv.discountEnabled !== false && amount > 0 && !discountCode) {
+        let baseChance_dlv = settings_dlv.discountChance !== undefined ? settings_dlv.discountChance : 25;
+        let vipChance_dlv = vipNewRank ? vipNewRank.chance : 0;
+        if (Math.random() * 100 <= (baseChance_dlv + vipChance_dlv)) {
+            let dMin_dlv = settings_dlv.discountMin||10, dMax_dlv = settings_dlv.discountMax||20;
+            let vMin_dlv = settings_dlv.validityMin||15, vMax_dlv = settings_dlv.validityMax||45;
+            let pct_dlv = Math.floor(Math.random()*(dMax_dlv-dMin_dlv+1))+dMin_dlv+(vipNewRank?vipNewRank.discount:0);
+            let days_dlv = Math.floor(Math.random()*(vMax_dlv-vMin_dlv+1))+vMin_dlv+(vipNewRank?vipNewRank.days:0);
+            let uses_dlv = vipNewRank ? vipNewRank.uses : 1;
+            let dList_dlv = safeJSON(store.discounts, []);
+            let code_dlv;
+            do { code_dlv = Math.floor(100000000+Math.random()*900000000).toString(); }
+            while (dList_dlv.some(x => x.code === code_dlv));
+            generatedCoupon_dlv = { id:'id_'+Date.now(), code:code_dlv, customer:customerName||'عميل', service:serviceName, percentage:pct_dlv, expiry:Date.now()+(days_dlv*86400000), days:days_dlv, maxUses:uses_dlv, usedCount:0, notified:false };
+            dList_dlv.unshift(generatedCoupon_dlv);
+            store.discounts = JSON.stringify(dList_dlv);
+            fbSave("discounts", dList_dlv);
+        }
+    }
+
     document.getElementById("deliveryModal").style.display = "none";
     notify("تم تأكيد التسليم وحفظ العملية بنجاح");
     refreshAll();
 
-    if (vipRankChanged && vipCustomerObj && vipNewRank) {
+    if (generatedCoupon_dlv && vipRankChanged && vipCustomerObj && vipCustomerObj.rankIndex > 0) {
+        showCouponModal(generatedCoupon_dlv, customerPhone, () => { setTimeout(() => showVipUpgradeModal(vipCustomerObj, vipNewRank, customerPhone), 5000); });
+    } else if (generatedCoupon_dlv) {
+        showCouponModal(generatedCoupon_dlv, customerPhone, null);
+    } else if (vipRankChanged && vipCustomerObj && vipNewRank) {
         setTimeout(() => showVipUpgradeModal(vipCustomerObj, vipNewRank, customerPhone), 400);
     }
 }
@@ -8056,6 +8265,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
