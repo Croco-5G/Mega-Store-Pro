@@ -4338,8 +4338,8 @@ function showOrderActivityDetails(a) {
                 </div>`;
             }).join('');
         if (!rows) return '';
-        return `<div style="text-align:center;font-weight:800;color:var(--primary);font-size:13px;margin:14px 0 6px;">
-                    <i class="fas fa-${icon}" style="margin-left:6px;"></i>${title}
+        return `<div style="display:flex;justify-content:center;align-items:center;gap:6px;font-weight:800;color:var(--primary);font-size:13px;margin:14px 0 6px;">
+                    <i class="fas fa-${icon}"></i><span>${title}</span>
                 </div>${rows}
                 <div style="border-top:1px dashed var(--border-color);margin:12px 0;"></div>`;
     };
@@ -8427,6 +8427,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
