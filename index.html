@@ -7231,6 +7231,7 @@ function openAddServiceModal() {
     document.getElementById("svcOriginalPriceDiv").style.display = "none";
     document.getElementById("svcOriginalPrice").value = "";
     document.getElementById("svcBadge").value = "";
+    document.getElementById("svcBranchCount").disabled = false;
     document.getElementById("svcBranchCount").value = "1";
     renderBranchInputs();
     document.getElementById("addServiceModal").style.display = "flex";
@@ -7286,6 +7287,18 @@ function openEditServiceModal(docId) {
             });
         }
     }, 50);
+
+    // تعطيل عدد الأفرع و isBooking في وضع التعديل
+    setTimeout(() => {
+        document.getElementById("svcBranchCount").disabled = true;
+        let cnt = parseInt(document.getElementById("svcBranchCount").value) || 1;
+        for (let i = 0; i < cnt; i++) {
+            let chk = document.getElementById(`b_isBooking_${i}`);
+            if (chk) { chk.disabled = true; chk.style.opacity = '0.4'; chk.style.cursor = 'not-allowed'; }
+            let lbl = document.querySelector(`label[for="b_isBooking_${i}"]`);
+            if (lbl) { lbl.style.opacity = '0.4'; lbl.style.cursor = 'not-allowed'; }
+        }
+    }, 80);
 
     document.getElementById("addServiceModal").style.display = "flex";
 }
@@ -8587,6 +8600,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
