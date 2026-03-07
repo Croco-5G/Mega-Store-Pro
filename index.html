@@ -4326,9 +4326,23 @@ function showOrderActivityDetails(a) {
     const body = document.getElementById("modalBody");
     body.innerHTML = "";
     const skip = ['_docId'];
+    const labels = {
+        eventType: 'نوع الحدث', timestamp: 'الوقت (UTC)', timeLocal: 'الوقت المحلي',
+        device: 'الجهاز', os: 'نظام التشغيل', browser: 'المتصفح', browserVersion: 'إصدار المتصفح',
+        userAgent: 'User Agent', screen: 'الشاشة', viewport: 'حجم النافذة', pixelRatio: 'دقة البكسل',
+        language: 'اللغة', languages: 'اللغات', timezone: 'المنطقة الزمنية', timezoneOffset: 'فارق التوقيت',
+        referrer: 'مصدر الزيارة', url: 'الرابط',
+        network: 'الشبكة', ip: 'عنوان IP', country: 'الدولة', city: 'المدينة',
+        region: 'المنطقة', isp: 'مزود الإنترنت',
+        cookiesEnabled: 'الكوكيز مفعّلة', doNotTrack: 'عدم التتبع',
+        touchPoints: 'نقاط اللمس', platform: 'المنصة',
+        selectedService: 'الخدمة المختارة', serviceName: 'اسم الخدمة',
+        serviceCode: 'كود الخدمة', amount: 'المبلغ'
+    };
     Object.entries(a).filter(([k])=>!skip.includes(k)).forEach(([k,v]) => {
         let val = typeof v === 'object' ? JSON.stringify(v) : String(v||'—');
-        body.innerHTML += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);gap:10px;font-size:13px;"><span style="color:var(--text-muted);flex-shrink:0;">${esc(k)}</span><span style="font-weight:600;text-align:left;direction:ltr;word-break:break-all;">${esc(val)}</span></div>`;
+        let label = labels[k] || k;
+        body.innerHTML += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);gap:10px;font-size:13px;"><span style="color:var(--text-muted);flex-shrink:0;">${esc(label)}</span><span style="font-weight:600;text-align:left;direction:ltr;word-break:break-all;">${esc(val)}</span></div>`;
     });
     document.getElementById("detailsModal").classList.remove("hidden");
 }
@@ -8265,6 +8279,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
