@@ -804,20 +804,20 @@
             <i class="fas fa-check-double" style="color:var(--success)"></i> تسليم الحجوزات
         </h3>
         <div id="bookingDeliveryInfo" style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);"></div>
+        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:var(--success);">
+            <i class="fas fa-info-circle"></i> الأموال تم تحصيلها مسبقاً عند تأكيد الحجز — فقط اختر الاشتراك لتسليمه.
+        </div>
         <div class="input-group">
             <label>اختر الاشتراك من المخزون *</label>
             <select id="bdStock"></select>
         </div>
-        <div class="input-group">
-            <label>محفظة إيداع الأموال *</label>
-            <select id="bdWallet"></select>
-        </div>
         <div class="dialog-actions" style="margin-top:20px;">
-            <button class="btn btn-success" onclick="executeBookingDelivery()"><i class="fas fa-check"></i> تأكيد وحفظ الدفعة</button>
+            <button class="btn btn-success" onclick="executeBookingDelivery()"><i class="fas fa-check"></i> تأكيد التسليم</button>
             <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('bookingDeliveryModal').style.display='none'">إلغاء</button>
         </div>
     </div>
 </div>
+<!-- ─── Modal تأكيد التسليم ─── -->
 <!-- ─── Modal تأكيد التسليم ─── -->
 <div id="deliveryModal" class="dialog-modal" style="display:none; z-index:5500;">
     <div class="dialog-box" style="text-align:right; max-width:460px;">
@@ -829,6 +829,10 @@
         <input type="hidden" id="dlvCustomerPhone">
         <input type="hidden" id="dlvServiceName">
 
+        <div class="input-group">
+            <label>اختر الاشتراك من المخزون *</label>
+            <select id="dlvStock"><option value="">اختر...</option></select>
+        </div>
         <div class="input-group">
             <label>المحفظة المستخدمة *</label>
             <select id="dlvWallet" onchange="updateDlvCurrency()"></select>
@@ -1140,6 +1144,7 @@
     <div id="orders" class="card hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
             <h3 style="margin:0"><i class="fas fa-inbox" style="color:var(--primary)"></i> الطلبات الواردة</h3>
+            <button id="btnDeleteAllOrders" class="btn btn-danger hidden" onclick="deleteAllOrders()" style="padding:8px 16px; font-size:13px;"><i class="fas fa-trash-alt"></i> حذف جميع الطلبات</button>
         </div>
         <div class="input-group" style="margin-bottom:20px;">
             <div style="position:relative;">
@@ -4051,6 +4056,7 @@ function applyRBAC() {
         safeToggle("btnUndo", "remove");
         safeToggle("btnClearHistory", "remove");
         safeToggle("btnExportCSV", "remove"); // <--- إظهار للأدمن
+        safeToggle("btnDeleteAllOrders", "remove");
         safeToggle("btnHideExpired", "remove");
         
         safeToggle("btnDeleteAllDiscounts", "remove");
@@ -4082,6 +4088,7 @@ function applyRBAC() {
             safeToggle("btnLogs", "remove");
         }
         safeToggle("btnPurchase", "add");
+        safeToggle("btnOrders", "add");
         
         safeToggle("todoSection", "remove");
         safeToggle("todoInputArea", "add");
@@ -4107,6 +4114,7 @@ function applyRBAC() {
             safeToggle("btnLogs", "remove");
         }
         safeToggle("btnPurchase", "add");
+        safeToggle("btnOrders", "add");
         safeToggle("sec-manage-services", "remove");
         
         safeToggle("btnUndo", "add");
@@ -7290,100 +7298,81 @@ function deliverBookingGroup(grp) {
         bdStock.innerHTML += `<option value="${st.id}">${esc(st.displayName || st.service)} - متبقي ${remaining}</option>`;
     });
 
-    let bdWallet = document.getElementById("bdWallet");
-    bdWallet.innerHTML = '';
-    let wallets = safeJSON(store.wallets, {});
-    Object.keys(wallets).forEach(w => {
-        bdWallet.innerHTML += `<option value="${w}">${esc(w)} (${wallets[w].cur})</option>`;
-    });
-
-    document.getElementById("bookingDeliveryInfo").innerHTML = `أنت على وشك تسليم وتسجيل الأرباح لعدد <b>${grp.orders.length}</b> عملاء دفعة واحدة للخدمة (<b>${esc(grp.serviceName)}</b>).`;
+    document.getElementById("bookingDeliveryInfo").innerHTML = `أنت على وشك تسليم الخدمة لعدد <b>${grp.orders.length}</b> عملاء محجوزين للخدمة (<b>${esc(grp.serviceName)}</b>).`;
     document.getElementById("bookingDeliveryModal").style.display = "flex";
 }
 
 async function executeBookingDelivery() {
     let grp = activeBookingGroup;
     let selId = document.getElementById("bdStock").value;
-    let walletName = document.getElementById("bdWallet").value;
-    if(!selId || !walletName) return notify("يرجى إكمال البيانات", "error");
+    if (!selId) return notify("يرجى اختيار اشتراك من المخزون", "error");
 
-    let wallets = safeJSON(store.wallets, {});
-    let wallet = wallets[walletName];
-    if (!wallet) return;
-
-    let settings = safeJSON(store.settings, {});
-    let invest = safeJSON(store.invest, {});
     let purchases = safeJSON(store.purchases, []);
     let stockItems = safeJSON(store.stock, []);
-    let vips = safeJSON(store.vipCustomers, {});
-    let paidCur = wallet.cur;
+    let todayStr = new Date().toISOString().split('T')[0];
 
     try {
         document.getElementById("bookingDeliveryModal").style.display = "none";
-        
+
         let stkIdx = stockItems.findIndex(s => s.id === selId);
-        let stItem = stockItems[stkIdx];
-        if(stkIdx > -1) {
+        let stItem = stkIdx > -1 ? stockItems[stkIdx] : null;
+        if (stkIdx > -1) {
+            if (!stockItems[stkIdx].buyers) stockItems[stkIdx].buyers = [];
             stockItems[stkIdx].soldProfiles = (parseInt(stockItems[stkIdx].soldProfiles)||0) + grp.orders.length;
-            if(stockItems[stkIdx].soldProfiles >= stockItems[stkIdx].totalProfiles) {
+            // إضافة أسماء العملاء
+            grp.orders.forEach(ord => {
+                let buyerInfo = (ord.customerName || 'عميل') + (ord.phone ? ` - ${ord.phone}` : '');
+                stockItems[stkIdx].buyers.push(buyerInfo);
+            });
+            if (stockItems[stkIdx].soldProfiles >= (parseInt(stockItems[stkIdx].totalProfiles)||1)) {
                 stockItems[stkIdx].status = 'sold';
                 let nd = new Date();
                 stockItems[stkIdx].soldDate = `${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}-${String(nd.getDate()).padStart(2,'0')}`;
             }
         }
 
-        let totalAmount = 0;
-        let todayStr = new Date().toISOString().split('T')[0];
-
-        // تسجيل كل طلب مالياً وحذفه من الطلبات
-        for(let ord of grp.orders) {
+        // تسجيل كل طلب في السجل المالي — المحفظة والمبلغ تم تسجيلها عند confirmBooking
+        for (let ord of grp.orders) {
             let amount = parseFloat(ord.amount) || 0;
-            totalAmount += amount;
+            let paidStr = ord.paidStr || `${amount}₪`;
+            let walletName = ord.paidWallet || '';
 
             let purchaseId = genId();
-            let newPurchase = {
+            purchases.unshift({
                 id: purchaseId,
                 date: todayStr,
                 customer: ord.customerName || '—',
                 phone: ord.phone || '',
-                sub: grp.serviceName,
-                duration: stItem ? stItem.duration : '0',
-                paid: `${amount}${paidCur}`,
+                sub: stItem ? (stItem.displayName || stItem.service) : grp.serviceName,
+                duration: stItem ? (stItem.duration || '0') : '0',
+                paid: paidStr,
                 cost: '0',
                 wallet: walletName,
                 isComp: false,
                 canBeUndone: false
-            };
-            purchases.unshift(newPurchase);
+            });
             await dbOrder.collection("orders").doc(ord._docId).delete();
         }
 
-        // إيداع الأرباح في المحفظة
-        wallets[walletName].bal += totalAmount;
-        let shareType = paidCur === '$' ? 'd' : 's';
-        invest.store[shareType] += totalAmount;
-
         // تصفير عداد الحجز في الخدمة
-        let svcDoc = await dbOrder.collection("services").doc(grp.serviceId).get();
-        if(svcDoc.exists) {
-            let data = svcDoc.data();
-            let targetIdx = data.branches.findIndex(b => String(b.code) === String(grp.branchCode));
-            if(targetIdx > -1) {
-                data.branches[targetIdx].currentBookings = 0;
-                await dbOrder.collection("services").doc(grp.serviceId).update({ branches: data.branches });
+        try {
+            let svcDoc = await dbOrder.collection("services").doc(grp.serviceId).get();
+            if (svcDoc.exists) {
+                let data = svcDoc.data();
+                let targetIdx = data.branches.findIndex(b => String(b.code) === String(grp.branchCode));
+                if (targetIdx > -1) {
+                    data.branches[targetIdx].currentBookings = 0;
+                    await dbOrder.collection("services").doc(grp.serviceId).update({ branches: data.branches });
+                }
             }
-        }
+        } catch(e2) { console.warn("branch reset error:", e2); }
 
-        store.wallets = JSON.stringify(wallets);
-        store.invest = JSON.stringify(invest);
         store.purchases = JSON.stringify(purchases);
         store.stock = JSON.stringify(stockItems);
-
-        fbAtomicWalletInvest({ [walletName]: +totalAmount }, { [`store.${shareType}`]: +totalAmount }, wallets, invest);
         fbSave("purchases", purchases);
         fbSave("stock", stockItems);
 
-        notify("تم التسليم والتحصيل لجميع الحجوزات بنجاح!", "success");
+        notify("تم تسليم جميع الحجوزات وتسجيلها في السجل المالي بنجاح!", "success");
         refreshAll();
     } catch(e) {
         console.error(e);
@@ -7418,7 +7407,21 @@ function showBranchDetail(code, serviceName) {
     }
     document.getElementById("branchDetailModal").style.display = "flex";
 }
-
+async function deleteAllOrders() {
+    if (!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
+    let ok = await showConfirm("حذف جميع الطلبات", "هل أنت متأكد من حذف جميع الطلبات الواردة نهائياً؟ لا يمكن التراجع.", "حذف الكل", "إلغاء", '<i class="fas fa-exclamation-triangle"></i>');
+    if (!ok) return;
+    try {
+        let snapshot = await dbOrder.collection("orders").get();
+        let batch = dbOrder.batch();
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        logAction("حذف جميع الطلبات الواردة", 'danger');
+        notify("تم حذف جميع الطلبات");
+    } catch(e) {
+        notify("خطأ: " + e.message, "error");
+    }
+}
 async function deleteOrder(docId) {
     let ok = await showConfirm("حذف الطلب", "هل تريد حذف هذا الطلب نهائياً من السجل؟", "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
     if (!ok) return;
@@ -7434,6 +7437,23 @@ async function deleteOrder(docId) {
 function openDeliveryModal(docId) {
     let order = ordersCache.find(o => o._docId === docId);
     if (!order) return notify("الطلب غير موجود", "error");
+
+    // تحميل المخزون المتاح
+    let stockItems = safeJSON(store.stock, []);
+    let dlvStockSel = document.getElementById("dlvStock");
+    dlvStockSel.innerHTML = '<option value="">اختر اشتراك من المخزون...</option>';
+    stockItems.filter(s => s.status === 'active').forEach(s => {
+        let remaining = (parseInt(s.totalProfiles)||1) - (parseInt(s.soldProfiles)||0);
+        let pDur = parseInt(s.duration) || 0;
+        let expired = false;
+        if (pDur > 0) {
+            let expD = new Date(s.timestamp); expD.setMonth(expD.getMonth() + pDur);
+            if (expD.getTime() <= Date.now()) expired = true;
+        }
+        if (!expired && remaining > 0 && s.purpose !== 'test') {
+            dlvStockSel.innerHTML += `<option value="${s.id}">${esc(s.displayName||s.service)} (متبقي: ${remaining})</option>`;
+        }
+    });
 
     document.getElementById("dlvOrderId").value = docId;
     document.getElementById("dlvCustomerName").value = order.customerName || "";
@@ -7465,10 +7485,12 @@ async function executeDelivery() {
     let customerName = document.getElementById("dlvCustomerName").value;
     let customerPhone = document.getElementById("dlvCustomerPhone").value;
     let serviceName = document.getElementById("dlvServiceName").value;
+    let stockId = document.getElementById("dlvStock").value;
     let walletName = document.getElementById("dlvWallet").value;
     let amount = parseFloat(document.getElementById("dlvAmount").value);
     let discountCode = document.getElementById("dlvDiscount").value.trim();
 
+    if (!stockId) return notify("اختر اشتراكاً من المخزون", "error");
     if (!walletName) return notify("اختر المحفظة", "error");
     if (isNaN(amount) || amount < 0) return notify("أدخل المبلغ بشكل صحيح", "error");
 
@@ -7558,13 +7580,35 @@ async function executeDelivery() {
     }
 
     // حفظ
+    // استهلاك بروفايل من المخزون وإضافة اسم العميل
+    let stockItems = safeJSON(store.stock, []);
+    let stkIdx = stockItems.findIndex(s => s.id === stockId);
+    let stItem = stkIdx > -1 ? stockItems[stkIdx] : null;
+    if (stItem) {
+        if (!stItem.buyers) stItem.buyers = [];
+        let buyerInfo = (customerName || 'عميل') + (customerPhone ? ` - ${customerPhone}` : '');
+        stItem.buyers.push(buyerInfo);
+        stItem.soldProfiles = (parseInt(stItem.soldProfiles)||0) + 1;
+        if (stItem.soldProfiles >= (parseInt(stItem.totalProfiles)||1)) {
+            stItem.status = 'sold';
+            let nd2 = new Date();
+            stItem.soldDate = `${nd2.getFullYear()}-${String(nd2.getMonth()+1).padStart(2,'0')}-${String(nd2.getDate()).padStart(2,'0')}`;
+        }
+        stockItems[stkIdx] = stItem;
+        // حفظ اسم الخدمة الحقيقي من المخزون في السجل المالي
+        newPurchase.sub = stItem.displayName || stItem.service || serviceName;
+        newPurchase.duration = stItem.duration || '0';
+    }
+
     store.wallets = JSON.stringify(wallets);
     store.invest = JSON.stringify(invest);
     store.purchases = JSON.stringify(purchases);
+    store.stock = JSON.stringify(stockItems);
     store.vipCustomers = JSON.stringify(vips);
 
     fbAtomicWalletInvest({ [walletName]: +amount }, { [`store.${shareType}`]: +amount }, wallets, invest);
     fbSave("purchases", purchases);
+    fbSave("stock", stockItems);
     fbSave("vipCustomers", vips);
 
     // حذف الطلب من orders
@@ -7888,6 +7932,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
