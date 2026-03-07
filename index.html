@@ -1631,6 +1631,27 @@
                 </div>
             </div>
 
+            <!-- بيانات موقع الطلبات -->
+            <div style="background: var(--bg-input); border-radius: 12px; padding: 16px; margin-top: 12px; border: 1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px;">
+                        <i class="fas fa-inbox" style="color:#10b981;"></i> بيانات موقع الطلبات
+                        <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(طلبات · نشاط الزوار · خدمات)</span>
+                    </span>
+                    <span style="font-size:12px; font-weight:700;" dir="ltr">
+                        <span id="orderUsedText" style="color:#10b981;">0 KB</span>
+                        <span style="color:var(--text-muted);"> / 1,048,576 KB</span>
+                    </span>
+                </div>
+                <div style="width:100%; background:var(--border-color); height:10px; border-radius:10px; overflow:hidden; margin-bottom:5px;">
+                    <div id="orderBar" style="width:0%; background:#10b981; height:100%; transition: width 0.6s ease; border-radius:10px;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+                    <span id="orderPercentText">0%</span>
+                    <span>GigaByte</span>
+                </div>
+            </div>
+
             <!-- عناصر مخفية للتوافق مع الكود القديم -->
             <span id="storageUsed" style="display:none">0</span>
             <span id="storageSizeText" style="display:none">0</span>
@@ -3719,6 +3740,23 @@ function updateStorageUI() {
         }
     });
 
+    // ③ بيانات موقع الطلبات — orders + orderActivity + services
+    let orderBytes = 0;
+    try {
+        // ordersCache
+        if (typeof ordersCache !== 'undefined') {
+            ordersCache.forEach(item => { orderBytes += new Blob([JSON.stringify(item)]).size + FIRESTORE_DOC_OVERHEAD; });
+        }
+        // orderActivityCache
+        if (typeof orderActivityCache !== 'undefined') {
+            orderActivityCache.forEach(item => { orderBytes += new Blob([JSON.stringify(item)]).size + FIRESTORE_DOC_OVERHEAD; });
+        }
+        // adminServicesCache
+        if (typeof adminServicesCache !== 'undefined') {
+            adminServicesCache.forEach(item => { orderBytes += new Blob([JSON.stringify(item)]).size + FIRESTORE_DOC_OVERHEAD; });
+        }
+    } catch(e) {}
+
     // ─── حالة الاتصال ───────────────────────────────────────────
     let statusEl = document.getElementById("storageFree");
     if (statusEl) {
@@ -3768,6 +3806,27 @@ function updateStorageUI() {
         arrayBarEl.style.background =
             arrayPct < 50 ? "#6366f1" :
             arrayPct < 80 ? "var(--accent)" : "var(--danger)";
+    }
+
+    // ─── شريط بيانات موقع الطلبات (حد 1 GiB) ──────────────────
+    const ORDER_MAX_KB = 1024 * 1024;
+    let orderKB  = orderBytes / 1024;
+    let orderPct = Math.min((orderKB / ORDER_MAX_KB) * 100, 100).toFixed(2);
+    let orderDisplay = orderKB < 1 ? orderBytes.toFixed(0) + " B"
+                     : orderKB < 1024 ? orderKB.toFixed(2) + " KB"
+                     : (orderKB / 1024).toFixed(2) + " MB";
+
+    let orderBarEl  = document.getElementById("orderBar");
+    let orderUsedEl = document.getElementById("orderUsedText");
+    let orderPctEl  = document.getElementById("orderPercentText");
+
+    if (orderUsedEl)  orderUsedEl.innerText  = orderDisplay;
+    if (orderPctEl)   orderPctEl.innerText   = orderPct + "%";
+    if (orderBarEl) {
+        orderBarEl.style.width = orderPct + "%";
+        orderBarEl.style.background =
+            orderPct < 50 ? "#10b981" :
+            orderPct < 80 ? "var(--accent)" : "var(--danger)";
     }
 }
 
@@ -8427,6 +8486,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
