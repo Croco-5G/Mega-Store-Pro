@@ -7034,53 +7034,6 @@ function renderBranchInputs() {
         for(let i=0; i<count; i++) genCode(`b_code_${i}`);
     }
 }
-        // خدمة ثابتة
-        container.innerHTML = `
-            <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
-                <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-cube"></i> بيانات الخدمة</div>
-                
-                <div class="input-group">
-                    <label>السعر (₪) *</label>
-                    <input type="number" id="b_price_0" placeholder="0">
-                </div>
-                <div class="input-group" style="margin-bottom:0;">
-                    <label>كود الخدمة (9 أرقام)</label>
-                    <div style="display:flex; gap:8px;">
-                        <input id="b_code_0" placeholder="سيتم توليده تلقائياً" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                        <button type="button" class="btn btn-warning" style="padding:8px 12px; white-space:nowrap;" onclick="genCode('b_code_0')"><i class="fas fa-dice"></i></button>
-                    </div>
-                </div>
-            </div>`;
-        genCode('b_code_0');
-    } else {
-        for (let i = 0; i < count; i++) {
-            container.innerHTML += `
-                <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
-                    <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-code-branch"></i> الفرع ${i+1}</div>
-                    <div class="input-group">
-                        <label>اسم الفرع *</label>
-                        <input id="b_name_${i}" placeholder="مثلاً: شهري">
-                    </div>
-                    <div class="input-group">
-                        <label>السعر (₪) *</label>
-                        <input type="number" id="b_price_${i}" placeholder="0">
-                    </div>
-                    <div class="input-group" style="margin-bottom:0;">
-                        <label>كود الفرع (9 أرقام)</label>
-                        <div style="display:flex; gap:8px;">
-                            <input id="b_code_${i}" placeholder="سيتم توليده تلقائياً" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                            <button type="button" class="btn btn-warning" style="padding:8px 12px;" onclick="genCode('b_code_${i}')"><i class="fas fa-dice"></i></button>
-                        </div>
-                    </div>
-                </div>`;
-        }
-        // توليد كود تلقائي لكل فرع
-        setTimeout(() => {
-            for (let i = 0; i < count; i++) genCode(`b_code_${i}`);
-        }, 50);
-    }
-}
-
 function genCode(inputId) {
     let code = Math.floor(100000000 + Math.random() * 900000000).toString();
     let el = document.getElementById(inputId);
@@ -7935,4 +7888,5 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
