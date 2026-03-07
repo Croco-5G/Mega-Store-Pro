@@ -779,7 +779,7 @@
         </div>
         <div class="input-group">
             <label>عدد الأفرع (1 = خدمة ثابتة بدون أفرع)</label>
-            <select id="svcBranchCount" onchange="renderBranchInputs()">
+            <select id="svcBranchCount" onchange="renderBranchInputs(); if(document.getElementById('editServiceDocId').value) setTimeout(()=>{let c=parseInt(this.value)||1;for(let i=0;i<c;i++){let chk=document.getElementById('b_isBooking_'+i);if(chk){chk.disabled=true;chk.style.opacity='0.4';chk.style.cursor='not-allowed';}}},85);">
                 <option value="1">1 — خدمة ثابتة</option>
                 <option value="2">2 أفرع</option>
                 <option value="3">3 أفرع</option>
@@ -7200,7 +7200,8 @@ function renderServicesSettings() {
     }
 
     div.innerHTML = "";
-    adminServicesCache.forEach(s => {
+    let sortedServices = [...adminServicesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    sortedServices.forEach((s, idx) => {
         let hasBranches = s.hasBranches && s.branches && s.branches.length > 1;
         let branchInfo = hasBranches
             ? s.branches.map(b => `<span style="font-size:11px; color:var(--text-muted); background:var(--bg-input); padding:2px 8px; border-radius:6px;">${esc(b.name)}: ${b.price}₪</span>`).join(' ')
@@ -7208,14 +7209,32 @@ function renderServicesSettings() {
 
         let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteServiceById('${s._docId}','${esc(s.name)}')"><i class="fas fa-trash"></i></button>` : '';
         let editBtn = isAdmin ? `<button class="btn btn-warning" style="padding:4px 10px; font-size:12px; color:#000;" onclick="openEditServiceModal('${s._docId}')"><i class="fas fa-edit"></i></button>` : '';
+        let upBtn = isAdmin ? `<button class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveService('${s._docId}', -1)" ${idx === 0 ? 'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"' : ''}><i class="fas fa-chevron-up"></i></button>` : '';
+        let downBtn = isAdmin ? `<button class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveService('${s._docId}', 1)" ${idx === sortedServices.length - 1 ? 'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"' : ''}><i class="fas fa-chevron-down"></i></button>` : '';
 
         div.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap;">
+            <div style="display:flex; flex-direction:column; gap:2px;">${upBtn}${downBtn}</div>
             <span class="badge badge-info" style="font-size:13px;">${esc(s.name)}</span>
             <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${branchInfo}</div>
             ${editBtn}
             ${delBtn}
         </div>`;
     });
+}
+async function moveService(docId, direction) {
+    let sorted = [...adminServicesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    let idx = sorted.findIndex(s => s._docId === docId);
+    let swapIdx = idx + direction;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    let a = sorted[idx], b = sorted[swapIdx];
+    let aOrder = a.sortOrder || idx;
+    let bOrder = b.sortOrder || swapIdx;
+
+    try {
+        await dbOrder.collection("services").doc(a._docId).update({ sortOrder: bOrder });
+        await dbOrder.collection("services").doc(b._docId).update({ sortOrder: aOrder });
+    } catch(e) { notify("خطأ في الترتيب: " + e.message, "error"); }
 }
 
 // ─── open add service modal ───────────────────────────────────
@@ -7479,6 +7498,8 @@ async function saveNewService() {
 
     try {
         document.getElementById("addServiceModal").style.display = "none";
+        let maxOrder = adminServicesCache.reduce((m, s) => Math.max(m, s.sortOrder || 0), 0);
+        svcObj.sortOrder = maxOrder + 1;
         await dbOrder.collection("services").add(svcObj);
         // تحديث store.services (أسماء فقط للمخزون)
         let list = safeJSON(store.services, []);
@@ -8600,6 +8621,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
