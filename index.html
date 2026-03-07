@@ -753,6 +753,10 @@
             <input id="svcName" placeholder="مثلاً: ChatGPT">
         </div>
         <div class="input-group">
+            <label>وصف الخدمة</label>
+            <input id="svcDesc" placeholder="مثلاً: وصف عام يظهر للعميل">
+        </div>
+        <div class="input-group">
             <label>أيقونة (Font Awesome — اختياري)</label>
             <input id="svcIcon" placeholder="مثلاً: robot أو crown">
         </div>
@@ -4399,11 +4403,21 @@ function loadWallets(){
     });
 }
 function loadServices() {
-    let services = safeJSON(store.services, []);
     let selStock = document.getElementById("stService");
-    
     let html = '<option value="">اختر الخدمة...</option>';
-    services.forEach(s => { html += `<option value="${esc(s)}">${esc(s)}</option>`; });
+
+    let localServices = safeJSON(store.services, []);
+    let allServiceNames = new Set(localServices);
+
+    // سحب الخدمات من فايربيس الطلبات
+    if (typeof adminServicesCache !== 'undefined' && adminServicesCache.length > 0) {
+        adminServicesCache.forEach(s => allServiceNames.add(s.name));
+    }
+
+    Array.from(allServiceNames).sort().forEach(sName => {
+        html += `<option value="${esc(sName)}">${esc(sName)}</option>`;
+    });
+
     if(selStock) selStock.innerHTML = html;
 }
 function loadPurchaseStock() {
@@ -6924,6 +6938,7 @@ function renderServicesSettings() {
 function openAddServiceModal() {
     if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     document.getElementById("svcName").value = "";
+    document.getElementById("svcDesc").value = "";
     document.getElementById("svcIcon").value = "";
     document.getElementById("svcBadge").value = "";
     document.getElementById("svcBranchCount").value = "1";
@@ -6941,10 +6956,7 @@ function renderBranchInputs() {
         container.innerHTML = `
             <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
                 <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-cube"></i> بيانات الخدمة</div>
-                <div class="input-group">
-                    <label>الوصف *</label>
-                    <input id="b_desc_0" placeholder="وصف الخدمة">
-                </div>
+                
                 <div class="input-group">
                     <label>السعر (₪) *</label>
                     <input type="number" id="b_price_0" placeholder="0">
@@ -6966,10 +6978,6 @@ function renderBranchInputs() {
                     <div class="input-group">
                         <label>اسم الفرع *</label>
                         <input id="b_name_${i}" placeholder="مثلاً: شهري">
-                    </div>
-                    <div class="input-group">
-                        <label>الوصف</label>
-                        <input id="b_desc_${i}" placeholder="وصف الفرع">
                     </div>
                     <div class="input-group">
                         <label>السعر (₪) *</label>
@@ -7006,29 +7014,29 @@ async function saveNewService() {
 
     let svcObj = { name, icon, badge };
 
+    // جلب الوصف العام من الحقل الجديد
+    let mainDesc = document.getElementById("svcDesc") ? document.getElementById("svcDesc").value.trim() : "";
+    svcObj.description = mainDesc;
+
     if (count === 1) {
-        let desc = document.getElementById("b_desc_0").value.trim();
         let price = parseFloat(document.getElementById("b_price_0").value) || 0;
         let code = document.getElementById("b_code_0").value.trim();
         if (!code || code.length !== 9) return notify("الكود يجب أن يكون 9 أرقام", "error");
         svcObj.hasBranches = false;
-        svcObj.description = desc;
         svcObj.price = price;
         svcObj.code = code;
-        svcObj.branches = [{ name: name, description: desc, price: price, code: code }];
+        svcObj.branches = [{ name: name, price: price, code: code }];
     } else {
         let branches = [];
         for (let i = 0; i < count; i++) {
             let bName = (document.getElementById(`b_name_${i}`)?.value||'').trim();
-            let bDesc = (document.getElementById(`b_desc_${i}`)?.value||'').trim();
             let bPrice = parseFloat(document.getElementById(`b_price_${i}`)?.value) || 0;
             let bCode = (document.getElementById(`b_code_${i}`)?.value||'').trim();
             if (!bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
             if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
-            branches.push({ name: bName, description: bDesc, price: bPrice, code: bCode });
+            branches.push({ name: bName, price: bPrice, code: bCode });
         }
         svcObj.hasBranches = true;
-        svcObj.description = branches.map(b=>b.name).join(' / ');
         svcObj.price = branches[0].price;
         svcObj.code = branches[0].code;
         svcObj.branches = branches;
@@ -7612,6 +7620,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
