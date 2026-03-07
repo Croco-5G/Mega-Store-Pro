@@ -7225,7 +7225,7 @@ function openAddServiceModal() {
     document.getElementById("addServiceModalTitle").innerHTML = '<i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة خدمة جديدة';
     document.getElementById("svcName").value = "";
     document.getElementById("svcDesc").value = "";
-    document.getElementById("svcIcon").value = "";
+    if (document.getElementById("svcIcon")) document.getElementById("svcIcon").value = "";
     document.getElementById("svcIconUrl").value = "";
     document.getElementById("svcHasDiscount").checked = false;
     document.getElementById("svcOriginalPriceDiv").style.display = "none";
@@ -7245,7 +7245,7 @@ function openEditServiceModal(docId) {
     document.getElementById("addServiceModalTitle").innerHTML = '<i class="fas fa-edit" style="color:var(--warning)"></i> تعديل خدمة';
     document.getElementById("svcName").value = s.name || "";
     document.getElementById("svcDesc").value = s.description || "";
-    document.getElementById("svcIcon").value = s.icon || "";
+    if (document.getElementById("svcIcon")) document.getElementById("svcIcon").value = s.icon || "";
     document.getElementById("svcIconUrl").value = s.iconUrl || "";
     document.getElementById("svcHasDiscount").checked = !!s.hasDiscount;
     document.getElementById("svcOriginalPriceDiv").style.display = s.hasDiscount ? "block" : "none";
@@ -8587,6 +8587,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
