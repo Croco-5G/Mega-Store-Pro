@@ -7249,7 +7249,7 @@ function refreshOrders() {
 let activeBookingGroup = null;
 
 async function confirmBooking(orderId, serviceId, branchCode) {
-    if (!checkAuth()) return;
+    if (!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     try {
         await dbOrder.collection("orders").doc(orderId).update({ status: 'booked' });
         let svcDoc = await dbOrder.collection("services").doc(serviceId).get();
@@ -7272,7 +7272,7 @@ async function confirmBooking(orderId, serviceId, branchCode) {
 }
 
 function deliverBookingGroup(grp) {
-    if (!checkAuth()) return;
+    if (!currentUser || currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     activeBookingGroup = grp;
     
     let stockItems = safeJSON(store.stock, []);
@@ -7888,5 +7888,6 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
