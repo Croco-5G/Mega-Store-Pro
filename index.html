@@ -7119,6 +7119,7 @@ async function sellStock(id) {
 //  إدارة الخدمات (Firebase collection: "services")
 // ══════════════════════════════════════════════════════════════
 let adminServicesCache = []; // cache من db.collection("services")
+let _editBranches = []; // فروع الخدمة في وضع التعديل
 let orderActivityCache = [];
 let _actUnsubscribe = null;
 
@@ -7272,11 +7273,9 @@ function openEditServiceModal(docId) {
     document.getElementById("svcOriginalPrice").value = s.originalPrice || "";
     document.getElementById("svcBadge").value = s.badge || "";
 
-    let branchCount = (s.branches && s.branches.length > 1) ? s.branches.length : 1;
-    branchCount = Math.min(branchCount, 5);
-    let sel = document.getElementById("svcBranchCount");
-    sel.value = String(branchCount);
-    renderBranchInputs();
+    _editBranches = (s.branches && s.branches.length > 0) ? [...s.branches] : [{}];
+    document.getElementById("svcBranchCount").disabled = true;
+    renderEditBranchInputs();
 
     // تعبئة بيانات الأفرع بعد render
     setTimeout(() => {
@@ -7307,18 +7306,6 @@ function openEditServiceModal(docId) {
         }
     }, 50);
 
-    // تعطيل عدد الأفرع و isBooking في وضع التعديل
-    setTimeout(() => {
-        document.getElementById("svcBranchCount").disabled = true;
-        let cnt = parseInt(document.getElementById("svcBranchCount").value) || 1;
-        for (let i = 0; i < cnt; i++) {
-            let chk = document.getElementById(`b_isBooking_${i}`);
-            if (chk) { chk.disabled = true; chk.style.opacity = '0.4'; chk.style.cursor = 'not-allowed'; }
-            let lbl = document.querySelector(`label[for="b_isBooking_${i}"]`);
-            if (lbl) { lbl.style.opacity = '0.4'; lbl.style.cursor = 'not-allowed'; }
-        }
-    }, 80);
-
     document.getElementById("addServiceModal").style.display = "flex";
 }
 
@@ -7336,36 +7323,25 @@ async function saveServiceModal() {
         let hasDiscount = document.getElementById("svcHasDiscount")?.checked || false;
         let originalPrice = hasDiscount ? (parseFloat(document.getElementById("svcOriginalPrice")?.value) || 0) : 0;
         let svcObj = { name, icon, badge, description: mainDesc, iconUrl, hasDiscount, originalPrice };
+        let branches = [];
         let bookingBranchesCount = 0;
-        if (count === 1) {
-            let price = parseFloat(document.getElementById("b_price_0").value) || 0;
-            let code = document.getElementById("b_code_0").value.trim();
-            let isBooking = document.getElementById("b_isBooking_0").checked;
-            let capacity = parseInt(document.getElementById("b_capacity_0").value) || 0;
-            if (!code || code.length !== 9) return notify("الكود يجب أن يكون 9 أرقام", "error");
-            if (isBooking && capacity < 1) return notify("يجب تحديد سعة حجز صحيحة", "error");
-            let existing = adminServicesCache.find(x => x._docId === editDocId);
-            let curBookings = existing?.branches?.[0]?.currentBookings || 0;
-            svcObj.hasBranches = false; svcObj.price = price; svcObj.code = code;
-            svcObj.branches = [{ name, price, code, isBooking, bookingCapacity: capacity, currentBookings: curBookings }];
-        } else {
-            let branches = [];
-            for (let i = 0; i < count; i++) {
-                let bName = (document.getElementById(`b_name_${i}`)?.value||'').trim();
-                let bPrice = parseFloat(document.getElementById(`b_price_${i}`)?.value) || 0;
-                let bCode = (document.getElementById(`b_code_${i}`)?.value||'').trim();
-                let isBooking = document.getElementById(`b_isBooking_${i}`).checked;
-                let capacity = parseInt(document.getElementById(`b_capacity_${i}`).value) || 0;
-                if (!bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
-                if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
-                if (isBooking) { if(capacity < 1) return notify(`حدد سعة الحجز للفرع ${i+1}`, "error"); bookingBranchesCount++; }
-                let existing = adminServicesCache.find(x => x._docId === editDocId);
-                let curBook = existing?.branches?.[i]?.currentBookings || 0;
-                branches.push({ name: bName, price: bPrice, code: bCode, isBooking, bookingCapacity: capacity, currentBookings: curBook });
-            }
-            if(bookingBranchesCount > 1) return notify("لا يمكن تحديد أكثر من فرع واحد كحجز", "error");
-            svcObj.hasBranches = true; svcObj.price = branches[0].price; svcObj.code = branches[0].code; svcObj.branches = branches;
+        for (let i = 0; i < _editBranches.length; i++) {
+            let orig = _editBranches[i];
+            let bName = _editBranches.length === 1 ? name : (document.getElementById(`eb_name_${i}`)?.value||'').trim();
+            let bPrice = parseFloat(document.getElementById(`eb_price_${i}`)?.value) || 0;
+            let bCode = (document.getElementById(`eb_code_${i}`)?.value||'').trim();
+            let isBooking = !!orig.isBooking;
+            let capacity = orig.bookingCapacity || 0;
+            if (_editBranches.length > 1 && !bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
+            if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
+            if (isBooking) bookingBranchesCount++;
+            branches.push({ name: bName, price: bPrice, code: bCode, isBooking, bookingCapacity: capacity, currentBookings: orig.currentBookings || 0 });
         }
+        if (bookingBranchesCount > 1) return notify("لا يمكن تحديد أكثر من فرع واحد كحجز", "error");
+        svcObj.hasBranches = branches.length > 1;
+        svcObj.price = branches[0].price;
+        svcObj.code = branches[0].code;
+        svcObj.branches = branches;
         try {
             document.getElementById("addServiceModal").style.display = "none";
             await dbOrder.collection("services").doc(editDocId).update(svcObj);
@@ -7439,6 +7415,73 @@ function renderBranchInputs() {
         for(let i=0; i<count; i++) genCode(`b_code_${i}`);
     }
 }
+
+function renderEditBranchInputs() {
+    let container = document.getElementById("branchInputsContainer");
+    container.innerHTML = "";
+    _editBranches.forEach((b, i) => {
+        let isBooking = !!b.isBooking;
+        let isLocked = isBooking; // الحجز مقفل
+        container.innerHTML += `
+        <div id="eb_card_${i}" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px; position:relative;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div style="font-size:12px; color:var(--primary); font-weight:800;"><i class="fas fa-code-branch"></i> الفرع ${i+1}</div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveEditBranch(${i}, -1)" ${i===0?'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"':''}><i class="fas fa-chevron-up"></i></button>
+                    <button type="button" class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveEditBranch(${i}, 1)" ${i===_editBranches.length-1?'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"':''}><i class="fas fa-chevron-down"></i></button>
+                    ${!isLocked ? `<button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteEditBranch(${i})"><i class="fas fa-times"></i></button>` : `<button type="button" class="btn" disabled style="padding:4px 8px; font-size:12px; opacity:0.3;" title="لا يمكن حذف فرع الحجز"><i class="fas fa-lock"></i></button>`}
+                </div>
+            </div>
+            ${_editBranches.length > 1 ? `
+            <div class="input-group">
+                <label>اسم الفرع *</label>
+                <input id="eb_name_${i}" placeholder="مثلاً: شهري" value="${(b.name||'').replace(/"/g,'&quot;')}">
+            </div>` : ''}
+            <div class="input-group">
+                <label>السعر (₪) *</label>
+                <input type="number" id="eb_price_${i}" value="${b.price||0}">
+            </div>
+            <div class="input-group">
+                <label>كود الخدمة (9 أرقام)</label>
+                <div style="display:flex; gap:8px;">
+                    <input id="eb_code_${i}" value="${b.code||''}" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    <button type="button" class="btn btn-warning" style="padding:8px 12px; white-space:nowrap;" onclick="genCode('eb_code_${i}')"><i class="fas fa-dice"></i></button>
+                </div>
+            </div>
+            <div class="input-group" style="flex-direction:row; align-items:center; gap:10px; margin-top:15px; opacity:0.4;">
+                <input type="checkbox" id="eb_isBooking_${i}" ${isBooking?'checked':''} disabled style="width:20px; height:20px; margin:0; cursor:not-allowed;">
+                <label style="margin:0; font-weight:bold; color:var(--warning); cursor:not-allowed;">هذا الفرع عبارة عن حجز؟</label>
+            </div>
+            ${isBooking ? `
+            <div class="input-group" style="margin-top:10px; border:1px dashed var(--warning); padding:10px; border-radius:8px; opacity:0.4;">
+                <label style="color:var(--warning);">سعة الحجز (عدد الأشخاص)</label>
+                <input type="number" id="eb_capacity_${i}" value="${b.bookingCapacity||0}" readonly style="cursor:not-allowed;">
+            </div>` : ''}
+        </div>`;
+    });
+    container.innerHTML += `<button type="button" class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="addEditBranch()"><i class="fas fa-plus"></i> إضافة فرع جديد</button>`;
+}
+
+function addEditBranch() {
+    _editBranches.push({ name: '', price: 0, code: '', isBooking: false, bookingCapacity: 0, currentBookings: 0 });
+    renderEditBranchInputs();
+    setTimeout(() => genCode(`eb_code_${_editBranches.length - 1}`), 30);
+}
+
+function deleteEditBranch(i) {
+    if (_editBranches[i]?.isBooking) return notify("لا يمكن حذف فرع الحجز", "error");
+    if (_editBranches.length <= 1) return notify("يجب أن يبقى فرع واحد على الأقل", "error");
+    _editBranches.splice(i, 1);
+    renderEditBranchInputs();
+}
+
+function moveEditBranch(i, dir) {
+    let j = i + dir;
+    if (j < 0 || j >= _editBranches.length) return;
+    [_editBranches[i], _editBranches[j]] = [_editBranches[j], _editBranches[i]];
+    renderEditBranchInputs();
+}
+
 function genCode(inputId) {
     let code = Math.floor(100000000 + Math.random() * 900000000).toString();
     let el = document.getElementById(inputId);
@@ -8621,6 +8664,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
