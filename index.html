@@ -7296,7 +7296,7 @@ async function saveServiceModal() {
         // وضع التعديل — نفس منطق saveNewService لكن update بدل add
         let name = document.getElementById("svcName").value.trim();
         if (!name) return notify("أدخل اسم الخدمة", "error");
-        let icon = document.getElementById("svcIcon").value.trim() || "cube";
+        let icon = document.getElementById("svcIcon")?.value.trim() || "cube";
         let badge = document.getElementById("svcBadge").value;
         let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
         let mainDesc = document.getElementById("svcDesc")?.value.trim() || "";
@@ -7416,7 +7416,7 @@ function genCode(inputId) {
 async function saveNewService() {
     let name = document.getElementById("svcName").value.trim();
     if (!name) return notify("أدخل اسم الخدمة", "error");
-    let icon = document.getElementById("svcIcon").value.trim() || "cube";
+    let icon = document.getElementById("svcIcon")?.value.trim() || "cube";
     let badge = document.getElementById("svcBadge").value;
     let count = parseInt(document.getElementById("svcBranchCount").value) || 1;
 
@@ -8587,6 +8587,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
