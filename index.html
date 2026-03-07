@@ -850,6 +850,11 @@
             <label>اختر الاشتراك من المخزون *</label>
             <select id="bdStock"></select>
         </div>
+        <div class="input-group" style="background:rgba(245,158,11,0.06); border:1px dashed rgba(245,158,11,0.4); border-radius:10px; padding:12px;">
+            <label style="color:var(--warning); font-size:13px;"><i class="fas fa-calendar-alt"></i> مدة مخصصة للاشتراك (أشهر) — اختياري</label>
+            <input type="number" id="bdCustomMonths" placeholder="اتركه فارغاً لاستخدام مدة المخزون" min="1" max="120">
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;"><i class="fas fa-info-circle"></i> سيُطبَّق على جميع العملاء في هذه الدفعة — من اليوم + عدد الأشهر</div>
+        </div>
         <div class="dialog-actions" style="margin-top:20px;">
             <button class="btn btn-success" onclick="executeBookingDelivery()"><i class="fas fa-check"></i> تأكيد التسليم</button>
             <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('bookingDeliveryModal').style.display='none'">إلغاء</button>
@@ -886,6 +891,11 @@
         <div class="input-group">
             <label>كود الخصم (اختياري)</label>
             <input id="dlvDiscount" placeholder="9 أرقام اختياري" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div class="input-group" style="background:rgba(245,158,11,0.06); border:1px dashed rgba(245,158,11,0.4); border-radius:10px; padding:12px;">
+            <label style="color:var(--warning); font-size:13px;"><i class="fas fa-calendar-alt"></i> مدة مخصصة للاشتراك (أشهر) — اختياري</label>
+            <input type="number" id="dlvCustomMonths" placeholder="اتركه فارغاً لاستخدام مدة المخزون" min="1" max="120">
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;"><i class="fas fa-info-circle"></i> لو حددت مدة، سيتم احتساب انتهاء الاشتراك من اليوم + عدد الأشهر المحددة</div>
         </div>
         <div class="dialog-actions" style="margin-top:20px;">
             <button class="btn btn-success" onclick="executeDelivery()"><i class="fas fa-check"></i> تأكيد وحفظ</button>
@@ -7965,6 +7975,7 @@ function deliverBookingGroup(grp) {
     });
 
     document.getElementById("bookingDeliveryInfo").innerHTML = `أنت على وشك تسليم الخدمة لعدد <b>${grp.orders.length}</b> عملاء محجوزين للخدمة (<b>${esc(grp.serviceName)}</b>).`;
+    if (document.getElementById("bdCustomMonths")) document.getElementById("bdCustomMonths").value = "";
     document.getElementById("bookingDeliveryModal").style.display = "flex";
 }
 
@@ -8004,10 +8015,11 @@ async function executeBookingDelivery() {
             let walletName = ord.paidWallet || '';
 
             let purchaseId = genId();
-            let _bdDur = parseInt(stItem?.duration) || 0;
+            let _bdCustomMonths = parseInt(document.getElementById("bdCustomMonths")?.value) || 0;
+            let _bdDur = _bdCustomMonths > 0 ? _bdCustomMonths : (parseInt(stItem?.duration) || 0);
             let _bdExp = null;
-            if (_bdDur > 0 && stItem?.timestamp) {
-                let _bdBase = new Date(stItem.timestamp);
+            if (_bdDur > 0) {
+                let _bdBase = _bdCustomMonths > 0 ? new Date() : (stItem?.timestamp ? new Date(stItem.timestamp) : new Date());
                 let _bdExpD = new Date(_bdBase);
                 _bdExpD.setMonth(_bdExpD.getMonth() + _bdDur);
                 if (_bdExpD.getDate() !== _bdBase.getDate()) _bdExpD.setDate(0);
@@ -8019,7 +8031,7 @@ async function executeBookingDelivery() {
                 customer: ord.customerName || '—',
                 phone: ord.phone || '',
                 sub: stItem ? (stItem.displayName || stItem.service) : grp.serviceName,
-                duration: stItem ? (stItem.duration || '0') : '0',
+                duration: String(_bdDur || (stItem ? stItem.duration : '0') || '0'),
                 expiry: _bdExp,
                 paid: paidStr,
                 cost: '0',
@@ -8164,6 +8176,7 @@ function openDeliveryModal(docId) {
     document.getElementById("dlvServiceName").value = order.serviceName || "";
     document.getElementById("dlvAmount").value = order.amount || "";
     document.getElementById("dlvDiscount").value = "";
+    if (document.getElementById("dlvCustomMonths")) document.getElementById("dlvCustomMonths").value = "";
 
     // تحميل المحافظ
     let wallets = safeJSON(store.wallets, {});
@@ -8309,10 +8322,11 @@ async function executeDelivery() {
         stockItems[stkIdx] = stItem;
         // حفظ اسم الخدمة الحقيقي من المخزون في السجل المالي
         newPurchase.sub = stItem.displayName || stItem.service || serviceName;
-        newPurchase.duration = stItem.duration || '0';
-        let _dlvDur = parseInt(stItem.duration) || 0;
+        let _dlvCustomMonths = parseInt(document.getElementById("dlvCustomMonths")?.value) || 0;
+        let _dlvDur = _dlvCustomMonths > 0 ? _dlvCustomMonths : (parseInt(stItem.duration) || 0);
+        newPurchase.duration = String(_dlvDur || stItem.duration || '0');
         if (_dlvDur > 0) {
-            let _dlvBase = stItem.timestamp ? new Date(stItem.timestamp) : new Date(nd);
+            let _dlvBase = _dlvCustomMonths > 0 ? new Date(nd) : (stItem.timestamp ? new Date(stItem.timestamp) : new Date(nd));
             let _dlvExp = new Date(_dlvBase);
             _dlvExp.setMonth(_dlvExp.getMonth() + _dlvDur);
             if (_dlvExp.getDate() !== _dlvBase.getDate()) _dlvExp.setDate(0);
@@ -8679,6 +8693,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
