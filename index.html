@@ -7561,7 +7561,12 @@ async function saveNewService() {
 
 async function deleteServiceById(docId, name) {
     if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
-    let ok = await showConfirm("حذف الخدمة", `هل تريد حذف خدمة "${name}" نهائياً؟`, "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
+    let linkedOrders = ordersCache.filter(o => {
+        let svc = adminServicesCache.find(s => s._docId === docId);
+        return svc && svc.branches && svc.branches.some(b => String(b.code) === String(o.serviceCode));
+    });
+    let warnMsg = linkedOrders.length > 0 ? `\n⚠️ يوجد ${linkedOrders.length} طلب مرتبط بهذه الخدمة! حذفها لن يحذف الطلبات.` : '';
+    let ok = await showConfirm("حذف الخدمة", `هل تريد حذف خدمة "${name}" نهائياً؟${warnMsg}`, "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
     if (!ok) return;
     try {
         await dbOrder.collection("services").doc(docId).delete();
@@ -7601,18 +7606,16 @@ function refreshOrders() {
     
     let bookingsMap = {};
     let rows = "";
-    
-    paginated.forEach(o => {
-        let isBookingBranch = false;
+
+    // bookingsMap يُبنى من كامل ordersCache مش الصفحة الحالية فقط
+    ordersCache.forEach(o => {
         let targetService = adminServicesCache.find(s => s.branches && s.branches.some(b => String(b.code) === String(o.serviceCode)));
         let targetBranch = null;
-        if(targetService) {
+        if (targetService) {
             targetBranch = targetService.branches.find(b => String(b.code) === String(o.serviceCode));
-            if(targetBranch && targetBranch.isBooking) isBookingBranch = true;
         }
-
-        if (o.status === 'booked' && isBookingBranch) {
-            if(!bookingsMap[o.serviceCode]) {
+        if (o.status === 'booked' && targetBranch && targetBranch.isBooking) {
+            if (!bookingsMap[o.serviceCode]) {
                 bookingsMap[o.serviceCode] = {
                     serviceId: targetService._docId,
                     serviceName: targetService.name,
@@ -7625,6 +7628,16 @@ function refreshOrders() {
                 };
             }
             bookingsMap[o.serviceCode].orders.push(o);
+        }
+    });
+
+    paginated.forEach(o => {
+        let isBookingBranch = false;
+        let targetService = adminServicesCache.find(s => s.branches && s.branches.some(b => String(b.code) === String(o.serviceCode)));
+        let targetBranch = null;
+        if(targetService) {
+            targetBranch = targetService.branches.find(b => String(b.code) === String(o.serviceCode));
+            if(targetBranch && targetBranch.isBooking) isBookingBranch = true;
         }
 
         let codeCell = `<span style="cursor:pointer; color:var(--primary); font-weight:800; letter-spacing:1px; text-decoration:underline;" onclick="showBranchDetail('${esc(o.serviceCode||'')}','${esc(o.serviceName||'')}')">${esc(o.serviceCode||'—')}</span>`;
@@ -7811,6 +7824,7 @@ async function executeConfirmBooking() {
     }
 
     let invest = safeJSON(store.invest, {});
+    if (!invest.store) invest.store = { d: 0, s: 0 };
     let shareType = paidCur === '$' ? 'd' : 's';
     wallets[walletName].bal += amount;
     invest.store[shareType] += amount;
@@ -8024,6 +8038,7 @@ async function executeBookingDelivery() {
                 let targetIdx = data.branches.findIndex(b => String(b.code) === String(grp.branchCode));
                 if (targetIdx > -1) {
                     data.branches[targetIdx].currentBookings = 0;
+                    delete data.branches[targetIdx].bookingDeadline;
                     await dbOrder.collection("services").doc(grp.serviceId).update({ branches: data.branches });
                 }
             }
@@ -8664,6 +8679,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
