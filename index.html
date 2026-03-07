@@ -7287,34 +7287,6 @@ function openEditServiceModal(docId) {
     document.getElementById("svcBranchCount").disabled = true;
     renderEditBranchInputs();
 
-    // تعبئة بيانات الأفرع بعد render
-    setTimeout(() => {
-        if (branchCount === 1) {
-            let b = s.branches?.[0] || {};
-            document.getElementById("b_price_0").value = b.price || 0;
-            document.getElementById("b_code_0").value = b.code || "";
-            document.getElementById("b_isBooking_0").checked = !!b.isBooking;
-            if (b.isBooking) {
-                document.getElementById("cap_div_0").style.display = "block";
-                document.getElementById("b_capacity_0").value = b.bookingCapacity || 0;
-            }
-        } else {
-            (s.branches || []).forEach((b, i) => {
-                if (i >= branchCount) return;
-                let nameEl = document.getElementById(`b_name_${i}`);
-                let priceEl = document.getElementById(`b_price_${i}`);
-                let codeEl = document.getElementById(`b_code_${i}`);
-                let bookEl = document.getElementById(`b_isBooking_${i}`);
-                let capEl = document.getElementById(`b_capacity_${i}`);
-                let capDiv = document.getElementById(`cap_div_${i}`);
-                if (nameEl) nameEl.value = b.name || "";
-                if (priceEl) priceEl.value = b.price || 0;
-                if (codeEl) codeEl.value = b.code || "";
-                if (bookEl) { bookEl.checked = !!b.isBooking; if (b.isBooking && capDiv) capDiv.style.display = "block"; }
-                if (capEl) capEl.value = b.bookingCapacity || 0;
-            });
-        }
-    }, 50);
 
     document.getElementById("addServiceModal").style.display = "flex";
 }
@@ -8240,6 +8212,7 @@ async function executeDelivery() {
     let settings = safeJSON(store.settings, {});
     let rate = settings.exchangeRate && settings.exchangeRate > 0 ? settings.exchangeRate : 3.5;
     let invest = safeJSON(store.invest, {});
+    if (!invest.store) invest.store = { d: 0, s: 0 };
     let purchases = safeJSON(store.purchases, []);
     let vips = safeJSON(store.vipCustomers, {});
 
@@ -8693,6 +8666,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
