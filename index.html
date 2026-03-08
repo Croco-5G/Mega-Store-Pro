@@ -7621,7 +7621,8 @@ async function saveServiceModal() {
         let iconUrl = document.getElementById("svcIconUrl")?.value.trim() || "";
         let hasDiscount = document.getElementById("svcHasDiscount")?.checked || false;
         let originalPrice = hasDiscount ? (parseFloat(document.getElementById("svcOriginalPrice")?.value) || 0) : 0;
-        let svcObj = { name, icon, badge, description: mainDesc, iconUrl, hasDiscount, originalPrice };
+        let categoryId = document.getElementById("svcCategory")?.value || "";
+        let svcObj = { name, icon, badge, description: mainDesc, iconUrl, hasDiscount, originalPrice, categoryId };
         let branches = [];
         let bookingBranchesCount = 0;
         for (let i = 0; i < _editBranches.length; i++) {
@@ -8978,6 +8979,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
