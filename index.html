@@ -1770,6 +1770,16 @@
     </div>
 </div>
 
+<div id="removeBuyerModal" class="modal-overlay hidden" onclick="if(event.target.id==='removeBuyerModal') closeRemoveBuyerModal()" style="z-index:6500;">
+    <div class="modal-content" style="max-width:420px;">
+        <h3 style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-user-minus" style="color:var(--danger)"></i> حذف عميل من بروفايل
+        </h3>
+        <div id="removeBuyerList" style="display:flex; flex-direction:column; gap:8px; max-height:350px; overflow-y:auto;"></div>
+        <button class="btn" style="width:100%; margin-top:16px; background:transparent; border:1px solid var(--border-color); color:var(--text-muted);" onclick="closeRemoveBuyerModal()">إغلاق</button>
+    </div>
+</div>
+
 <div id="stockModal" class="modal-overlay hidden" onclick="closeStockModal(event)">
     <div class="modal-content">
         <h3 id="stockModalTitle" style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">إضافة اشتراك للمخزون</h3>
@@ -1806,6 +1816,7 @@
         
         <button id="btnSaveStock" class="btn btn-primary" style="width:100%; margin-top:10px" onclick="verifyStockAdd()"><i class="fas fa-save"></i> حفظ وشراء</button>
         <button id="btnUpdateNote" class="btn btn-warning hidden" style="width:100%; margin-top:10px" onclick="updateStockNote()"><i class="fas fa-edit"></i> تحديث الملاحظات والغرض</button>
+        <button id="btnRemoveBuyer" class="btn btn-danger hidden" style="width:100%; margin-top:10px" onclick="openRemoveBuyerModal()"><i class="fas fa-user-minus"></i> حذف عميل من بروفايل</button>
         <button class="btn" style="width:100%; margin-top:10px; background:transparent; color:var(--text-muted); border:1px solid var(--border-color)" onclick="closeStockModal('force')">إلغاء</button>
     </div>
 </div>
@@ -6631,7 +6642,65 @@ async function saveUserEdit() {
     renderUsersTable();  notify("تم تحديث بيانات المستخدم");
 }
 
-function closeStockModal(e) { if(e === 'force' || e.target.id === 'stockModal') document.getElementById("stockModal").classList.add("hidden"); }
+function closeStockModal(e) {
+    if(e === 'force' || e.target.id === 'stockModal') {
+        document.getElementById("stockModal").classList.add("hidden");
+        document.getElementById("btnRemoveBuyer").classList.add("hidden");
+    }
+}
+
+function openRemoveBuyerModal() {
+    let id = document.getElementById("stockIndexId").value;
+    let stock = safeJSON(store.stock, []);
+    let item = stock.find(x => x.id === id);
+    if (!item) return;
+
+    let list = document.getElementById("removeBuyerList");
+    if (!item.buyers || item.buyers.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">لا يوجد عملاء مسجلون في هذا البروفايل</div>';
+    } else {
+        list.innerHTML = item.buyers.map((b, idx) => `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-input); border:1px solid var(--border-color); border-radius:10px; padding:10px 14px;">
+                <span style="font-weight:700; font-size:14px;">${idx + 1}. ${esc(b)}</span>
+                <button class="btn btn-danger" style="padding:5px 10px; font-size:12px;" onclick="removeBuyerFromStock('${id}', ${idx})">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </div>
+        `).join('');
+    }
+    document.getElementById("removeBuyerModal").classList.remove("hidden");
+}
+
+function closeRemoveBuyerModal() {
+    document.getElementById("removeBuyerModal").classList.add("hidden");
+}
+
+async function removeBuyerFromStock(stockId, buyerIdx) {
+    let ok = await showConfirm("تأكيد الحذف", "هل تريد حذف هذا العميل من البروفايل وإرجاع مقعده؟", "حذف", "إلغاء", '<i class="fas fa-user-minus"></i>');
+    if (!ok) return;
+
+    let stock = safeJSON(store.stock, []);
+    let idx = stock.findIndex(x => x.id === stockId);
+    if (idx === -1) return notify("لم يُعثر على الاشتراك", "error");
+
+    stock[idx].buyers.splice(buyerIdx, 1);
+    stock[idx].soldProfiles = Math.max(0, (parseInt(stock[idx].soldProfiles) || 0) - 1);
+
+    if (stock[idx].status === 'sold' && stock[idx].soldProfiles < (parseInt(stock[idx].totalProfiles) || 1)) {
+        stock[idx].status = 'active';
+        delete stock[idx].soldDate;
+    }
+
+    store.stock = JSON.stringify(stock);
+    fbSave("stock", stock);
+    logAction(`حذف عميل من بروفايل: ${stock[idx].displayName || stock[idx].service}`, 'danger');
+    notify("تم حذف العميل وإرجاع المقعد");
+
+    let hasB = stock[idx].buyers && stock[idx].buyers.length > 0;
+    if (!hasB) document.getElementById("btnRemoveBuyer").classList.add("hidden");
+    openRemoveBuyerModal();
+    refreshStock();
+}
 
 // --- MODIFIED STOCK FUNCTIONS ---
 
@@ -7028,6 +7097,9 @@ function editStock(id) {
     document.getElementById("stockPurchaseInputs").style.display = "none";
     document.getElementById("btnSaveStock").classList.add("hidden");
     document.getElementById("btnUpdateNote").classList.remove("hidden");
+    let hasB = !!(item.buyers && item.buyers.length > 0);
+    if (isAdmin && hasB) document.getElementById("btnRemoveBuyer").classList.remove("hidden");
+    else document.getElementById("btnRemoveBuyer").classList.add("hidden");
     
     let sel = document.getElementById("stService");
     sel.value = item.service;
@@ -8659,6 +8731,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
