@@ -7917,14 +7917,8 @@ async function executeConfirmBooking() {
     }
 }
 
-async function promptDelivery(orderId, customerName, serviceName) {
-    let ok = await showConfirm(
-        "تأكيد التسليم",
-        `هل تريد تسليم طلب "${serviceName}" للعميل ${customerName}؟`,
-        "تأكيد التسليم", "إلغاء",
-        '<i class="fas fa-check-circle"></i>'
-    );
-    if (ok) openDeliveryModal(orderId);
+function promptDelivery(orderId, customerName, serviceName) {
+    openDeliveryModal(orderId);
 }
 
 function deliverBookingGroup(grp) {
@@ -8666,6 +8660,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
