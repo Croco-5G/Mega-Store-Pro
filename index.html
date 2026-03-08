@@ -758,6 +758,12 @@
             <input id="svcDesc" placeholder="مثلاً: وصف عام يظهر للعميل">
         </div>
         <div class="input-group">
+        <div class="input-group">
+            <label>القسم</label>
+            <select id="svcCategory">
+                <option value="">بدون قسم</option>
+            </select>
+        </div>
             <label>نوع الشارة</label>
             <select id="svcBadge">
                 <option value="">بدون شارة</option>
@@ -972,6 +978,7 @@
     <div class="menu-items">
         <button onclick="showPage('purchase', this)" class="active" id="btnPurchase"><i class="fas fa-cart-plus"></i> عملية شراء</button>
         <button onclick="showPage('stock', this)" id="btnStock" class="hidden"><i class="fas fa-cubes"></i> المخزون</button>
+        <button onclick="showPage('services_mgmt', this)" id="btnServicesMgmt"><i class="fas fa-tags"></i> الخدمات</button>
         <button onclick="showPage('orders', this)" id="btnOrders"><i class="fas fa-inbox"></i> الطلبات <span id="ordersBadge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none; margin-right:4px;"></span></button>
         <button onclick="showPage('expiring', this)" id="btnExpiring"><i class="fas fa-hourglass-half"></i> التنبيهات <span id="expiryBadge" class="notif-badge" style="background:var(--danger); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none"></span></button>
         <button onclick="showPage('discounts', this)" id="btnDiscounts"><i class="fas fa-ticket-alt"></i> الخصومات <span id="discountBadge" style="background:var(--accent); color:white; padding:2px 6px; border-radius:10px; font-size:10px; display:none; margin-right:4px;"></span></button>
@@ -1492,23 +1499,68 @@
         <!-- ─── Hidden select (still needed by withdrawPartial logic) ─── -->
         <select id="wWalletStore" style="display:none;"></select>
     </div>
+<div id="services_mgmt" class="card hidden">
+    <!-- Sub-tabs -->
+    <div class="tabs" style="margin-bottom:20px;">
+        <button class="tab-btn active" id="svcTabServices" onclick="switchSvcMgmtTab('svc_services', this)"><i class="fas fa-list"></i> الخدمات</button>
+        <button class="tab-btn" id="svcTabCats" onclick="switchSvcMgmtTab('svc_categories', this)"><i class="fas fa-folder-open"></i> الأقسام</button>
+    </div>
 
+    <!-- واجهة الخدمات -->
+    <div id="svc_services">
+        <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="openAddServiceModal()"><i class="fas fa-plus"></i> إضافة خدمة</button>
+            <span style="font-size:13px; color:var(--text-muted);">تُحفظ في Firebase وتظهر تلقائياً في موقع الطلبات</span>
+        </div>
+        <div id="servicesListMain" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+    <!-- واجهة الأقسام -->
+    <div id="svc_categories" style="display:none;">
+        <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="openAddCategoryModal()"><i class="fas fa-plus"></i> إضافة قسم</button>
+        </div>
+        <div id="categoriesGrid" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:14px;"></div>
+    </div>
+</div>
+
+<!-- Modal إضافة/تعديل قسم -->
+<div id="categoryModal" class="dialog-modal" style="display:none; z-index:5600;">
+    <div class="dialog-box" style="text-align:right; max-width:420px;">
+        <input type="hidden" id="catModalId">
+        <h3 id="catModalTitle" style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-folder-plus" style="color:var(--primary)"></i> إضافة قسم
+        </h3>
+        <div class="input-group">
+            <label>اسم القسم *</label>
+            <input id="catName" placeholder="مثلاً: تطبيقات، اشتراكات...">
+        </div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn btn-primary" onclick="saveCategoryModal()"><i class="fas fa-check"></i> حفظ</button>
+            <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('categoryModal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal خدمات القسم -->
+<div id="catServicesModal" class="dialog-modal" style="display:none; z-index:5600;">
+    <div class="dialog-box" style="text-align:right; max-width:500px; max-height:85vh; overflow-y:auto;">
+        <h3 id="catServicesTitle" style="margin-top:0; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+            <i class="fas fa-list" style="color:var(--primary)"></i> خدمات القسم
+        </h3>
+        <div id="catServicesBody" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div class="dialog-actions" style="margin-top:20px;">
+            <button class="btn" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted)" onclick="document.getElementById('catServicesModal').style.display='none'">إغلاق</button>
+        </div>
+    </div>
+</div>
     <div id="modify" class="card hidden">
         
         <hr class="admin-only" style="margin: 0 0 30px 0; border: 0; border-top: 2px dashed var(--border-color); display:none;">
 
         <h2 class="editor-only" style="color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:10px; margin-top:0;"><i class="fas fa-store"></i> إعدادات المتجر و العمل الأساسية</h2>
 
-        <div id="sec-manage-services">
-            <h3 style="margin-top:20px"><i class="fas fa-tags" style="color:var(--primary)"></i> إدارة الخدمات</h3>
-            <div class="inner-box" style="margin-bottom:40px">
-                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
-                    <button class="btn btn-primary" onclick="openAddServiceModal()"><i class="fas fa-plus"></i> إضافة خدمة</button>
-                    <span style="font-size:13px; color:var(--text-muted);">يتم حفظها في Firebase وتظهر تلقائياً في موقع الطلبات</span>
-                </div>
-                <div id="servicesList" style="display:flex; flex-direction:column; gap:10px;"></div>
-            </div>
-        </div>
+        <div id="sec-manage-services" style="display:none;"></div>
 
         <div id="sec-discount-settings">
             <h3><i class="fas fa-ticket-alt" style="color:var(--primary)"></i> إعدادات أكواد الخصم</h3>
@@ -3687,7 +3739,7 @@ function tryAutoLogin() {
 
     loginLayer.style.display = "none";
     document.body.classList.remove("locked");
-    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
     setTimeout(checkOverdueBookings, 3000);
     document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
     resetSessionTimer();
@@ -3930,7 +3982,7 @@ async function attemptLogin() {
         currentUser = demoUser;
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
         setTimeout(checkOverdueBookings, 3000);
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
@@ -3971,7 +4023,7 @@ async function attemptLogin() {
 
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
         setTimeout(checkOverdueBookings, 3000);
         document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
         resetSessionTimer();
@@ -4618,7 +4670,8 @@ function showPage(id, btn){
     if(id === 'logs') refreshLogs();
     if(id === 'stock') refreshStock();
     if(id === 'orders') refreshOrders();
-    if(id === 'modify') { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
+    if(id === 'modify') { refreshTodoList(); updateStorageUI(); loadProfitSettings(); }
+    if(id === 'services_mgmt') { renderServicesMain(); renderCategoriesGrid(); }
 }
 
 function toggleSidebar() {
@@ -5264,7 +5317,8 @@ function refreshAll(){
             'discounts': refreshDiscounts,
             'vip': refreshVip,
             'orders': refreshOrders,
-            'modify': () => { refreshTodoList(); renderServicesSettings(); updateStorageUI(); loadProfitSettings(); }
+            'modify': () => { refreshTodoList(); updateStorageUI(); loadProfitSettings(); },
+            'services_mgmt': () => { renderServicesMain(); renderCategoriesGrid(); }
         };
     processVipDowngrades();
     updateDiscountBadge();
@@ -6674,7 +6728,195 @@ function openRemoveBuyerModal() {
 function closeRemoveBuyerModal() {
     document.getElementById("removeBuyerModal").classList.add("hidden");
 }
+// ═══════════════════ إدارة الأقسام ═══════════════════
+let adminCategoriesCache = [];
+let _catUnsubscribe = null;
 
+function _initCategoriesListener() {
+    if (_catUnsubscribe) _catUnsubscribe();
+    _catUnsubscribe = dbOrder.collection("categories").onSnapshot(snap => {
+        adminCategoriesCache = snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+        adminCategoriesCache.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        renderCategoriesGrid();
+        renderServicesMain();
+        _refreshCategoryDropdown();
+    });
+}
+
+function _refreshCategoryDropdown() {
+    let sel = document.getElementById("svcCategory");
+    if (!sel) return;
+    let val = sel.value;
+    sel.innerHTML = '<option value="">بدون قسم</option>';
+    adminCategoriesCache.forEach(c => {
+        sel.innerHTML += `<option value="${c._docId}">${esc(c.name)}</option>`;
+    });
+    sel.value = val;
+}
+
+function switchSvcMgmtTab(tabId, btn) {
+    document.getElementById('svc_services').style.display = tabId === 'svc_services' ? '' : 'none';
+    document.getElementById('svc_categories').style.display = tabId === 'svc_categories' ? '' : 'none';
+    document.querySelectorAll('#services_mgmt .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function renderServicesMain() {
+    let div = document.getElementById("servicesListMain");
+    if (!div) return;
+    let isAdmin = currentUser && currentUser.role === 'admin';
+    if (adminServicesCache.length === 0) {
+        div.innerHTML = `<div style="color:var(--text-muted); font-size:14px; padding:10px;"><i class="fas fa-store-slash"></i> لا توجد خدمات حاليا</div>`;
+        return;
+    }
+    div.innerHTML = "";
+    let sorted = [...adminServicesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    sorted.forEach(s => {
+        let catName = '';
+        if (s.categoryId) {
+            let cat = adminCategoriesCache.find(c => c._docId === s.categoryId);
+            if (cat) catName = `<span style="font-size:11px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:6px; margin-right:4px;">${esc(cat.name)}</span>`;
+        }
+        let hasBranches = s.hasBranches && s.branches && s.branches.length > 1;
+        let branchInfo = hasBranches
+            ? s.branches.map(b => `<span style="font-size:11px; color:var(--text-muted); background:var(--bg-input); padding:2px 8px; border-radius:6px;">${esc(b.name)}: ${b.price}₪</span>`).join(' ')
+            : `<span style="font-size:11px; color:var(--text-muted);">${s.price||0}₪</span>`;
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteServiceById('${s._docId}','${esc(s.name)}')"><i class="fas fa-trash"></i></button>` : '';
+        let editBtn = isAdmin ? `<button class="btn btn-warning" style="padding:4px 10px; font-size:12px; color:#000;" onclick="openEditServiceModal('${s._docId}')"><i class="fas fa-edit"></i></button>` : '';
+        div.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); flex-wrap:wrap;">
+            <span class="badge badge-info" style="font-size:13px;">${esc(s.name)}</span>
+            ${catName}
+            <div style="display:flex; gap:6px; flex-wrap:wrap; flex:1;">${branchInfo}</div>
+            ${editBtn}${delBtn}
+        </div>`;
+    });
+}
+
+function renderCategoriesGrid() {
+    let div = document.getElementById("categoriesGrid");
+    if (!div) return;
+    let isAdmin = currentUser && currentUser.role === 'admin';
+    if (adminCategoriesCache.length === 0) {
+        div.innerHTML = `<div style="color:var(--text-muted); font-size:14px; padding:10px;"><i class="fas fa-folder-open"></i> لا توجد أقسام بعد</div>`;
+        return;
+    }
+    div.innerHTML = "";
+    adminCategoriesCache.forEach((cat, idx) => {
+        let svcCount = adminServicesCache.filter(s => s.categoryId === cat._docId).length;
+        let leftBtn = isAdmin ? `<button class="btn" style="padding:4px 8px; font-size:11px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveCat('${cat._docId}', -1)" ${idx===0?'disabled style="opacity:0.3"':''}><i class="fas fa-chevron-right"></i></button>` : '';
+        let rightBtn = isAdmin ? `<button class="btn" style="padding:4px 8px; font-size:11px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveCat('${cat._docId}', 1)" ${idx===adminCategoriesCache.length-1?'disabled style="opacity:0.3"':''}><i class="fas fa-chevron-left"></i></button>` : '';
+        let editBtn = isAdmin ? `<button class="btn btn-warning" style="padding:4px 10px; font-size:12px; color:#000;" onclick="openEditCategoryModal('${cat._docId}')"><i class="fas fa-edit"></i></button>` : '';
+        let delBtn = isAdmin ? `<button class="btn btn-danger" style="padding:4px 10px; font-size:12px;" onclick="deleteCat('${cat._docId}','${esc(cat.name)}')"><i class="fas fa-trash"></i></button>` : '';
+        let viewBtn = `<button class="btn btn-primary" style="padding:4px 10px; font-size:12px;" onclick="openCatServicesModal('${cat._docId}')"><i class="fas fa-eye"></i> الخدمات</button>`;
+        div.innerHTML += `<div style="min-width:200px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; justify-content:space-between;">
+                <div style="display:flex; gap:4px;">${leftBtn}${rightBtn}</div>
+                <div style="display:flex; gap:4px;">${editBtn}${delBtn}</div>
+            </div>
+            <div style="font-weight:800; font-size:15px; text-align:center; color:var(--primary);">${esc(cat.name)}</div>
+            <div style="font-size:12px; color:var(--text-muted); text-align:center;">${svcCount} خدمة</div>
+            <div style="display:flex; justify-content:center;">${viewBtn}</div>
+        </div>`;
+    });
+}
+
+function openAddCategoryModal() {
+    document.getElementById("catModalId").value = "";
+    document.getElementById("catModalTitle").innerHTML = '<i class="fas fa-folder-plus" style="color:var(--primary)"></i> إضافة قسم';
+    document.getElementById("catName").value = "";
+    document.getElementById("categoryModal").style.display = "flex";
+}
+
+function openEditCategoryModal(docId) {
+    let cat = adminCategoriesCache.find(c => c._docId === docId);
+    if (!cat) return;
+    document.getElementById("catModalId").value = docId;
+    document.getElementById("catModalTitle").innerHTML = '<i class="fas fa-edit" style="color:var(--warning)"></i> تعديل قسم';
+    document.getElementById("catName").value = cat.name || "";
+    document.getElementById("categoryModal").style.display = "flex";
+}
+
+async function saveCategoryModal() {
+    let name = document.getElementById("catName").value.trim();
+    if (!name) return notify("أدخل اسم القسم", "error");
+    let id = document.getElementById("catModalId").value;
+    try {
+        if (id) {
+            await dbOrder.collection("categories").doc(id).update({ name });
+            notify("تم تحديث القسم");
+        } else {
+            let maxOrder = adminCategoriesCache.reduce((m, c) => Math.max(m, c.sortOrder || 0), 0);
+            await dbOrder.collection("categories").add({ name, sortOrder: maxOrder + 1 });
+            notify("تمت إضافة القسم");
+        }
+        document.getElementById("categoryModal").style.display = "none";
+        logAction(`${id ? 'تعديل' : 'إضافة'} قسم: ${name}`, 'general');
+    } catch(e) { notify("خطأ: " + e.message, "error"); }
+}
+
+async function deleteCat(docId, name) {
+    let linked = adminServicesCache.filter(s => s.categoryId === docId).length;
+    let msg = `هل تريد حذف قسم "${name}"؟`;
+    if (linked > 0) msg += `\n⚠️ يوجد ${linked} خدمة مرتبطة بهذا القسم — ستصبح بدون قسم.`;
+    let ok = await showConfirm("حذف القسم", msg, "حذف", "إلغاء", '<i class="fas fa-trash"></i>');
+    if (!ok) return;
+    // إزالة categoryId من الخدمات المرتبطة
+    for (let s of adminServicesCache.filter(s => s.categoryId === docId)) {
+        await dbOrder.collection("services").doc(s._docId).update({ categoryId: "" });
+    }
+    await dbOrder.collection("categories").doc(docId).delete();
+    logAction(`حذف قسم: ${name}`, 'danger');
+    notify("تم حذف القسم");
+}
+
+async function moveCat(docId, dir) {
+    let sorted = [...adminCategoriesCache];
+    let idx = sorted.findIndex(c => c._docId === docId);
+    let swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    let a = sorted[idx], b = sorted[swapIdx];
+    try {
+        await dbOrder.collection("categories").doc(a._docId).update({ sortOrder: b.sortOrder || swapIdx });
+        await dbOrder.collection("categories").doc(b._docId).update({ sortOrder: a.sortOrder || idx });
+    } catch(e) { notify("خطأ في الترتيب: " + e.message, "error"); }
+}
+
+function openCatServicesModal(catId) {
+    let cat = adminCategoriesCache.find(c => c._docId === catId);
+    if (!cat) return;
+    document.getElementById("catServicesTitle").innerHTML = `<i class="fas fa-list" style="color:var(--primary)"></i> خدمات قسم: ${esc(cat.name)}`;
+    let body = document.getElementById("catServicesBody");
+    let svcList = adminServicesCache.filter(s => s.categoryId === catId).sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0));
+    if (svcList.length === 0) {
+        body.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:20px;">لا توجد خدمات في هذا القسم</div>`;
+    } else {
+        body.innerHTML = "";
+        svcList.forEach((s, idx) => {
+            let upBtn = `<button class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveSvcInCat('${s._docId}','${catId}',-1)" ${idx===0?'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"':''}><i class="fas fa-chevron-up"></i></button>`;
+            let downBtn = `<button class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveSvcInCat('${s._docId}','${catId}',1)" ${idx===svcList.length-1?'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"':''}><i class="fas fa-chevron-down"></i></button>`;
+            body.innerHTML += `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:10px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">${upBtn}${downBtn}</div>
+                <span style="flex:1; font-weight:700; font-size:14px;">${esc(s.name)}</span>
+                <span style="font-size:12px; color:var(--text-muted);">${s.price||0}₪</span>
+            </div>`;
+        });
+    }
+    document.getElementById("catServicesModal").style.display = "flex";
+}
+
+async function moveSvcInCat(docId, catId, dir) {
+    let svcList = adminServicesCache.filter(s => s.categoryId === catId).sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0));
+    let idx = svcList.findIndex(s => s._docId === docId);
+    let swapIdx = idx + dir;
+    if (swapIdx < 0 || swapIdx >= svcList.length) return;
+    let a = svcList[idx], b = svcList[swapIdx];
+    try {
+        await dbOrder.collection("services").doc(a._docId).update({ sortOrder: b.sortOrder || swapIdx });
+        await dbOrder.collection("services").doc(b._docId).update({ sortOrder: a.sortOrder || idx });
+        // إعادة رسم النافذة بعد تحديث الـ cache
+        setTimeout(() => openCatServicesModal(catId), 600);
+    } catch(e) { notify("خطأ: " + e.message, "error"); }
+}
 async function removeBuyerFromStock(stockId, buyerIdx) {
     let ok = await showConfirm("تأكيد الحذف", "هل تريد حذف هذا العميل من البروفايل وإرجاع مقعده؟", "حذف", "إلغاء", '<i class="fas fa-user-minus"></i>');
     if (!ok) return;
@@ -7323,6 +7565,8 @@ async function moveService(docId, direction) {
 function openAddServiceModal() {
     if (currentUser.role !== 'admin') return notify("للأدمن فقط", "error");
     document.getElementById("editServiceDocId").value = "";
+    _refreshCategoryDropdown();
+    document.getElementById("svcCategory").value = "";
     document.getElementById("addServiceModalTitle").innerHTML = '<i class="fas fa-plus-circle" style="color:var(--primary)"></i> إضافة خدمة جديدة';
     document.getElementById("svcName").value = "";
     document.getElementById("svcDesc").value = "";
@@ -7353,6 +7597,8 @@ function openEditServiceModal(docId) {
     document.getElementById("svcOriginalPriceDiv").style.display = s.hasDiscount ? "block" : "none";
     document.getElementById("svcOriginalPrice").value = s.originalPrice || "";
     document.getElementById("svcBadge").value = s.badge || "";
+    _refreshCategoryDropdown();
+    document.getElementById("svcCategory").value = s.categoryId || "";
 
     _editBranches = (s.branches && s.branches.length > 0) ? [...s.branches] : [{}];
     document.getElementById("svcBranchCount").disabled = true;
@@ -7551,7 +7797,8 @@ async function saveNewService() {
     let iconUrl = document.getElementById("svcIconUrl")?.value.trim() || "";
     let hasDiscount = document.getElementById("svcHasDiscount")?.checked || false;
     let originalPrice = hasDiscount ? (parseFloat(document.getElementById("svcOriginalPrice")?.value) || 0) : 0;
-    let svcObj = { name, icon, badge, iconUrl, hasDiscount, originalPrice };
+    let categoryId = document.getElementById("svcCategory")?.value || "";
+    let svcObj = { name, icon, badge, iconUrl, hasDiscount, originalPrice, categoryId };
 
     // جلب الوصف العام من الحقل الجديد
     let mainDesc = document.getElementById("svcDesc") ? document.getElementById("svcDesc").value.trim() : "";
@@ -8731,6 +8978,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
