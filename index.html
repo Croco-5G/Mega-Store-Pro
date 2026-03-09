@@ -7443,6 +7443,7 @@ async function sellStock(id) {
 // ══════════════════════════════════════════════════════════════
 let adminServicesCache = []; // cache من db.collection("services")
 let _editBranches = []; // فروع الخدمة في وضع التعديل
+let _editServicePriceOnRequest = false;
 let orderActivityCache = [];
 let _actUnsubscribe = null;
 
@@ -7601,6 +7602,7 @@ function openEditServiceModal(docId) {
     document.getElementById("svcCategory").value = s.categoryId || "";
     
 
+    _editServicePriceOnRequest = !!s.priceOnRequest;
     _editBranches = (s.branches && s.branches.length > 0) ? [...s.branches] : [{}];
     document.getElementById("svcBranchCount").disabled = true;
     renderEditBranchInputs();
@@ -7753,10 +7755,10 @@ function renderEditBranchInputs() {
             </div>` : ''}
             ${_editBranches.length === 1 ? `
             <div class="input-group" style="flex-direction:row; align-items:center; gap:10px;">
-                <input type="checkbox" id="eb_priceOnRequest_0" onchange="document.getElementById('eb_price_div_0').style.display=this.checked?'none':'block'" style="width:20px; height:20px; margin:0;" ${b.priceOnRequest?'checked':''}>
+                <input type="checkbox" id="eb_priceOnRequest_0" onchange="document.getElementById('eb_price_div_0').style.display=this.checked?'none':'block'" style="width:20px; height:20px; margin:0;" ${_editServicePriceOnRequest?'checked':''}>
                 <label for="eb_priceOnRequest_0" style="margin:0; cursor:pointer; font-weight:bold; color:var(--info);">السعر حسب الطلب؟</label>
             </div>
-            <div class="input-group" id="eb_price_div_0" style="${b.priceOnRequest?'display:none':''}">
+            <div class="input-group" id="eb_price_div_0" style="${_editServicePriceOnRequest?'display:none':''}">
                 <label>السعر (₪) *</label>
                 <input type="number" id="eb_price_${i}" value="${b.price||0}">
             </div>` : `
@@ -9004,6 +9006,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
