@@ -4735,17 +4735,13 @@ function loadServices() {
     let selStock = document.getElementById("stService");
     let html = '<option value="">اختر الخدمة...</option>';
 
-    let localServices = safeJSON(store.services, []);
-    let allServiceNames = new Set(localServices);
-
-    // سحب الخدمات من فايربيس الطلبات
     if (typeof adminServicesCache !== 'undefined' && adminServicesCache.length > 0) {
-        adminServicesCache.forEach(s => allServiceNames.add(s.name));
+        [...adminServicesCache]
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+            .forEach(s => {
+                html += `<option value="${esc(s.name)}">${esc(s.name)}</option>`;
+            });
     }
-
-    Array.from(allServiceNames).sort().forEach(sName => {
-        html += `<option value="${esc(sName)}">${esc(sName)}</option>`;
-    });
 
     if(selStock) selStock.innerHTML = html;
 }
@@ -9006,6 +9002,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
