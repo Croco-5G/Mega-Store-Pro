@@ -7599,6 +7599,14 @@ function openEditServiceModal(docId) {
     document.getElementById("svcBadge").value = s.badge || "";
     _refreshCategoryDropdown();
     document.getElementById("svcCategory").value = s.categoryId || "";
+    // تفعيل حسب الطلب لو كان محفوظاً
+    setTimeout(() => {
+        let chk = document.getElementById("b_priceOnRequest_0");
+        if (chk) {
+            chk.checked = !!s.priceOnRequest;
+            document.getElementById("price_div_0").style.display = s.priceOnRequest ? 'none' : 'block';
+        }
+    }, 100);
 
     _editBranches = (s.branches && s.branches.length > 0) ? [...s.branches] : [{}];
     document.getElementById("svcBranchCount").disabled = true;
@@ -7622,7 +7630,8 @@ async function saveServiceModal() {
         let hasDiscount = document.getElementById("svcHasDiscount")?.checked || false;
         let originalPrice = hasDiscount ? (parseFloat(document.getElementById("svcOriginalPrice")?.value) || 0) : 0;
         let categoryId = document.getElementById("svcCategory")?.value || "";
-        let svcObj = { name, icon, badge, description: mainDesc, iconUrl, hasDiscount, originalPrice, categoryId };
+        let priceOnRequest = document.getElementById("b_priceOnRequest_0")?.checked || false;
+        let svcObj = { name, icon, badge, description: mainDesc, iconUrl, hasDiscount, originalPrice, categoryId, priceOnRequest };
         let branches = [];
         let bookingBranchesCount = 0;
         for (let i = 0; i < _editBranches.length; i++) {
@@ -7639,11 +7648,19 @@ async function saveServiceModal() {
         }
         if (bookingBranchesCount > 1) return notify("لا يمكن تحديد أكثر من فرع واحد كحجز", "error");
         svcObj.hasBranches = branches.length > 1;
-        svcObj.price = branches[0].price;
+        svcObj.price = priceOnRequest ? 0 : branches[0].price;
         svcObj.code = branches[0].code;
         svcObj.branches = branches;
         try {
             document.getElementById("addServiceModal").style.display = "none";
+            // تحديث اسم الخدمة في store.services لو تغير
+            let oldSvc = adminServicesCache.find(s => s._docId === editDocId);
+            if (oldSvc && oldSvc.name !== name) {
+                let list = safeJSON(store.services, []).filter(s => s !== oldSvc.name);
+                if (!list.includes(name)) list.push(name);
+                store.services = JSON.stringify(list);
+                fbSave("services", list);
+            }
             await dbOrder.collection("services").doc(editDocId).update(svcObj);
             logAction(`تعديل خدمة: ${name}`, 'general');
             notify("تم تحديث الخدمة بنجاح");
@@ -7661,7 +7678,11 @@ function renderBranchInputs() {
         container.innerHTML = `
         <div style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px;">
             <div style="font-size:12px; color:var(--primary); font-weight:800; margin-bottom:12px;"><i class="fas fa-cube"></i> بيانات الخدمة</div>
-            <div class="input-group">
+            <div class="input-group" style="flex-direction:row; align-items:center; gap:10px;">
+                <input type="checkbox" id="b_priceOnRequest_0" onchange="document.getElementById('price_div_0').style.display=this.checked?'none':'block'" style="width:20px; height:20px; margin:0;">
+                <label for="b_priceOnRequest_0" style="margin:0; cursor:pointer; font-weight:bold; color:var(--info);">السعر حسب الطلب؟</label>
+            </div>
+            <div class="input-group" id="price_div_0">
                 <label>السعر (₪) *</label>
                 <input type="number" id="b_price_0" placeholder="0">
             </div>
@@ -7807,7 +7828,8 @@ async function saveNewService() {
 
     let bookingBranchesCount = 0;
     if (count === 1) {
-        let price = parseFloat(document.getElementById("b_price_0").value) || 0;
+        let priceOnRequest = document.getElementById("b_priceOnRequest_0")?.checked || false;
+        let price = priceOnRequest ? 0 : (parseFloat(document.getElementById("b_price_0").value) || 0);
         let code = document.getElementById("b_code_0").value.trim();
         let isBooking = document.getElementById("b_isBooking_0").checked;
         let capacity = parseInt(document.getElementById("b_capacity_0").value) || 0;
@@ -7815,6 +7837,7 @@ async function saveNewService() {
         if (isBooking && capacity < 1) return notify("يجب تحديد سعة حجز صحيحة", "error");
         svcObj.hasBranches = false;
         svcObj.price = price;
+        svcObj.priceOnRequest = priceOnRequest;
         svcObj.code = code;
         svcObj.branches = [{ name: name, price: price, code: code, isBooking: isBooking, bookingCapacity: capacity, currentBookings: 0 }];
     } else {
@@ -8979,6 +9002,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
