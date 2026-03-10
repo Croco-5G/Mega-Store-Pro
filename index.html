@@ -881,7 +881,11 @@
         <input type="hidden" id="dlvCustomerPhone">
         <input type="hidden" id="dlvServiceName">
 
-        <div class="input-group">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; padding:10px 14px; background:rgba(239,68,68,0.07); border:1px dashed rgba(239,68,68,0.4); border-radius:10px;">
+            <input type="checkbox" id="dlvNoExpiry" onchange="toggleDlvNoExpiry()" style="width:18px;height:18px;cursor:pointer;accent-color:var(--danger);">
+            <label for="dlvNoExpiry" style="cursor:pointer; font-weight:700; color:var(--danger); margin:0;">خدمة خاصة بدون مدة</label>
+        </div>
+        <div id="dlvStockWrap" class="input-group">
             <label>اختر الاشتراك من المخزون *</label>
             <select id="dlvStock"><option value="">اختر...</option></select>
         </div>
@@ -900,7 +904,7 @@
             <label>كود الخصم (اختياري)</label>
             <input id="dlvDiscount" placeholder="9 أرقام اختياري" maxlength="9" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')">
         </div>
-        <div class="input-group" style="background:rgba(245,158,11,0.06); border:1px dashed rgba(245,158,11,0.4); border-radius:10px; padding:12px;">
+        <div id="dlvCustomMonthsWrap" class="input-group" style="background:rgba(245,158,11,0.06); border:1px dashed rgba(245,158,11,0.4); border-radius:10px; padding:12px;">
             <label style="color:var(--warning); font-size:13px;"><i class="fas fa-calendar-alt"></i> مدة مخصصة للاشتراك (أشهر) — اختياري</label>
             <input type="number" id="dlvCustomMonths" placeholder="اتركه فارغاً لاستخدام مدة المخزون" min="1" max="120">
             <div style="font-size:11px; color:var(--text-muted); margin-top:4px;"><i class="fas fa-info-circle"></i> لو حددت مدة، سيتم احتساب انتهاء الاشتراك من اليوم + عدد الأشهر المحددة</div>
@@ -8530,6 +8534,12 @@ function updateDlvCurrency() {
     document.getElementById("dlvCurrencyLabel").textContent = cur;
 }
 
+function toggleDlvNoExpiry() {
+    let checked = document.getElementById('dlvNoExpiry').checked;
+    document.getElementById('dlvStockWrap').style.display = checked ? 'none' : '';
+    document.getElementById('dlvCustomMonthsWrap').style.display = checked ? 'none' : '';
+}
+
 async function executeDelivery() {
     let docId = document.getElementById("dlvOrderId").value;
     let customerName = document.getElementById("dlvCustomerName").value;
@@ -8540,7 +8550,8 @@ async function executeDelivery() {
     let amount = parseFloat(document.getElementById("dlvAmount").value);
     let discountCode = document.getElementById("dlvDiscount").value.trim();
 
-    if (!stockId) return notify("اختر اشتراكاً من المخزون", "error");
+    let noExpiry = document.getElementById('dlvNoExpiry')?.checked;
+    if (!noExpiry && !stockId) return notify("اختر اشتراكاً من المخزون أو فعّل خيار بدون مدة", "error");
     if (!walletName) return notify("اختر المحفظة", "error");
     if (isNaN(amount) || amount < 0) return notify("أدخل المبلغ بشكل صحيح", "error");
     if (discountCode && !/^\d{9}$/.test(discountCode)) return notify("كود الخصم يجب أن يكون 9 أرقام بالضبط", "error");
@@ -8644,7 +8655,10 @@ async function executeDelivery() {
     let stockItems = safeJSON(store.stock, []);
     let stkIdx = stockItems.findIndex(s => s.id === stockId);
     let stItem = stkIdx > -1 ? stockItems[stkIdx] : null;
-    if (stItem) {
+    if (noExpiry) {
+        newPurchase.duration = 'بدون مدة';
+        newPurchase.expiry = null;
+    } else if (stItem) {
         if (!stItem.buyers) stItem.buyers = [];
         let buyerInfo = (customerName || 'عميل') + (customerPhone ? ` - ${customerPhone}` : '');
         stItem.buyers.push(buyerInfo);
@@ -8667,6 +8681,11 @@ async function executeDelivery() {
             if (_dlvExp.getDate() !== _dlvBase.getDate()) _dlvExp.setDate(0);
             newPurchase.expiry = _dlvExp.getTime();
         }
+    }
+
+    if (document.getElementById('dlvNoExpiry')) {
+        document.getElementById('dlvNoExpiry').checked = false;
+        toggleDlvNoExpiry();
     }
 
     store.wallets = JSON.stringify(wallets);
@@ -9028,6 +9047,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
