@@ -294,6 +294,9 @@
             color: var(--text-main); 
             font-size: 14px;
             vertical-align: middle;
+            word-break: break-word;
+            white-space: normal;
+            max-width: 200px;
         }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background-color: rgba(99, 102, 241, 0.02); }
@@ -429,7 +432,7 @@
                 border-radius: 8px;
             }
             table { min-width: 600px; }
-            th, td { padding: 12px 8px; font-size: 13px; }
+            th, td { padding: 12px 8px; font-size: 13px; word-break: break-word; white-space: normal; }
             
             /* ترتيب عناصر التصفية تحت بعضها في الجوال */
             #history .flex-wrap {
@@ -9024,6 +9027,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
