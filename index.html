@@ -4535,10 +4535,8 @@ function showOrderActivityDetails(a) {
         ['platform',       'المنصة'],
         ['browser',        'المتصفح'],
         ['browserVersion', 'إصدار المتصفح'],
-        ['touchPoints',    'نقاط اللمس'],
-        ['pixelRatio',     'دقة البكسل'],
         ['screen',         'دقة الشاشة'],
-        ['viewport',       'حجم النافذة'],
+        ['deviceFingerprint', 'بصمة الجهاز'],
     ]);
     body.innerHTML += section('globe', 'الشبكة والموقع', [
         ['ip',      'عنوان IP'],
@@ -4550,15 +4548,12 @@ function showOrderActivityDetails(a) {
     ]);
     body.innerHTML += section('language', 'اللغة والتوقيت', [
         ['language',       'اللغة الرئيسية'],
-        ['languages',      'اللغات المدعومة'],
         ['timezone',       'المنطقة الزمنية'],
-        ['timezoneOffset', 'فارق التوقيت'],
     ]);
     body.innerHTML += section('sliders-h', 'إعدادات المتصفح', [
         ['cookiesEnabled', 'الكوكيز مفعّلة'],
         ['doNotTrack',     'عدم التتبع'],
         ['userAgent',      'User Agent'],
-        ['deviceFingerprint', 'بصمة الجهاز'],
     ]);
 
     document.getElementById("detailsModal").classList.remove("hidden");
@@ -9059,6 +9054,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
