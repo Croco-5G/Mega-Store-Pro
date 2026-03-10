@@ -425,7 +425,7 @@
 
             /* تحسين مرونة الجداول عند السحب الجانبي */
             .table-container {
-                margin: 0 -5px;
+                margin: 0;
                 border-radius: 8px;
             }
             table { min-width: 600px; }
@@ -1145,7 +1145,7 @@
 
         <div class="table-container">
             <table>
-                <thead><tr><th style="width:180px">التاريخ</th><th style="width:150px">المستخدم</th><th>الحدث</th><th>تفاصيل</th></tr></thead>
+                <thead><tr><th style="width:180px">التاريخ</th><th style="width:150px">المستخدم</th><th>الحدث</th><th>تفاصيل</th><th>حذف</th></tr></thead>
                 <tbody id="logsTableBody"></tbody>
             </table>
         </div>
@@ -4453,11 +4453,21 @@ function refreshLogs() {
         } else {
             detailsBtn = `<span style="color:var(--text-muted); font-size:12px;">-</span>`;
         }
-        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td></tr>`;
+        let delBtn = role==='admin' ? `<button class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="deleteLogEntry('${log._ts || log.time}', '${currentLogsTab}')"><i class="fas fa-trash"></i></button>` : '-';
+        rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td><td>${delBtn}</td></tr>`;
     });
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
 }
-
+async function deleteLogEntry(ts, tab) {
+    let ok = await showConfirm("حذف سجل", "هل أنت متأكد من حذف هذا السجل نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    if (!ok) return;
+    let logs = safeJSON(store.activityLog, []);
+    logs = logs.filter(l => String(l._ts || l.time) !== String(ts));
+    store.activityLog = JSON.stringify(logs);
+    fbSave("activityLog", logs);
+    refreshLogs();
+    notify("تم حذف السجل");
+}
 function toggleLogDetails(uid) {
     let row = document.getElementById(uid);
     let icon = document.getElementById('icon_' + uid);
@@ -9002,6 +9012,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
