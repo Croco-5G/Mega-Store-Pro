@@ -476,7 +476,7 @@
         body.locked .main-content, body.locked .sidebar, body.locked .mobile-menu-btn, body.locked #syncStatus { filter: blur(10px); pointer-events: none; user-select: none; }
         
         /* Tabs */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); cursor: pointer; font-weight: 600; color: var(--text-muted); transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
@@ -4424,7 +4424,8 @@ function refreshLogs() {
             let lbl = typeLabel[a.eventType]||a.eventType||'—';
             let bdg = typeBadge[a.eventType]||'badge-primary';
             let detBtn = role==='admin' ? `<button class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick='showOrderActivityDetails(${JSON.stringify(a)})'><i class="fas fa-eye"></i></button>` : '-';
-            rows += `<tr><td style="direction:ltr;text-align:right;font-size:12px;">${a.timeLocal||a.timestamp||'—'}</td><td><span class="badge ${bdg}" style="font-size:11px;">${lbl}</span></td><td style="font-size:12px;">${esc(a.device||'—')} / ${esc(a.browser||'—')} / ${esc(a.country||'—')}</td><td>${detBtn}</td></tr>`;
+            let delOaBtn = role==='admin' ? `<button class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="deleteOrderActivity('${a._docId}')"><i class="fas fa-trash"></i></button>` : '-';
+            rows += `<tr><td style="direction:ltr;text-align:right;font-size:12px;">${a.timeLocal||a.timestamp||'—'}</td><td><span class="badge ${bdg}" style="font-size:11px;">${lbl}</span></td><td style="font-size:12px;">${esc(a.device||'—')} / ${esc(a.browser||'—')} / ${esc(a.country||'—')}</td><td>${detBtn}</td><td>${delOaBtn}</td></tr>`;
         });
         tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center;padding:20px;color:var(--text-muted)'>لا يوجد نشاط بعد</td></tr>`;
         return;
@@ -4457,6 +4458,17 @@ function refreshLogs() {
         rows += `<tr><td style="direction:ltr; text-align:right">${log.time}</td><td><b>${esc(log.user)}</b></td><td>${esc(log.action)}</td><td>${detailsBtn}</td><td>${delBtn}</td></tr>`;
     });
     tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center; padding:20px; color:var(--text-muted)'>لا توجد بيانات</td></tr>`;
+}
+async function deleteOrderActivity(docId) {
+    if (!docId) return notify("لا يوجد معرّف للسجل", "error");
+    let ok = await showConfirm("حذف سجل", "هل أنت متأكد من حذف هذا السجل نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
+    if (!ok) return;
+    try {
+        await dbOrder.collection("orderActivity").doc(docId).delete();
+        orderActivityCache = orderActivityCache.filter(a => a._docId !== docId);
+        refreshLogs();
+        notify("تم حذف السجل");
+    } catch(e) { notify("خطأ: " + e.message, "error"); }
 }
 async function deleteLogEntry(ts, tab) {
     let ok = await showConfirm("حذف سجل", "هل أنت متأكد من حذف هذا السجل نهائياً؟", "حذف", "إلغاء", '<i class="fas fa-trash-alt"></i>');
@@ -9012,6 +9024,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
