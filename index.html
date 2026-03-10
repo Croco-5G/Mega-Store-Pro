@@ -4767,7 +4767,13 @@ function loadServices() {
 
     if (typeof adminServicesCache !== 'undefined' && adminServicesCache.length > 0) {
         [...adminServicesCache]
-            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+            .sort((a, b) => {
+                let catA = adminCategoriesCache.find(c => c._docId === a.categoryId);
+                let catB = adminCategoriesCache.find(c => c._docId === b.categoryId);
+                let cOrder = (catA?.sortOrder || 9999) - (catB?.sortOrder || 9999);
+                if (cOrder !== 0) return cOrder;
+                return (a.sortOrder || 0) - (b.sortOrder || 0);
+            })
             .forEach(s => {
                 html += `<option value="${esc(s.name)}">${esc(s.name)}</option>`;
             });
@@ -6796,7 +6802,13 @@ function renderServicesMain() {
         return;
     }
     div.innerHTML = "";
-    let sorted = [...adminServicesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    let sorted = [...adminServicesCache].sort((a, b) => {
+        let catA = adminCategoriesCache.find(c => c._docId === a.categoryId);
+        let catB = adminCategoriesCache.find(c => c._docId === b.categoryId);
+        let cOrder = (catA?.sortOrder || 9999) - (catB?.sortOrder || 9999);
+        if (cOrder !== 0) return cOrder;
+        return (a.sortOrder || 0) - (b.sortOrder || 0);
+    });
     sorted.forEach(s => {
         let catName = '';
         if (s.categoryId) {
@@ -9047,6 +9059,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
