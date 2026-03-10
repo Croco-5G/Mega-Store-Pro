@@ -4536,7 +4536,14 @@ function showOrderActivityDetails(a) {
         ['browser',        'المتصفح'],
         ['browserVersion', 'إصدار المتصفح'],
         ['screen',         'دقة الشاشة'],
-        ['deviceFingerprint', 'بصمة الجهاز'],
+        ['deviceModel',       'موديل الجهاز'],
+        ['memory',            'الذاكرة RAM'],
+        ['cpuCores',          'عدد النوى'],
+        ['battery',           'البطارية'],
+        ['deviceFingerprint', 'بصمة الجهاز (Canvas)'],
+        ['webglFingerprint',  'بصمة الجهاز (WebGL)'],
+        ['audioFingerprint',  'بصمة الصوت'],
+        ['fontFingerprint',   'الخطوط المثبتة'],
     ]);
     body.innerHTML += section('globe', 'الشبكة والموقع', [
         ['ip',      'عنوان IP'],
@@ -4554,6 +4561,9 @@ function showOrderActivityDetails(a) {
         ['cookiesEnabled', 'الكوكيز مفعّلة'],
         ['doNotTrack',     'عدم التتبع'],
         ['userAgent',      'User Agent'],
+        ['incognito',         'وضع التصفح الخفي'],
+        ['vpnDetection',      'كشف VPN'],
+        ['botDetection',      'كشف Bot'],
     ]);
 
     document.getElementById("detailsModal").classList.remove("hidden");
@@ -9054,6 +9064,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
