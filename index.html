@@ -4568,6 +4568,7 @@ function showOrderActivityDetails(a) {
                 </div>${rows}
                 <div style="border-top:1px dashed var(--border-color);margin:12px 0;"></div>`;
     };
+    a._secondsAr = a.seconds ? Math.round(a.seconds / 60) + ' دقيقة' : undefined;
     const _tLabels = { page_visit:'دخول على الموقع', service_selected:'اختيار خدمة', order_submitted:'إرسال طلب', text_copied:'نسخ نص', whatsapp_clicked:'ضغط واتساب', scrolled_to_bottom:'تمرر للأسفل', time_on_page:'وقت في الصفحة', started_typing_name:'بدأ يكتب اسم', started_typing_phone:'بدأ يكتب رقم', incognito_detected:'وضع خفي', blocked_by_cooldown:'محاولة تجاوز عداد', failed_validation:'فشل التحقق' };
     a._eventTypeAr = _tLabels[a.eventType] || a.eventType || '—';
     body.innerHTML += section('bell', 'معلومات الحدث', [
@@ -4582,7 +4583,7 @@ function showOrderActivityDetails(a) {
         ['amount',          'المبلغ'],
         ['reason',          'سبب الفشل'],
         ['copiedText',      'النص المنسوخ'],
-        ['seconds',         'الوقت (ثانية)'],
+        ['_secondsAr',      'الوقت (دقيقة)'],
         ['clickCount',      'عدد النقرات'],
     ]);
     body.innerHTML += section('mobile-alt', 'الجهاز والنظام', [
@@ -9122,6 +9123,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
