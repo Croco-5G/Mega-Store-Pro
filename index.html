@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <script>
         // منع ومضة اللون الأبيض المزعجة فور فتح الموقع
@@ -1951,7 +1952,8 @@ const firebaseConfig = {
 // ─── In-Memory Store (replaces localStorage for app data) ────────
 let store = {};
 let db = null;                   // مرجع Firestore العالمي للنظام المالي
-let dbOrder = null;              // مرجع Firestore الخاص بموقع الطلبات
+let dbOrder = null;
+let authOrder = null;
 let fbDocRef = null;             // مرجع المستند الرئيسي megastore/data
 
 const firebaseOrderConfig = {
@@ -1970,7 +1972,43 @@ let _refreshAllTimer = null;     // لـ Debounce استدعاءات refreshAll 
 let _collectionsLoaded = {};     // يتتبع أي Subcollections أتمت التحميل الأولي
 let myProfitChart = null;
 let mySalesChart = null;
-let currentUser = null; 
+let currentUser = null;
+let _fbAuthReady = false;
+function _doAfterFbAuth(callback) {
+  if (_fbAuthReady) { callback(); return; }
+  const modal = document.createElement('div');
+  modal.id = '_fbAuthModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--card-bg,#1e1e2e);padding:32px;border-radius:16px;width:320px;text-align:center;direction:rtl;">
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--primary,#a78bfa);">تأكيد الهوية</div>
+      <div style="font-size:13px;color:var(--text-muted,#888);margin-bottom:20px;">أدخل باسورد Firebase للمتابعة</div>
+      <input id="_fbAuthPass" type="password" placeholder="الباسورد" style="width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border,#333);background:var(--input-bg,#111);color:inherit;font-size:14px;margin-bottom:12px;box-sizing:border-box;direction:ltr;">
+      <div id="_fbAuthErr" style="color:#ef4444;font-size:12px;margin-bottom:10px;display:none;"></div>
+      <button id="_fbAuthBtn" onclick="_submitFbAuth('${`ahmed2037mohamed@gmail.com`}')" style="width:100%;padding:10px;border-radius:8px;background:var(--primary,#a78bfa);color:white;font-weight:700;border:none;cursor:pointer;font-size:14px;">دخول</button>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('_fbAuthPass').addEventListener('keydown', e => { if(e.key === 'Enter') _submitFbAuth('ahmed2037mohamed@gmail.com'); });
+  window._fbAuthCallback = callback;
+}
+
+async function _submitFbAuth(email) {
+  const pass = document.getElementById('_fbAuthPass').value;
+  const btn = document.getElementById('_fbAuthBtn');
+  const err = document.getElementById('_fbAuthErr');
+  if (!pass) { err.textContent = 'أدخل الباسورد'; err.style.display = 'block'; return; }
+  btn.textContent = '...'; btn.disabled = true;
+  try {
+    await authOrder.signInWithEmailAndPassword(email, pass);
+    _fbAuthReady = true;
+    document.getElementById('_fbAuthModal')?.remove();
+    if (window._fbAuthCallback) { window._fbAuthCallback(); window._fbAuthCallback = null; }
+  } catch(e) {
+    err.textContent = 'باسورد خاطئ';
+    err.style.display = 'block';
+    btn.textContent = 'دخول'; btn.disabled = false;
+  }
+}
 let isDemoMode = false;
 
 let currentStockTab = 'active';
@@ -2727,6 +2765,7 @@ function initFirebase() {
     // تهيئة قاعدة بيانات موقع الطلبات للعمل معاً في نفس الوقت
     const appOrder = firebase.initializeApp(firebaseOrderConfig, "OrderApp");
     dbOrder = firebase.firestore(appOrder);
+    authOrder = firebase.auth(appOrder);
 
     updateSyncStatus("جاري الاتصال...", "loading");
 
@@ -3746,13 +3785,15 @@ function tryAutoLogin() {
 
     loginLayer.style.display = "none";
     document.body.classList.remove("locked");
-    loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
-    setTimeout(checkOverdueBookings, 3000);
-    document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
-    resetSessionTimer();
-    checkExpiringOnLogin();
-    checkExpiredCouponsOnLogin();
-    startExpiryPeriodicCheck();
+    _doAfterFbAuth(() => {
+      loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+      setTimeout(checkOverdueBookings, 3000);
+      document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
+      resetSessionTimer();
+      checkExpiringOnLogin();
+      checkExpiredCouponsOnLogin();
+      startExpiryPeriodicCheck();
+    });
 }
 
 function init(){
@@ -4030,14 +4071,16 @@ async function attemptLogin() {
 
         document.getElementById("loginLayer").style.display = "none";
         document.body.classList.remove("locked");
-        loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
-        setTimeout(checkOverdueBookings, 3000);
-        document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
-        resetSessionTimer();
-        checkExpiringOnLogin();
-        checkExpiredCouponsOnLogin();
-        startExpiryPeriodicCheck();
-    } else { 
+        _doAfterFbAuth(() => {
+          loadWallets(); loadProfitSettings(); loadServices(); loadPurchaseStock(); _initServicesListener(); _initCategoriesListener(); _initOrdersListener(); _initOrderActivityListener(); refreshAll(); applyRBAC();
+          setTimeout(checkOverdueBookings, 3000);
+          document.getElementById("currentUserDisplay").innerHTML = `مرحباً، ${esc(currentUser.username)} (${getRoleName(currentUser.role)})`;
+          resetSessionTimer();
+          checkExpiringOnLogin();
+          checkExpiredCouponsOnLogin();
+          startExpiryPeriodicCheck();
+        });
+    } else {
         errEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> اسم المستخدم أو كلمة المرور غير صحيحة.';
         errEl.style.background = 'rgba(239,68,68,0.12)';
         errEl.style.color = '#ef4444';
@@ -9071,6 +9114,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
