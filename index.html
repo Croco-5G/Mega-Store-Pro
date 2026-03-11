@@ -295,15 +295,14 @@
             color: var(--text-main); 
             font-size: 14px;
             vertical-align: middle;
-            word-break: break-word;
+            overflow-wrap: anywhere;
             white-space: normal;
-            max-width: 200px;
         }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background-color: rgba(99, 102, 241, 0.02); }
         tr.reminded td { background-color: rgba(16, 185, 129, 0.08); }
 
-        .wide-col { min-width: 250px; max-width: 400px; word-break: break-word; white-space: pre-wrap; direction: ltr; }
+        .wide-col { min-width: 250px; max-width: 400px; word-break: break-word; white-space: pre-wrap; }
 
         /* --- BADGES --- */
         .badge { padding: 6px 12px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; }
@@ -1526,7 +1525,7 @@
     <!-- واجهة الأقسام -->
     <div id="svc_categories" style="display:none;">
         <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center; flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="openAddCategoryModal()"><i class="fas fa-plus"></i> إضافة قسم</button>
+            <button id="btnAddCategory" class="btn btn-primary" onclick="openAddCategoryModal()"><i class="fas fa-plus"></i> إضافة قسم</button>
         </div>
         <div id="categoriesGrid" style="display:flex; flex-direction:row; flex-wrap:wrap; gap:14px;"></div>
     </div>
@@ -4334,7 +4333,7 @@ function applyRBAC() {
         safeToggle("btnExportCSV", "add"); // <--- إخفاء عن المشاهد
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
-
+        safeToggle("btnAddCategory", "add");
         let gnText = document.querySelector("#generalNotes textarea");
         if(gnText) gnText.style.display = "none";
         let gnBtn = document.querySelector("#generalNotes button");
@@ -4357,6 +4356,7 @@ function applyRBAC() {
         safeToggle("btnExportCSV", "add"); // <--- إخفاء عن المشاهد
         safeToggle("btnHideExpired", "add");
         safeToggle("btnStock", "add"); 
+        safeToggle("btnAddCategory", "add");
         
         // إخفاء زر الإحصائيات وقسم فلاتر مسار الميزانية عن المشاهد العادي
         safeToggle("btnAnalytics", "add");
@@ -6970,15 +6970,27 @@ async function deleteCat(docId, name) {
 }
 
 async function moveCat(docId, dir) {
-    let sorted = [...adminCategoriesCache];
+    let sorted = [...adminCategoriesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     let idx = sorted.findIndex(c => c._docId === docId);
     let swapIdx = idx + dir;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     let a = sorted[idx], b = sorted[swapIdx];
+    let newOrderA = b.sortOrder ?? swapIdx;
+    let newOrderB = a.sortOrder ?? idx;
+    let cA = adminCategoriesCache.find(c => c._docId === a._docId);
+    let cB = adminCategoriesCache.find(c => c._docId === b._docId);
+    if (cA) cA.sortOrder = newOrderA;
+    if (cB) cB.sortOrder = newOrderB;
+    renderCategoriesGrid();
     try {
-        await dbOrder.collection("categories").doc(a._docId).update({ sortOrder: b.sortOrder || swapIdx });
-        await dbOrder.collection("categories").doc(b._docId).update({ sortOrder: a.sortOrder || idx });
-    } catch(e) { notify("خطأ في الترتيب: " + e.message, "error"); }
+        await dbOrder.collection("categories").doc(a._docId).update({ sortOrder: newOrderA });
+        await dbOrder.collection("categories").doc(b._docId).update({ sortOrder: newOrderB });
+    } catch(e) {
+        if (cA) cA.sortOrder = newOrderB;
+        if (cB) cB.sortOrder = newOrderA;
+        renderCategoriesGrid();
+        notify("خطأ في الترتيب: " + e.message, "error");
+    }
 }
 
 function openCatServicesModal(catId) {
@@ -9121,6 +9133,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
