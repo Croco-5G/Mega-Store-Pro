@@ -1989,6 +1989,12 @@ function _doAfterFbAuth(callback) {
     </div>`;
   document.body.appendChild(modal);
   document.getElementById('_fbAuthPass').addEventListener('keydown', e => { if(e.key === 'Enter') _submitFbAuth('ahmed2037mohamed@gmail.com'); });
+  const saved = localStorage.getItem('_fbAuthPass');
+  if (saved) {
+    authOrder.signInWithEmailAndPassword(email, saved)
+      .then(() => { _fbAuthReady = true; document.getElementById('_fbAuthModal')?.remove(); callback(); })
+      .catch(() => { localStorage.removeItem('_fbAuthPass'); document.getElementById('_fbAuthPass').value = ''; });
+  }
   window._fbAuthCallback = callback;
 }
 
@@ -2001,6 +2007,7 @@ async function _submitFbAuth(email) {
   try {
     await authOrder.signInWithEmailAndPassword(email, pass);
     _fbAuthReady = true;
+    localStorage.setItem('_fbAuthPass', pass);
     document.getElementById('_fbAuthModal')?.remove();
     if (window._fbAuthCallback) { window._fbAuthCallback(); window._fbAuthCallback = null; }
   } catch(e) {
@@ -9114,6 +9121,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
