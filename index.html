@@ -432,7 +432,8 @@
                 border-radius: 8px;
             }
             table { min-width: 600px; }
-            th, td { padding: 12px 8px; font-size: 13px; word-break: break-word; white-space: normal; }
+            td { padding: 12px 8px; font-size: 13px; word-break: break-word; white-space: normal; }
+            th { padding: 12px 8px; font-size: 13px; white-space: nowrap; }
             
             /* ترتيب عناصر التصفية تحت بعضها في الجوال */
             #history .flex-wrap {
@@ -6971,23 +6972,21 @@ async function deleteCat(docId, name) {
 
 async function moveCat(docId, dir) {
     let sorted = [...adminCategoriesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    sorted.forEach((c, i) => { c.sortOrder = i; }); // تطبيع الأرقام لتجنب التضارب
     let idx = sorted.findIndex(c => c._docId === docId);
     let swapIdx = idx + dir;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     let a = sorted[idx], b = sorted[swapIdx];
-    let newOrderA = b.sortOrder ?? swapIdx;
-    let newOrderB = a.sortOrder ?? idx;
-    let cA = adminCategoriesCache.find(c => c._docId === a._docId);
-    let cB = adminCategoriesCache.find(c => c._docId === b._docId);
-    if (cA) cA.sortOrder = newOrderA;
-    if (cB) cB.sortOrder = newOrderB;
+    let tempOrder = a.sortOrder;
+    a.sortOrder = b.sortOrder;
+    b.sortOrder = tempOrder;
     renderCategoriesGrid();
     try {
-        await dbOrder.collection("categories").doc(a._docId).update({ sortOrder: newOrderA });
-        await dbOrder.collection("categories").doc(b._docId).update({ sortOrder: newOrderB });
+        await dbOrder.collection("categories").doc(a._docId).update({ sortOrder: a.sortOrder });
+        await dbOrder.collection("categories").doc(b._docId).update({ sortOrder: b.sortOrder });
     } catch(e) {
-        if (cA) cA.sortOrder = newOrderB;
-        if (cB) cB.sortOrder = newOrderA;
+        a.sortOrder = b.sortOrder;
+        b.sortOrder = tempOrder;
         renderCategoriesGrid();
         notify("خطأ في الترتيب: " + e.message, "error");
     }
@@ -9133,6 +9132,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
