@@ -7636,7 +7636,13 @@ function renderServicesSettings() {
     }
 
     div.innerHTML = "";
-    let sortedServices = [...adminServicesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    let sortedServices = [];
+    [...adminCategoriesCache].sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0)).forEach(cat => {
+        let svcInCat = adminServicesCache.filter(s => s.categoryId === cat._docId).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+        sortedServices.push(...svcInCat);
+    });
+    let noCat = adminServicesCache.filter(s => !s.categoryId || !adminCategoriesCache.find(c=>c._docId===s.categoryId)).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+    sortedServices.push(...noCat);
     sortedServices.forEach((s, idx) => {
         let hasBranches = s.hasBranches && s.branches && s.branches.length > 1;
         let branchInfo = hasBranches
@@ -7658,7 +7664,13 @@ function renderServicesSettings() {
     });
 }
 async function moveService(docId, direction) {
-    let sorted = [...adminServicesCache].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    let sorted = [];
+    [...adminCategoriesCache].sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0)).forEach(cat => {
+        let svcInCat = adminServicesCache.filter(s => s.categoryId === cat._docId).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+        sorted.push(...svcInCat);
+    });
+    let noCat = adminServicesCache.filter(s => !s.categoryId || !adminCategoriesCache.find(c=>c._docId===s.categoryId)).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+    sorted.push(...noCat);
     let idx = sorted.findIndex(s => s._docId === docId);
     let swapIdx = idx + direction;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
@@ -9138,6 +9150,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
