@@ -8559,6 +8559,9 @@ async function deleteOrder(docId) {
                     if (idx > -1) {
                         let newCount = ordersCache.filter(o => o._docId !== docId && o.status === 'booked' && String(o.serviceCode) === String(order.serviceCode)).length;
                         data.branches[idx].currentBookings = Math.max(0, newCount);
+                        if (newCount === 0) {
+                            delete data.branches[idx].bookingDeadline;
+                        }
                         await dbOrder.collection("services").doc(svcObj._docId).update({ branches: data.branches });
                     }
                 }
@@ -9132,6 +9135,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
