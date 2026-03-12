@@ -7667,7 +7667,6 @@ async function moveService(docId, direction) {
     let current = adminServicesCache.find(s => s._docId === docId);
     if (!current) return;
 
-    // نرتب فقط الخدمات في نفس القسم
     let sameCat = adminServicesCache
         .filter(s => (s.categoryId || '') === (current.categoryId || ''))
         .sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0));
@@ -7676,13 +7675,20 @@ async function moveService(docId, direction) {
     let swapIdx = idx + direction;
     if (swapIdx < 0 || swapIdx >= sameCat.length) return notify("لا يمكن تحريك الخدمة خارج قسمها", "error");
 
-    let a = sameCat[idx], b = sameCat[swapIdx];
-    let aOrder = a.sortOrder ?? idx;
-    let bOrder = b.sortOrder ?? swapIdx;
-
+    // تطبيع الأرقام أولاً لضمان أن كل خدمة لها رقم فريد
     try {
-        await dbOrder.collection("services").doc(a._docId).update({ sortOrder: bOrder });
-        await dbOrder.collection("services").doc(b._docId).update({ sortOrder: aOrder });
+        let batch = [];
+        for (let i = 0; i < sameCat.length; i++) {
+            sameCat[i]._tempOrder = i * 10;
+            batch.push(dbOrder.collection("services").doc(sameCat[i]._docId).update({ sortOrder: i * 10 }));
+        }
+        await Promise.all(batch);
+
+        // الآن نبدّل بين الاثنين
+        let aNew = swapIdx * 10;
+        let bNew = idx * 10;
+        await dbOrder.collection("services").doc(sameCat[idx]._docId).update({ sortOrder: aNew });
+        await dbOrder.collection("services").doc(sameCat[swapIdx]._docId).update({ sortOrder: bNew });
     } catch(e) { notify("خطأ في الترتيب: " + e.message, "error"); }
 }
 
@@ -9151,6 +9157,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
