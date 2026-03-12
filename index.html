@@ -7664,20 +7664,21 @@ function renderServicesSettings() {
     });
 }
 async function moveService(docId, direction) {
-    let sorted = [];
-    [...adminCategoriesCache].sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0)).forEach(cat => {
-        let svcInCat = adminServicesCache.filter(s => s.categoryId === cat._docId).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
-        sorted.push(...svcInCat);
-    });
-    let noCat = adminServicesCache.filter(s => !s.categoryId || !adminCategoriesCache.find(c=>c._docId===s.categoryId)).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
-    sorted.push(...noCat);
-    let idx = sorted.findIndex(s => s._docId === docId);
-    let swapIdx = idx + direction;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+    let current = adminServicesCache.find(s => s._docId === docId);
+    if (!current) return;
 
-    let a = sorted[idx], b = sorted[swapIdx];
-    let aOrder = a.sortOrder || idx;
-    let bOrder = b.sortOrder || swapIdx;
+    // نرتب فقط الخدمات في نفس القسم
+    let sameCat = adminServicesCache
+        .filter(s => (s.categoryId || '') === (current.categoryId || ''))
+        .sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0));
+
+    let idx = sameCat.findIndex(s => s._docId === docId);
+    let swapIdx = idx + direction;
+    if (swapIdx < 0 || swapIdx >= sameCat.length) return notify("لا يمكن تحريك الخدمة خارج قسمها", "error");
+
+    let a = sameCat[idx], b = sameCat[swapIdx];
+    let aOrder = a.sortOrder ?? idx;
+    let bOrder = b.sortOrder ?? swapIdx;
 
     try {
         await dbOrder.collection("services").doc(a._docId).update({ sortOrder: bOrder });
@@ -9150,6 +9151,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
