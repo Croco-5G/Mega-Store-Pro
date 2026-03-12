@@ -7675,20 +7675,17 @@ async function moveService(docId, direction) {
     let swapIdx = idx + direction;
     if (swapIdx < 0 || swapIdx >= sameCat.length) return notify("لا يمكن تحريك الخدمة خارج قسمها", "error");
 
-    // تطبيع الأرقام أولاً لضمان أن كل خدمة لها رقم فريد
     try {
-        let batch = [];
-        for (let i = 0; i < sameCat.length; i++) {
-            sameCat[i]._tempOrder = i * 10;
-            batch.push(dbOrder.collection("services").doc(sameCat[i]._docId).update({ sortOrder: i * 10 }));
-        }
-        await Promise.all(batch);
+        // تطبيع أولاً: نعطي كل خدمة في القسم رقماً فريداً متسلسلاً
+        let normalizeOps = sameCat.map((s, i) =>
+            dbOrder.collection("services").doc(s._docId).update({ sortOrder: i * 10 })
+        );
+        await Promise.all(normalizeOps);
 
-        // الآن نبدّل بين الاثنين
-        let aNew = swapIdx * 10;
-        let bNew = idx * 10;
-        await dbOrder.collection("services").doc(sameCat[idx]._docId).update({ sortOrder: aNew });
-        await dbOrder.collection("services").doc(sameCat[swapIdx]._docId).update({ sortOrder: bNew });
+        // بعد التطبيع: نبدّل الرقمين بين الخدمتين
+        await dbOrder.collection("services").doc(sameCat[idx]._docId).update({ sortOrder: swapIdx * 10 });
+        await dbOrder.collection("services").doc(sameCat[swapIdx]._docId).update({ sortOrder: idx * 10 });
+
     } catch(e) { notify("خطأ في الترتيب: " + e.message, "error"); }
 }
 
@@ -9157,6 +9154,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
