@@ -7745,8 +7745,10 @@ async function saveServiceModal() {
             let bName = _editBranches.length === 1 ? name : (document.getElementById(`eb_name_${i}`)?.value||'').trim();
             let bPrice = parseFloat(document.getElementById(`eb_price_${i}`)?.value) || 0;
             let bCode = (document.getElementById(`eb_code_${i}`)?.value||'').trim();
-            let isBooking = !!orig.isBooking;
-            let capacity = orig.bookingCapacity || 0;
+            let isBookingChk = document.getElementById(`eb_isBooking_${i}`);
+            let isBooking = isBookingChk ? isBookingChk.checked : !!orig.isBooking;
+            let capEl = document.getElementById(`eb_capacity_${i}`);
+            let capacity = capEl ? (parseInt(capEl.value) || 0) : (orig.bookingCapacity || 0);
             if (_editBranches.length > 1 && !bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
             if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
             if (isBooking) bookingBranchesCount++;
@@ -7848,7 +7850,8 @@ function renderEditBranchInputs() {
     container.innerHTML = "";
     _editBranches.forEach((b, i) => {
         let isBooking = !!b.isBooking;
-        let isLocked = isBooking; // الحجز مقفل
+        let hasActiveBookings = isBooking && parseInt(b.currentBookings || 0) > 0;
+        let isLocked = hasActiveBookings; // مقفل فقط لو في حجوزات قائمة
         container.innerHTML += `
         <div id="eb_card_${i}" style="background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px; margin-top:10px; position:relative;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
@@ -7856,7 +7859,7 @@ function renderEditBranchInputs() {
                 <div style="display:flex; gap:6px;">
                     <button type="button" class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveEditBranch(${i}, -1)" ${i===0?'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"':''}><i class="fas fa-chevron-up"></i></button>
                     <button type="button" class="btn" style="padding:4px 8px; font-size:12px; background:var(--bg-card); border:1px solid var(--border-color);" onclick="moveEditBranch(${i}, 1)" ${i===_editBranches.length-1?'disabled style="opacity:0.3;padding:4px 8px;font-size:12px;"':''}><i class="fas fa-chevron-down"></i></button>
-                    ${!isLocked ? `<button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteEditBranch(${i})"><i class="fas fa-times"></i></button>` : `<button type="button" class="btn" disabled style="padding:4px 8px; font-size:12px; opacity:0.3;" title="لا يمكن حذف فرع الحجز"><i class="fas fa-lock"></i></button>`}
+                    ${!isLocked ? `<button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteEditBranch(${i})"><i class="fas fa-times"></i></button>` : `<button type="button" class="btn" disabled style="padding:4px 8px; font-size:12px; opacity:0.3;" title="لا يمكن حذف فرع به حجوزات نشطة"><i class="fas fa-lock"></i></button>`}
                 </div>
             </div>
             ${_editBranches.length > 1 ? `
@@ -7884,15 +7887,15 @@ function renderEditBranchInputs() {
                     <button type="button" class="btn btn-warning" style="padding:8px 12px; white-space:nowrap;" onclick="genCode('eb_code_${i}')"><i class="fas fa-dice"></i></button>
                 </div>
             </div>
-            <div class="input-group" style="flex-direction:row; align-items:center; gap:10px; margin-top:15px; opacity:0.4;">
-                <input type="checkbox" id="eb_isBooking_${i}" ${isBooking?'checked':''} disabled style="width:20px; height:20px; margin:0; cursor:not-allowed;">
-                <label style="margin:0; font-weight:bold; color:var(--warning); cursor:not-allowed;">هذا الفرع عبارة عن حجز؟</label>
+            <div class="input-group" style="flex-direction:row; align-items:center; gap:10px; margin-top:15px; ${isLocked?'opacity:0.4;':''}">
+                <input type="checkbox" id="eb_isBooking_${i}" ${isBooking?'checked':''} ${isLocked?'disabled style="width:20px; height:20px; margin:0; cursor:not-allowed;"':'style="width:20px; height:20px; margin:0; cursor:pointer;"'} onchange="if(!${isLocked}){document.getElementById('cap_div_eb_${i}').style.display=this.checked?'block':'none';}">
+                <label for="eb_isBooking_${i}" style="margin:0; font-weight:bold; color:var(--warning); cursor:${isLocked?'not-allowed':'pointer'};">هذا الفرع عبارة عن حجز؟</label>
+                ${isLocked ? `<span style="font-size:11px; color:var(--danger); margin-right:auto;"><i class="fas fa-lock"></i> يوجد ${b.currentBookings} حجز نشط</span>` : ''}
             </div>
-            ${isBooking ? `
-            <div class="input-group" style="margin-top:10px; border:1px dashed var(--warning); padding:10px; border-radius:8px; opacity:0.4;">
-                <label style="color:var(--warning);">سعة الحجز (عدد الأشخاص)</label>
-                <input type="number" id="eb_capacity_${i}" value="${b.bookingCapacity||0}" readonly style="cursor:not-allowed;">
-            </div>` : ''}
+            <div id="cap_div_eb_${i}" style="margin-top:10px; border:1px dashed var(--warning); padding:10px; border-radius:8px; ${isLocked?'opacity:0.4;':''} ${isBooking?'':'display:none;'}">
+                <label style="color:var(--warning); font-size:13px; font-weight:700; display:block; margin-bottom:6px;">سعة الحجز (عدد الأشخاص)</label>
+                <input type="number" id="eb_capacity_${i}" value="${b.bookingCapacity||0}" ${isLocked?'readonly style="cursor:not-allowed;"':''} min="1">
+            </div>
         </div>`;
     });
     container.innerHTML += `<button type="button" class="btn btn-primary" style="width:100%; margin-top:12px;" onclick="addEditBranch()"><i class="fas fa-plus"></i> إضافة فرع جديد</button>`;
@@ -7905,7 +7908,7 @@ function addEditBranch() {
 }
 
 function deleteEditBranch(i) {
-    if (_editBranches[i]?.isBooking) return notify("لا يمكن حذف فرع الحجز", "error");
+    if (_editBranches[i]?.isBooking && parseInt(_editBranches[i]?.currentBookings || 0) > 0) return notify("لا يمكن حذف فرع به حجوزات نشطة", "error");
     if (_editBranches.length <= 1) return notify("يجب أن يبقى فرع واحد على الأقل", "error");
     _editBranches.splice(i, 1);
     renderEditBranchInputs();
@@ -9135,6 +9138,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
