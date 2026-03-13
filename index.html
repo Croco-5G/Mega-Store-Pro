@@ -2543,16 +2543,23 @@ function fbAtomicWalletInvest(walletIncs, investIncs, localW, localI) {
 }
 
 // ── حفظ حقل قياسي (object أو array) في المستند الرئيسي ────────
+let _pendingScalarWrites = {}; // يتتبع الكتابات المعلقة لكل key
+
+let _pendingScalarWrites = {}; // يتتبع الكتابات المعلقة لكل key
+
 function _fbSaveScalar(key, val) {
     _startSyncTimer();
+    _pendingScalarWrites[key] = JSON.stringify(val); // سجّل القيمة المكتوبة
     return fbDocRef.set({ [key]: val }, { merge: true })
         .then(() => {
             clearTimeout(_pendingWritesTimer);
             lastServerState[key] = JSON.parse(JSON.stringify(val));
+            delete _pendingScalarWrites[key]; // اكتمل الحفظ
             updateSyncStatus("تم الحفظ بنجاح", "success");
         })
         .catch(e => {
             clearTimeout(_pendingWritesTimer);
+            delete _pendingScalarWrites[key];
             console.error("fbSave scalar error:", e);
             updateSyncStatus("فشل الحفظ — غير متصل", "error");
         });
@@ -2792,8 +2799,9 @@ function initFirebase() {
                 SCALAR_KEYS.forEach(k => {
                     if (data[k] !== undefined) {
                         const newStr = JSON.stringify(data[k]);
-                        // لو في pending write محلي، تجاهل الـ snapshot القادم من الـ cache
                         if (fromCache && hasPendingWrites) return;
+                        // لو في كتابة معلقة لهذا الـ key وقيمة السيرفر مختلفة عنها = snapshot قديم، تجاهله
+                        if (_pendingScalarWrites[k] !== undefined && newStr !== _pendingScalarWrites[k]) return;
                         if (store[k] !== newStr) {
                             store[k] = newStr;
                             if (!fromCache) lastServerState[k] = JSON.parse(JSON.stringify(data[k]));
@@ -9168,6 +9176,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
