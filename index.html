@@ -2792,6 +2792,8 @@ function initFirebase() {
                 SCALAR_KEYS.forEach(k => {
                     if (data[k] !== undefined) {
                         const newStr = JSON.stringify(data[k]);
+                        // لو في pending write محلي، تجاهل الـ snapshot القادم من الـ cache
+                        if (fromCache && hasPendingWrites) return;
                         if (store[k] !== newStr) {
                             store[k] = newStr;
                             if (!fromCache) lastServerState[k] = JSON.parse(JSON.stringify(data[k]));
@@ -9166,6 +9168,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
