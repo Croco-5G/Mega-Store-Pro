@@ -7768,7 +7768,9 @@ async function saveServiceModal() {
             if (_editBranches.length > 1 && !bName) return notify(`أدخل اسم الفرع ${i+1}`, "error");
             if (!bCode || bCode.length !== 9) return notify(`كود الفرع ${i+1} يجب أن يكون 9 أرقام`, "error");
             if (isBooking) bookingBranchesCount++;
-            branches.push({ name: bName, price: bPrice, code: bCode, isBooking, bookingCapacity: capacity, currentBookings: orig.currentBookings || 0 });
+            let branchEntry = { name: bName, price: bPrice, code: bCode, isBooking, bookingCapacity: capacity, currentBookings: orig.currentBookings || 0 };
+            if (orig.bookingDeadline) branchEntry.bookingDeadline = orig.bookingDeadline;
+            branches.push(branchEntry);
         }
         if (bookingBranchesCount > 1) return notify("لا يمكن تحديد أكثر من فرع واحد كحجز", "error");
         svcObj.hasBranches = branches.length > 1;
@@ -8577,26 +8579,19 @@ async function deleteOrder(docId) {
                 if (svcDoc.exists) {
                     let data = svcDoc.data();
                     let idx = data.branches.findIndex(b => String(b.code) === String(order.serviceCode));
-
-                    // تأكد أن الفرع هو فعلاً فرع حجز قبل التعديل
                     if (idx > -1 && data.branches[idx].isBooking) {
-
-                        // نحسب العدد من Firebase مباشرة بدل ordersCache لتجنب الـ stale data
-                        let bookedSnap = await dbOrder.collection("orders")
-                            .where("serviceCode", "==", String(order.serviceCode))
-                            .where("status", "==", "booked")
-                            .get();
-
-                        // نستثني الطلب الحالي من العدد
-                        let newCount = bookedSnap.docs.filter(d => d.id !== docId).length;
-
+                        // عد الحجوزات المتبقية لهذا الفرع تحديداً
+                        let newCount = ordersCache.filter(o =>
+                            o._docId !== docId &&
+                            o.status === 'booked' &&
+                            String(o.serviceCode) === String(order.serviceCode)
+                        ).length;
                         data.branches[idx].currentBookings = Math.max(0, newCount);
-
-                        // نحذف العداد فقط إذا لم يتبقَّ أي حجز لنفس الفرع
+                        // العداد يختفي فقط لو ما ضل ولا حجز لهذا الفرع
                         if (newCount === 0) {
                             delete data.branches[idx].bookingDeadline;
                         }
-
+                        // نحافظ على bookingDeadline لكل الفروع الأخرى كما هي
                         await dbOrder.collection("services").doc(svcObj._docId).update({ branches: data.branches });
                     }
                 }
@@ -9171,6 +9166,7 @@ window.onload = init;
 </script>
 </body>
 </html>
+
 
 
 
