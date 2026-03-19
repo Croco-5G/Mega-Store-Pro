@@ -4493,7 +4493,7 @@ function refreshLogs() {
             let detBtn = role==='admin' ? `<button class="btn btn-primary" style="padding:5px 10px;font-size:12px" onclick='showOrderActivityDetails(${JSON.stringify(a)})'><i class="fas fa-eye"></i></button>` : '-';
             let delOaBtn = role==='admin' ? `<button class="btn btn-danger" style="padding:5px 10px;font-size:12px" onclick="deleteOrderActivity('${a._docId}')"><i class="fas fa-trash"></i></button>` : '-';
             const _st = a.serverTime?.seconds ? new Date(a.serverTime.seconds*1000).toLocaleString('ar-EG') : (a.timeLocal||a.timestamp||'—');
-            rows += `<tr><td style="direction:ltr;text-align:right;font-size:12px;">${_st}</td><td style="font-size:12px;">${esc(a.device||'—')} / ${esc(a.browser||'—')} / ${esc(a.country||'—')}</td><td><span class="badge ${bdg}" style="font-size:11px;">${lbl}</span></td><td>${detBtn}</td><td>${delOaBtn}</td></tr>`;
+            rows += `<tr><td style="direction:ltr;text-align:right;font-size:12px;">${_st}</td><td style="font-size:12px;">${esc(a.device||'—')} / ${esc(a.browser||'—')} / ${esc(a.country||'—')} ${a.visitorId ? '<br><span style="color:var(--primary);font-size:11px;">🪪 '+esc(a.visitorId)+'</span>' : ''}</td><td><span class="badge ${bdg}" style="font-size:11px;">${lbl}</span></td><td>${detBtn}</td><td>${delOaBtn}</td></tr>`;
         });
         tbody.innerHTML = rows || `<tr><td colspan='4' style='text-align:center;padding:20px;color:var(--text-muted)'>لا يوجد نشاط بعد</td></tr>`;
         return;
@@ -4607,6 +4607,7 @@ function showOrderActivityDetails(a) {
         ['memory',            'الذاكرة RAM'],
         ['cpuCores',          'عدد النوى'],
         ['battery',           'البطارية'],
+        ['visitorId',         'معرّف الجهاز'],
         ['deviceFingerprint', 'بصمة الجهاز (Canvas)'],
         ['webglFingerprint',  'بصمة الجهاز (WebGL)'],
     ]);
