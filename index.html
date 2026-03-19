@@ -8732,6 +8732,10 @@ async function executeDelivery() {
     let todayStr = `${nd.getFullYear()}-${nmm}-${nddStr}`;
 
     let purchaseId = genId();
+    let stockItems_pre = safeJSON(store.stock, []);
+    let stItem_pre = stockItems_pre.find(s => s.id === stockId);
+    let itemCost = stItem_pre ? (parseFloat(stItem_pre.cost) || 0) / (parseInt(stItem_pre.totalProfiles) || 1) : 0;
+    itemCost = Math.round(itemCost * 100) / 100;
     let newPurchase = {
         id: purchaseId,
         date: todayStr,
@@ -8740,7 +8744,7 @@ async function executeDelivery() {
         sub: serviceName,
         duration: '0',
         paid: `${amount}${paidCur}`,
-        cost: '0',
+        cost: String(itemCost),
         wallet: walletName,
         isComp: false,
         discountCode: discountCode || null,
